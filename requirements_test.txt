@@ -1,0 +1,19 @@
+# Testing requirements for Extended OpenAI Conversation integration
+pytest>=7.1.2
+pytest-homeassistant-custom-component>=0.13.0
+pytest-cov>=4.0.0
+pytest-asyncio>=0.21.0
+pytest-timeout>=2.1.0
+
+# Static analysis and code quality
+pre-commit>=3.3.3
+ruff>=0.1.0
+mypy>=1.5.0
+black>=23.0.0
+
+# Home Assistant specific validation
+hassfest
+
+# Additional development dependencies
+types-PyYAML
+types-requests
