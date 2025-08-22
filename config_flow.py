@@ -18,6 +18,7 @@ from homeassistant.helpers.selector import (
     BooleanSelector,
     NumberSelector,
     NumberSelectorConfig,
+    ObjectSelector,
     SelectOptionDict,
     SelectSelector,
     SelectSelectorConfig,
@@ -338,4 +339,37 @@ class OptionsFlow(config_entries.OptionsFlow):
                     mode=SelectSelectorMode.DROPDOWN,
                 )
             ),
+            vol.Optional(
+                CONF_USE_RESPONSE_API,
+                description={"suggested_value": options.get(CONF_USE_RESPONSE_API)},
+                default=DEFAULT_USE_RESPONSE_API,
+            ): BooleanSelector(),
+            vol.Optional(
+                CONF_ENABLE_WEB_SEARCH,
+                description={"suggested_value": options.get(CONF_ENABLE_WEB_SEARCH)},
+                default=DEFAULT_ENABLE_WEB_SEARCH,
+            ): BooleanSelector(),
+            vol.Optional(
+                CONF_SEARCH_CONTEXT_SIZE,
+                description={"suggested_value": options.get(CONF_SEARCH_CONTEXT_SIZE)},
+                default=DEFAULT_SEARCH_CONTEXT_SIZE,
+            ): SelectSelector(
+                SelectSelectorConfig(
+                    options=[
+                        SelectOptionDict(value="low", label="Low"),
+                        SelectOptionDict(value="medium", label="Medium"),
+                        SelectOptionDict(value="high", label="High"),
+                    ],
+                    mode=SelectSelectorMode.DROPDOWN,
+                )
+            ),
+            vol.Optional(
+                CONF_USER_LOCATION,
+                description={"suggested_value": options.get(CONF_USER_LOCATION, {})},
+            ): ObjectSelector(),
+            vol.Optional(
+                CONF_STORE_CONVERSATIONS,
+                description={"suggested_value": options.get(CONF_STORE_CONVERSATIONS)},
+                default=DEFAULT_STORE_CONVERSATIONS,
+            ): BooleanSelector(),
         }

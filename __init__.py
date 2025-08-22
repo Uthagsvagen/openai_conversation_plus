@@ -95,6 +95,8 @@ _LOGGER = logging.getLogger(__name__)
 
 CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 
+# Platform list
+PLATFORMS = ["ai_task"]
 
 # hass.data key for agent.
 DATA_AGENT = "agent"
@@ -133,14 +135,21 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     data[DATA_AGENT] = agent
 
     conversation.async_set_agent(hass, entry, agent)
+    
+    # Forward the entry to the platforms
+    await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+    
     return True
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Unload OpenAI."""
-    hass.data[DOMAIN].pop(entry.entry_id)
-    conversation.async_unset_agent(hass, entry)
-    return True
+    # Unload platforms
+    unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
+    if unload_ok:
+        hass.data[DOMAIN].pop(entry.entry_id)
+        conversation.async_unset_agent(hass, entry)
+    return unload_ok
 
 
 class OpenAIAgent(conversation.AbstractConversationAgent):
@@ -474,14 +483,71 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
         
         if not use_response_api:
             # Use Chat Completions API (existing code)
-            response: ChatCompletion = await self.client.chat.completions.create(
-                model=model,
-                messages=messages,
-                max_completion_tokens=max_tokens,
-                temperature=temperature,
-                user=user_input.conversation_id,
-                **tool_kwargs,
-            )
+            # Check if streaming is requested
+            if self.entry.options.get("enable_streaming", False):
+                # Streaming implementation
+                stream = await self.client.chat.completions.create(
+                    model=model,
+                    messages=messages,
+                    max_completion_tokens=max_tokens,
+                    temperature=temperature,
+                    user=user_input.conversation_id,
+                    stream=True,
+                    **tool_kwargs,
+                )
+                
+                # Collect the streamed response
+                collected_messages = []
+                async for chunk in stream:
+                    if chunk.choices and chunk.choices[0].delta.content:
+                        collected_messages.append(chunk.choices[0].delta.content)
+                
+                # Create a complete response from streamed chunks
+                complete_content = "".join(collected_messages)
+                
+                # Create a ChatCompletion-like response
+                from openai.types.chat import ChatCompletionMessage
+                from openai.types.chat.chat_completion import Choice, CompletionUsage
+                
+                message = ChatCompletionMessage(
+                    role="assistant",
+                    content=complete_content,
+                    function_call=None,
+                    tool_calls=None
+                )
+                
+                choice = Choice(
+                    finish_reason="stop",
+                    index=0,
+                    message=message
+                )
+                
+                # Create usage data (approximate)
+                usage = CompletionUsage(
+                    completion_tokens=len(complete_content.split()),
+                    prompt_tokens=sum(len(m.get("content", "").split()) for m in messages),
+                    total_tokens=0
+                )
+                usage.total_tokens = usage.completion_tokens + usage.prompt_tokens
+                
+                response = ChatCompletion(
+                    id="stream-" + ulid.ulid(),
+                    choices=[choice],
+                    created=int(time.time()),
+                    model=model,
+                    object="chat.completion",
+                    usage=usage
+                )
+            else:
+                # Non-streaming implementation
+                response: ChatCompletion = await self.client.chat.completions.create(
+                    model=model,
+                    messages=messages,
+                    max_completion_tokens=max_tokens,
+                    temperature=temperature,
+                    user=user_input.conversation_id,
+                    **tool_kwargs,
+                )
         
         _LOGGER.info("Prompt for %s: %s", model, json.dumps(messages))
 
