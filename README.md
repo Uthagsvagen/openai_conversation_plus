@@ -142,3 +142,4 @@ MIT License - see LICENSE file for details
 
 ## Acknowledgments
 Based on the official Home Assistant OpenAI Conversation integration with extended functionality.
+# openai_conversation_plus

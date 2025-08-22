@@ -1,4 +1,4 @@
-name: Test Extended OpenAI Conversation
+name: Test OpenAI Conversation Plus
 
 on:
   push:
