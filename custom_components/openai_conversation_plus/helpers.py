@@ -448,9 +448,9 @@ class ScriptFunctionExecutor(FunctionExecutor):
         script = Script(
             hass,
             function["sequence"],
-            "extended_openai_conversation",
+            "openai_conversation_plus",
             DOMAIN,
-            running_description="[extended_openai_conversation] function",
+            running_description="[openai_conversation_plus] function",
             logger=_LOGGER,
         )
 

@@ -432,7 +432,7 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
         reasoning_level = self.entry.options.get(CONF_REASONING_LEVEL, DEFAULT_REASONING_LEVEL)
         verbosity = self.entry.options.get(CONF_VERBOSITY, DEFAULT_VERBOSITY)
         
-        if use_response_api and hasattr(self.client, 'responses'):
+        if use_response_api:
             # Build tools list for Response API
             api_tools = []
             
@@ -489,6 +489,8 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
             response_kwargs["store"] = self.entry.options.get(CONF_STORE_CONVERSATIONS, DEFAULT_STORE_CONVERSATIONS)
             
             try:
+                # Attempt to call the Responses API. Some openai versions may not
+                # ship the streaming responses types; catch and gracefully fall back.
                 response = await self.client.responses.create(**response_kwargs)
                 _LOGGER.info("Response API Prompt for %s: %s", model, json.dumps(messages))
                 
@@ -519,9 +521,9 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
                     # Fallback if response structure is unexpected
                     raise OpenAIError("Unexpected Response API format")
                     
-            except AttributeError:
-                # Response API not available, fall back to Chat Completions
-                _LOGGER.info("Response API not available, using Chat Completions API")
+            except (AttributeError, ImportError, OpenAIError, Exception) as err:
+                # Response API not available in installed SDK, fall back to Chat Completions
+                _LOGGER.info("Response API not available, using Chat Completions API (%s)", err)
                 use_response_api = False
         
         if not use_response_api:

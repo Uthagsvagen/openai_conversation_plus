@@ -9,7 +9,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.const import CONF_API_KEY, CONF_NAME
 from homeassistant.data_entry_flow import FlowResultType
 
-from custom_components.extended_openai_conversation.const import (
+from custom_components.openai_conversation_plus.const import (
     DOMAIN,
     DEFAULT_NAME,
     CONF_BASE_URL,
@@ -26,7 +26,7 @@ async def test_form(hass: HomeAssistant, mock_validate_authentication) -> None:
     assert result["errors"] == {}
 
     with patch(
-        "custom_components.extended_openai_conversation.async_setup_entry",
+        "custom_components.openai_conversation_plus.async_setup_entry",
         return_value=True,
     ) as mock_setup_entry:
         result2 = await hass.config_entries.flow.async_configure(
@@ -56,7 +56,7 @@ async def test_form_invalid_auth(hass: HomeAssistant) -> None:
     )
 
     with patch(
-        "custom_components.extended_openai_conversation.helpers.validate_authentication",
+        "custom_components.openai_conversation_plus.helpers.validate_authentication",
         side_effect=Exception("Invalid API key"),
     ):
         result2 = await hass.config_entries.flow.async_configure(
@@ -79,7 +79,7 @@ async def test_form_cannot_connect(hass: HomeAssistant) -> None:
     )
 
     with patch(
-        "custom_components.extended_openai_conversation.helpers.validate_authentication",
+        "custom_components.openai_conversation_plus.helpers.validate_authentication",
         side_effect=ConnectionError(),
     ):
         result2 = await hass.config_entries.flow.async_configure(

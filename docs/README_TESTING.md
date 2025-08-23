@@ -33,7 +33,7 @@ make test
 
 3. **Run with coverage:**
    ```bash
-   pytest --cov=custom_components.extended_openai_conversation
+   pytest --cov=custom_components.openai_conversation_plus
    ```
 
 ## Testing Components
@@ -58,7 +58,7 @@ Individual tools:
 
 - **Ruff:** `ruff check .`
 - **Black:** `black --check .`
-- **MyPy:** `mypy custom_components/extended_openai_conversation`
+- **MyPy:** `mypy custom_components/openai_conversation_plus`
 - **isort:** `isort --check-only .`
 
 ### Manifest Validation

@@ -6,12 +6,12 @@ from unittest.mock import patch, MagicMock, AsyncMock
 
 from homeassistant.core import HomeAssistant
 
-from custom_components.extended_openai_conversation.ai_task import (
+from custom_components.openai_conversation_plus.ai_task import (
     async_setup_entry,
     OpenAITaskEntity,
     AI_TASK_AVAILABLE,
 )
-from custom_components.extended_openai_conversation.const import DOMAIN
+from custom_components.openai_conversation_plus.const import DOMAIN
 
 
 @pytest.mark.skipif(not AI_TASK_AVAILABLE, reason="AI Task component not available")

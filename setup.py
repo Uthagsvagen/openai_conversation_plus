@@ -11,7 +11,7 @@ setup(
     description="Extended OpenAI Conversation integration for Home Assistant",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/jekalmin/extended_openai_conversation",
+    url="https://github.com/aselling/openai_conversation_plus",
     packages=find_packages(include=["custom_components", "custom_components.*"]),
     classifiers=[
         "Development Status :: 4 - Beta",

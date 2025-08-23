@@ -8,7 +8,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_API_KEY, CONF_NAME
 
-from custom_components.extended_openai_conversation.const import (
+from custom_components.openai_conversation_plus.const import (
     DOMAIN,
     DEFAULT_CHAT_MODEL,
     DEFAULT_MAX_TOKENS,
@@ -49,7 +49,7 @@ def mock_config_entry() -> ConfigEntry:
 @pytest.fixture
 def mock_openai_client():
     """Mock OpenAI client."""
-    with patch("custom_components.extended_openai_conversation.AsyncOpenAI") as mock_client:
+    with patch("custom_components.openai_conversation_plus.AsyncOpenAI") as mock_client:
         client_instance = MagicMock()
         mock_client.return_value = client_instance
         
@@ -96,7 +96,7 @@ def mock_openai_client():
 def mock_validate_authentication():
     """Mock authentication validation."""
     with patch(
-        "custom_components.extended_openai_conversation.helpers.validate_authentication",
+        "custom_components.openai_conversation_plus.helpers.validate_authentication",
         return_value=None
     ) as mock:
         yield mock

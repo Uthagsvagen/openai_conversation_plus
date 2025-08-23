@@ -31,7 +31,7 @@ This project is a fork of Extended OpenAI Conversation. Big thanks to the origin
 4. Restart Home Assistant
 
 ### Manual Installation
-1. Copy the folder `custom_components/extended_openai_conversation/` into your Home Assistant `config/custom_components/` directory
+1. Copy the folder `custom_components/openai_conversation_plus/` into your Home Assistant `config/custom_components/` directory
 2. Restart Home Assistant
 
 ## Preparations
@@ -135,7 +135,7 @@ The original project by `jekalmin` includes several examples and reference mater
 ```yaml
 logger:
   logs:
-    custom_components.extended_openai_conversation: debug
+    custom_components.openai_conversation_plus: debug
     homeassistant.components.conversation: debug
 ```
 

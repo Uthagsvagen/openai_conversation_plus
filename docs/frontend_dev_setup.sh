@@ -77,7 +77,7 @@ const production = !process.env.ROLLUP_WATCH;
 export default {
   input: 'src/index.ts',
   output: {
-    file: '../custom_components/extended_openai_conversation/frontend/bundle.js',
+    file: '../custom_components/openai_conversation_plus/frontend/bundle.js',
     format: 'es',
   },
   plugins: [
@@ -134,7 +134,7 @@ echo ""
 echo "To connect to Home Assistant:"
 echo "1. Update configuration.yaml:"
 echo "   frontend:"
-echo "     development_repo: /path/to/extended_openai_conversation"
+echo "     development_repo: /path/to/openai_conversation_plus"
 echo ""
 echo "2. Or run standalone development server:"
 echo "   yarn dev"

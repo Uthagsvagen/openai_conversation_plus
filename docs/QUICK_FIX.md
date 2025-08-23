@@ -4,7 +4,7 @@
 
 1. **Update the integration**:
    ```bash
-   cd /config/custom_components/extended_openai_conversation
+   cd /config/custom_components/openai_conversation_plus
    git pull
    ```
 
@@ -26,7 +26,7 @@
    ```yaml
    logger:
      logs:
-       custom_components.extended_openai_conversation: debug
+       custom_components.openai_conversation_plus: debug
    ```
 
 2. **Check the logs**:

@@ -80,7 +80,7 @@ markers = [
 ]
 addopts = [
     "--strict-markers",
-    "--cov=custom_components.extended_openai_conversation",
+    "--cov=custom_components.openai_conversation_plus",
     "--cov-report=term-missing",
     "--cov-report=html",
     "--cov-report=xml",
@@ -94,7 +94,7 @@ filterwarnings = [
 ]
 
 [tool.coverage.run]
-source = ["custom_components.extended_openai_conversation"]
+source = ["custom_components.openai_conversation_plus"]
 omit = [
     "*/tests/*",
     "*/__pycache__/*",

@@ -8,12 +8,12 @@ from homeassistant.core import HomeAssistant
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.components.conversation import DOMAIN as CONVERSATION_DOMAIN
 
-from custom_components.extended_openai_conversation import (
+from custom_components.openai_conversation_plus import (
     async_setup_entry,
     async_unload_entry,
     OpenAIAgent,
 )
-from custom_components.extended_openai_conversation.const import DOMAIN, DATA_AGENT
+from custom_components.openai_conversation_plus.const import DOMAIN, DATA_AGENT
 
 
 async def test_setup_entry(
@@ -26,7 +26,7 @@ async def test_setup_entry(
     mock_config_entry.add_to_hass(hass)
     
     # Mock conversation.async_set_agent
-    with patch("custom_components.extended_openai_conversation.conversation.async_set_agent") as mock_set_agent:
+    with patch("custom_components.openai_conversation_plus.conversation.async_set_agent") as mock_set_agent:
         result = await async_setup_entry(hass, mock_config_entry)
     
     assert result is True
@@ -53,7 +53,7 @@ async def test_setup_entry_auth_failed(
     mock_config_entry.add_to_hass(hass)
     
     with patch(
-        "custom_components.extended_openai_conversation.helpers.validate_authentication",
+        "custom_components.openai_conversation_plus.helpers.validate_authentication",
         side_effect=Exception("Authentication failed")
     ):
         result = await async_setup_entry(hass, mock_config_entry)
@@ -69,7 +69,7 @@ async def test_unload_entry(
     mock_config_entry = integration_setup
     
     # Mock conversation.async_unset_agent
-    with patch("custom_components.extended_openai_conversation.conversation.async_unset_agent") as mock_unset_agent:
+    with patch("custom_components.openai_conversation_plus.conversation.async_unset_agent") as mock_unset_agent:
         result = await async_unload_entry(hass, mock_config_entry)
     
     assert result is True

@@ -26,4 +26,4 @@ jobs:
         run: pip install hassfest
       
       - name: Run hassfest validation
-        run: hassfest --action validate --integration-path ./custom_component/openai_conversation_plus
+        run: hassfest --action validate --integration-path ./custom_components/openai_conversation_plus

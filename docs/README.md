@@ -60,5 +60,5 @@ When adding new documentation:
 ## Related Directories
 
 - **`examples/`** - Example configurations and templates
-- **`custom_component/`** - The actual Home Assistant integration
+- **`custom_components/`** - The actual Home Assistant integration
 - **`.github/workflows/`** - CI/CD and validation workflows

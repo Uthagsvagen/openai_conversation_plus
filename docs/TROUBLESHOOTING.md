@@ -19,7 +19,7 @@ This error typically occurs when the integration encounters issues processing th
    logger:
      default: info
      logs:
-       custom_components.extended_openai_conversation: debug
+       custom_components.openai_conversation_plus: debug
    ```
 
 2. **Restart Home Assistant**:
@@ -72,7 +72,7 @@ To enable detailed logging:
 logger:
   default: warning
   logs:
-    custom_components.extended_openai_conversation: debug
+    custom_components.openai_conversation_plus: debug
     homeassistant.components.conversation: debug
     openai: debug
 ```

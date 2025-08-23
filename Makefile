@@ -26,7 +26,7 @@ test:
 # Run linting
 lint:
 	ruff check .
-	mypy custom_components/extended_openai_conversation
+	mypy custom_components/openai_conversation_plus
 	black --check .
 	isort --check-only .
 
@@ -60,7 +60,7 @@ setup-dev: clean
 validate-all: lint
 	pre-commit run --all-files
 	hassfest validate
-	pytest --cov=custom_components.extended_openai_conversation
+	pytest --cov=custom_components.openai_conversation_plus
 
 # Run the test runner script
 run-tests:
