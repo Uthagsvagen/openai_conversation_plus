@@ -129,7 +129,37 @@ The integration supports AI Tasks for generating structured outputs (e.g., JSON)
 
 The original project by `jekalmin` includes several examples and reference materials:
 - Examples directory: https://github.com/jekalmin/extended_openai_conversation/tree/main/examples
-- You’ll also find helpful videos under: https://github.com/jekalmin/ explaining different usage scenarios
+- You'll also find helpful videos under: https://github.com/jekalmin/ explaining different usage scenarios
+
+## Future Plans
+
+We're actively working on expanding the capabilities of OpenAI Conversation Plus with the following planned features:
+
+### 🔍 **RAG (Retrieval-Augmented Generation)**
+- **Local RAG Database**: Implement local vector database for document storage and retrieval
+- **Knowledge Base Integration**: Allow users to upload and query custom documents
+- **Semantic Search**: Advanced search capabilities across stored knowledge
+- **Context-Aware Responses**: Generate responses based on relevant stored information
+
+### 🤖 **Multi-Agent Configuration**
+- **Agent Orchestration**: Coordinate multiple specialized AI agents
+- **Role-Based Agents**: Different agents for different tasks (security, energy, entertainment)
+- **Agent Communication**: Enable agents to collaborate and share information
+- **Workflow Automation**: Complex multi-step automation workflows
+
+### 🌐 **Multi-LLM Provider Support**
+- **OpenAI Alternatives**: Support for Claude, Gemini, and other LLM providers
+- **Local Models**: Integration with local models like Ollama and LM Studio
+- **Provider Switching**: Easy switching between different LLM providers
+- **Cost Optimization**: Choose the most cost-effective provider for each use case
+
+### 🚀 **Advanced Features**
+- **Custom Embeddings**: Support for custom embedding models
+- **Fine-tuning Integration**: Easy integration with fine-tuned models
+- **Performance Monitoring**: Track and optimize response times and costs
+- **Enterprise Features**: Role-based access control and audit logging
+
+*These features are in active development. Follow our releases for updates!*
 
 ## Credits
 
