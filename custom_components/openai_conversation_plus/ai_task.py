@@ -2,10 +2,8 @@
 
 from __future__ import annotations
 
-import json
-from json import JSONDecodeError
 import logging
-from typing import Any
+from json import JSONDecodeError
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
@@ -16,12 +14,13 @@ from homeassistant.util.json import json_loads
 # Try to import AI Task components
 try:
     from homeassistant.components import ai_task, conversation
+
     AI_TASK_AVAILABLE = True
 except ImportError:
     AI_TASK_AVAILABLE = False
+    _LOGGER = logging.getLogger(__name__)
     _LOGGER.warning("AI Task component not available")
 
-from .const import DOMAIN
 from .entity import OpenAIBaseLLMEntity
 
 _LOGGER = logging.getLogger(__name__)
@@ -36,12 +35,13 @@ async def async_setup_entry(
     if not AI_TASK_AVAILABLE:
         _LOGGER.info("AI Task component not available, skipping AI Task entity setup")
         return
-    
+
     # Create a single AI Task entity for this config entry
     async_add_entities([OpenAITaskEntity(hass, config_entry)])
 
 
 if AI_TASK_AVAILABLE:
+
     class OpenAITaskEntity(
         ai_task.AITaskEntity,
         OpenAIBaseLLMEntity,
@@ -66,7 +66,7 @@ if AI_TASK_AVAILABLE:
             """Handle a generate data task."""
             # Convert ChatLog to list of messages for our handler
             messages = []
-            
+
             for content in chat_log.content:
                 if isinstance(content, conversation.UserContent):
                     role = "user"
@@ -74,31 +74,31 @@ if AI_TASK_AVAILABLE:
                 elif isinstance(content, conversation.AssistantContent):
                     role = "assistant"
                     text = content.content
-                elif hasattr(content, 'role') and hasattr(content, 'content'):
+                elif hasattr(content, "role") and hasattr(content, "content"):
                     role = content.role
                     text = content.content
                 else:
                     continue
-                
+
                 if text:
                     messages.append({"role": role, "content": text})
-            
+
             # Call our base handler
             result = await self._async_handle_chat_log(
-                messages, 
-                task.name if hasattr(task, 'name') else "data_generation",
-                task.structure if hasattr(task, 'structure') else None
+                messages,
+                task.name if hasattr(task, "name") else "data_generation",
+                task.structure if hasattr(task, "structure") else None,
             )
-            
+
             # Extract the response
             if "error" in result:
                 raise HomeAssistantError(f"Error generating data: {result['error']}")
-            
+
             if "data" in result:
                 data = result["data"]
             elif "response" in result:
                 # Try to parse as JSON if structure was requested
-                if hasattr(task, 'structure') and task.structure:
+                if hasattr(task, "structure") and task.structure:
                     try:
                         data = json_loads(result["response"])
                     except JSONDecodeError:
@@ -112,11 +112,12 @@ if AI_TASK_AVAILABLE:
                 conversation_id=chat_log.conversation_id,
                 data=data,
             )
+
 else:
     # Fallback implementation if AI Task is not available
     class OpenAITaskEntity(OpenAIBaseLLMEntity):
         """Fallback OpenAI Task entity when AI Task component is not available."""
-        
+
         def __init__(self, hass: HomeAssistant, config_entry: ConfigEntry) -> None:
             """Initialize the fallback entity."""
             super().__init__(hass, config_entry, "AI Task")

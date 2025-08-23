@@ -92,7 +92,7 @@ agent:
   name: "My Energy Monitor"
   type: "monitoring"
   enabled: true
-  
+
   data_sources:
     electricity_price:
       entity: "sensor.my_electricity_price"  # Update this
@@ -107,7 +107,7 @@ agent:
   name: "My Security Monitor"
   type: "monitoring"
   enabled: true
-  
+
   data_sources:
     motion_detectors:
       - entity: "binary_sensor.my_motion"    # Update this
@@ -236,11 +236,11 @@ python -c "import yaml; yaml.safe_load(open('my_agent.yaml'))"
 
 You now have everything needed to develop background agents in Cursor on the web:
 
-✅ **Project structure** set up  
-✅ **Configuration guides** ready  
-✅ **Example templates** available  
-✅ **AI assistance** configured  
-✅ **Testing framework** in place  
-✅ **Integration points** defined  
+✅ **Project structure** set up
+✅ **Configuration guides** ready
+✅ **Example templates** available
+✅ **AI assistance** configured
+✅ **Testing framework** in place
+✅ **Integration points** defined
 
 Start building your first background agent and enjoy the power of AI-assisted development in Cursor!

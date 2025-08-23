@@ -1,19 +1,18 @@
-from abc import ABC, abstractmethod
-from datetime import timedelta
-from functools import partial
 import logging
 import os
 import re
 import sqlite3
 import time
+from abc import ABC, abstractmethod
+from datetime import timedelta
+from functools import partial
 from typing import Any
 from urllib import parse
 
-from bs4 import BeautifulSoup
-from openai import AsyncAzureOpenAI, AsyncOpenAI
+import homeassistant.util.dt as dt_util
 import voluptuous as vol
 import yaml
-
+from bs4 import BeautifulSoup
 from homeassistant.components import (
     automation,
     conversation,
@@ -43,7 +42,7 @@ from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.httpx_client import get_async_client
 from homeassistant.helpers.script import Script
 from homeassistant.helpers.template import Template
-import homeassistant.util.dt as dt_util
+from openai import AsyncAzureOpenAI, AsyncOpenAI
 
 from .const import CONF_PAYLOAD_TEMPLATE, DOMAIN, EVENT_AUTOMATION_REGISTERED
 from .exceptions import (
@@ -76,9 +75,11 @@ def is_azure(base_url: str):
 
 def convert_to_template(
     settings,
-    template_keys=["data", "event_data", "target", "service"],
+    template_keys: list[str] | None = None,
     hass: HomeAssistant | None = None,
 ):
+    if template_keys is None:
+        template_keys = ["data", "event_data", "target", "service"]
     _convert_to_template(settings, template_keys, hass, [])
 
 
@@ -175,7 +176,7 @@ class FunctionExecutor(ABC):
     def validate_entity_ids(self, hass: HomeAssistant, entity_ids, exposed_entities):
         if any(hass.states.get(entity_id) is None for entity_id in entity_ids):
             raise EntityNotFound(entity_ids)
-        exposed_entity_ids = map(lambda e: e["entity_id"], exposed_entities)
+        exposed_entity_ids = {entity["entity_id"] for entity in exposed_entities}
         if not set(entity_ids).issubset(exposed_entity_ids):
             raise EntityNotExposed(entity_ids)
 
@@ -311,7 +312,6 @@ class NativeFunctionExecutor(FunctionExecutor):
         automations = [config]
         with open(
             os.path.join(hass.config.config_dir, AUTOMATION_CONFIG_PATH),
-            "r",
             encoding="utf-8",
         ) as f:
             current_automations = yaml.safe_load(f.read())
@@ -391,7 +391,7 @@ class NativeFunctionExecutor(FunctionExecutor):
         exposed_entities,
     ):
         user = await hass.auth.async_get_user(user_input.context.user_id)
-        return {'name': user.name if user and hasattr(user, 'name') else 'Unknown'}
+        return {"name": user.name if user and hasattr(user, "name") else "Unknown"}
 
     async def get_statistics(
         self,
@@ -680,9 +680,7 @@ class SqliteFunctionExecutor(FunctionExecutor):
         )
 
     def is_exposed_entity_in_query(self, query: str, exposed_entities) -> bool:
-        exposed_entity_ids = list(
-            map(lambda e: f"'{e['entity_id']}'", exposed_entities)
-        )
+        exposed_entity_ids = [f"'{entity['entity_id']}'" for entity in exposed_entities]
         return any(
             exposed_entity_id in query for exposed_entity_id in exposed_entity_ids
         )
@@ -735,13 +733,10 @@ class SqliteFunctionExecutor(FunctionExecutor):
 
             if function.get("single") is True:
                 row = cursor.fetchone()
-                return {name: val for name, val in zip(names, row)}
+                return dict(zip(names, row, strict=False))
 
             rows = cursor.fetchall()
-            result = []
-            for row in rows:
-                result.append({name: val for name, val in zip(names, row)})
-            return result
+            return [dict(zip(names, row, strict=False)) for row in rows]
 
 
 FUNCTION_EXECUTORS: dict[str, FunctionExecutor] = {
