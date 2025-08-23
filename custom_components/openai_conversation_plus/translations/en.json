@@ -32,7 +32,15 @@
                     "attach_username": "Attach Username to Message",
                     "use_tools": "Use Tools",
                     "context_threshold": "Context Threshold",
-                    "context_truncate_strategy": "Context truncation strategy when exceeded threshold"
+                    "context_truncate_strategy": "Context truncation strategy when exceeded threshold",
+                    "use_response_api": "Use Response API (Beta)",
+                    "enable_web_search": "Enable Web Search",
+                    "search_context_size": "Search Context Size",
+                    "user_location": "User Location (for geo-aware searches)",
+                    "store_conversations": "Store Conversations (server-side)",
+                    "reasoning_level": "Reasoning Level (GPT-5)",
+                    "verbosity": "Response Verbosity",
+                    "enable_streaming": "Enable Streaming Responses"
                 }
             }
         }
@@ -54,7 +62,7 @@
                 "prompt": {
                     "name": "Prompt",
                     "description": "The text to ask about image",
-                    "example": "What’s in this image?"
+                    "example": "What's in this image?"
                 },
                 "images": {
                     "name": "Images",

@@ -30,40 +30,48 @@
                     "max_function_calls_per_conversation": "Maximale Anzahl an Funktionsaufrufen pro Konversation",
                     "functions": "Funktionen",
                     "attach_username": "Benutzernamen mitgeben",
-                    "use_tools": "Use Tools",
-                    "context_threshold": "Context Threshold",
-                    "context_truncate_strategy": "Context truncation strategy when exceeded threshold"
+                    "use_tools": "Werkzeuge verwenden",
+                    "context_threshold": "Kontext-Schwellenwert",
+                    "context_truncate_strategy": "Kontext-Kürzungsstrategie bei Überschreitung des Schwellenwerts",
+                    "use_response_api": "Response API verwenden (Beta)",
+                    "enable_web_search": "Web-Suche aktivieren",
+                    "search_context_size": "Suchkontext-Größe",
+                    "user_location": "Benutzerstandort (für geo-bewusste Suche)",
+                    "store_conversations": "Konversationen speichern (serverseitig)",
+                    "reasoning_level": "Argumentationsniveau (GPT-5)",
+                    "verbosity": "Antwort-Detaillierung",
+                    "enable_streaming": "Streaming-Antworten aktivieren"
                 }
             }
         }
     },
     "services": {
         "query_image": {
-            "name": "Query image",
-            "description": "Take in images and answer questions about them",
+            "name": "Bild abfragen",
+            "description": "Bilder aufnehmen und Fragen dazu beantworten",
             "fields": {
                 "config_entry": {
-                    "name": "Config Entry",
-                    "description": "The config entry to use for this service"
+                    "name": "Konfigurationseintrag",
+                    "description": "Der Konfigurationseintrag für diesen Dienst"
                 },
                 "model": {
-                    "name": "Model",
-                    "description": "The model",
+                    "name": "Modell",
+                    "description": "Das Modell",
                     "example": "gpt-4-vision-preview"
                 },
                 "prompt": {
                     "name": "Prompt",
-                    "description": "The text to ask about image",
-                    "example": "What’s in this image?"
+                    "description": "Der Text, um nach dem Bild zu fragen",
+                    "example": "Was ist auf diesem Bild?"
                 },
                 "images": {
-                    "name": "Images",
-                    "description": "A list of images that would be asked",
+                    "name": "Bilder",
+                    "description": "Eine Liste von Bildern, nach denen gefragt wird",
                     "example": "{\"url\": \"https://upload.wikimedia.org/wikipedia/commons/thumb/d/dd/Gfp-wisconsin-madison-the-nature-boardwalk.jpg/2560px-Gfp-wisconsin-madison-the-nature-boardwalk.jpg\"}"
                 },
                 "max_tokens": {
                     "name": "Max Tokens",
-                    "description": "The maximum tokens",
+                    "description": "Die maximale Anzahl von Tokens",
                     "example": "300"
                 }
             }

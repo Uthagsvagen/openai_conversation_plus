@@ -12,7 +12,7 @@
                     "api_key": "Clé d'API",
                     "base_url": "Base de l'URL",
                     "api_version": "Version de l'API",
-                    "organization": "Organization",
+                    "organization": "Organisation",
                     "skip_authentication": "Ignorer l'authentification"
                 }
             }
@@ -22,48 +22,56 @@
         "step": {
             "init": {
                 "data": {
-                    "max_tokens": "Nombre maximum de jetons facturé pour la réponse",
-                    "model": "Modèle d'IA",
-                    "prompt": "Prompt",
+                    "max_tokens": "Nombre maximum de jetons à retourner dans la réponse",
+                    "model": "Modèle de complétion",
+                    "prompt": "Modèle de prompt",
                     "temperature": "Température",
                     "top_p": "Top P",
                     "max_function_calls_per_conversation": "Nombre maximal d'appels de fonction par conversation",
                     "functions": "Fonctions",
                     "attach_username": "Joindre le nom d'utilisateur au message",
-                    "use_tools": "Use Tools",
-                    "context_threshold": "Context Threshold",
-                    "context_truncate_strategy": "Context truncation strategy when exceeded threshold"
+                    "use_tools": "Utiliser les outils",
+                    "context_threshold": "Seuil de contexte",
+                    "context_truncate_strategy": "Stratégie de troncature du contexte lors du dépassement du seuil",
+                    "use_response_api": "Utiliser l'API Response (Bêta)",
+                    "enable_web_search": "Activer la recherche web",
+                    "search_context_size": "Taille du contexte de recherche",
+                    "user_location": "Localisation de l'utilisateur (pour les recherches géo-conscientes)",
+                    "store_conversations": "Stocker les conversations (côté serveur)",
+                    "reasoning_level": "Niveau de raisonnement (GPT-5)",
+                    "verbosity": "Verbosité de la réponse",
+                    "enable_streaming": "Activer les réponses en streaming"
                 }
             }
         }
     },
     "services": {
         "query_image": {
-            "name": "Query image",
-            "description": "Take in images and answer questions about them",
+            "name": "Interroger l'image",
+            "description": "Recevoir des images et répondre aux questions les concernant",
             "fields": {
                 "config_entry": {
-                    "name": "Config Entry",
-                    "description": "The config entry to use for this service"
+                    "name": "Entrée de configuration",
+                    "description": "L'entrée de configuration à utiliser pour ce service"
                 },
                 "model": {
-                    "name": "Model",
-                    "description": "The model",
+                    "name": "Modèle",
+                    "description": "Le modèle",
                     "example": "gpt-4-vision-preview"
                 },
                 "prompt": {
                     "name": "Prompt",
-                    "description": "The text to ask about image",
-                    "example": "What’s in this image?"
+                    "description": "Le texte pour poser une question sur l'image",
+                    "example": "Qu'y a-t-il dans cette image ?"
                 },
                 "images": {
                     "name": "Images",
-                    "description": "A list of images that would be asked",
+                    "description": "Une liste d'images sur lesquelles poser des questions",
                     "example": "{\"url\": \"https://upload.wikimedia.org/wikipedia/commons/thumb/d/dd/Gfp-wisconsin-madison-the-nature-boardwalk.jpg/2560px-Gfp-wisconsin-madison-the-nature-boardwalk.jpg\"}"
                 },
                 "max_tokens": {
-                    "name": "Max Tokens",
-                    "description": "The maximum tokens",
+                    "name": "Jetons maximum",
+                    "description": "Le nombre maximum de jetons",
                     "example": "300"
                 }
             }

@@ -1,0 +1,80 @@
+{
+    "config": {
+        "error": {
+            "cannot_connect": "Kunne ikke koble til",
+            "invalid_auth": "Ugyldig autentisering",
+            "unknown": "Uventet feil"
+        },
+        "step": {
+            "user": {
+                "data": {
+                    "name": "Navn",
+                    "api_key": "API-nøkkel",
+                    "base_url": "Base-URL",
+                    "api_version": "API-versjon",
+                    "organization": "Organisasjon",
+                    "skip_authentication": "Hopp over autentisering"
+                }
+            }
+        }
+    },
+    "options": {
+        "step": {
+            "init": {
+                "data": {
+                    "max_tokens": "Maksimalt antall tokens å returnere i svar",
+                    "model": "Fullføring modell",
+                    "prompt": "Prompt-mal",
+                    "temperature": "Temperatur",
+                    "top_p": "Top P",
+                    "max_function_calls_per_conversation": "Maksimalt antall funksjonskall per samtale",
+                    "functions": "Funksjoner",
+                    "attach_username": "Legg til brukernavn i melding",
+                    "use_tools": "Bruk verktøy",
+                    "context_threshold": "Kontekst terskel",
+                    "context_truncate_strategy": "Strategi for å trunkere kontekst når terskelen overskrides",
+                    "use_response_api": "Bruk Response API (Beta)",
+                    "enable_web_search": "Aktiver webbsøk",
+                    "search_context_size": "Søkekontekst størrelse",
+                    "user_location": "Brukerplassering (for geo-bevisste søk)",
+                    "store_conversations": "Lagre samtaler (server-side)",
+                    "reasoning_level": "Resonnement nivå (GPT-5)",
+                    "verbosity": "Svar verbositet",
+                    "enable_streaming": "Aktiver strømmende svar"
+                }
+            }
+        }
+    },
+    "services": {
+        "query_image": {
+            "name": "Spør om bilde",
+            "description": "Ta inn bilder og svar på spørsmål om dem",
+            "fields": {
+                "config_entry": {
+                    "name": "Konfigurasjonspost",
+                    "description": "Konfigurasjonsposten å bruke for denne tjenesten"
+                },
+                "model": {
+                    "name": "Modell",
+                    "description": "Modellen",
+                    "example": "gpt-4-vision-preview"
+                },
+                "prompt": {
+                    "name": "Prompt",
+                    "description": "Teksten å spørre om bildet",
+                    "example": "Hva er i dette bildet?"
+                },
+                "images": {
+                    "name": "Bilder",
+                    "description": "En liste med bilder som skal spørres om",
+                    "example": "{\"url\": \"https://upload.wikimedia.org/wikipedia/commons/thumb/d/dd/Gfp-wisconsin-madison-the-nature-boardwalk.jpg/2560px-Gfp-wisconsin-madison-the-nature-boardwalk.jpg\"}"
+                },
+                "max_tokens": {
+                    "name": "Maks tokens",
+                    "description": "Det maksimale antallet tokens",
+                    "example": "300"
+                }
+            }
+        }
+    }
+}
