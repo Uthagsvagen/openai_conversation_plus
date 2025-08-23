@@ -1,0 +1,42 @@
+name: Validate
+
+on:
+  push:
+    branches:
+      - main
+      - dev
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  hacs:
+    runs-on: ubuntu-latest
+    name: HACS Validation
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+      
+      - name: HACS validation
+        uses: hacs/action@main
+        with:
+          category: integration
+          ignore: brands
+
+  hassfest:
+    runs-on: ubuntu-latest
+    name: Hassfest Validation
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+      
+      - name: Install hassfest
+        run: pip install hassfest
+      
+      - name: Run hassfest
+        run: hassfest --action validate --integration-path ./custom_component/openai_conversation_plus

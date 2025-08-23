@@ -1,0 +1,8 @@
+{
+  "name": "OpenAI Conversation Plus",
+  "content_in_root": false,
+  "filename": "openai_conversation_plus.zip",
+  "render_readme": true,
+  "zip_release": true,
+  "hide_default_branch": false
+}

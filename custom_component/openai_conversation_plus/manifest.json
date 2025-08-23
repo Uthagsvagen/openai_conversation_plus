@@ -1,6 +1,6 @@
 {
-  "domain": "extended_openai_conversation",
-  "name": "Extended OpenAI Conversation",
+  "domain": "openai_conversation_plus",
+  "name": "OpenAI Conversation Plus",
   "codeowners": [
     "@aselling"
   ],

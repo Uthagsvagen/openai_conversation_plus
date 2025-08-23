@@ -1,0 +1,85 @@
+# Cursor Rules for OpenAI Conversation Plus
+
+## Project Overview
+This is a Home Assistant custom component for OpenAI Conversation Plus integration. The project provides AI-powered conversation capabilities within Home Assistant.
+
+## Project Structure
+- `custom_component/openai_conversation_plus/` - Main Home Assistant integration code
+- `examples/` - Example configurations and prompt templates
+- `docs/` - Development documentation and AI agent files
+- `tests/` - Test files and testing configuration
+- `.github/workflows/` - CI/CD and validation workflows
+
+## Code Standards
+
+### Python Code
+- Follow PEP 8 style guidelines
+- Use type hints where appropriate
+- Implement proper error handling and logging
+- Follow Home Assistant integration patterns
+- Use async/await for asynchronous operations
+
+### Home Assistant Integration
+- Follow Home Assistant custom component standards
+- Use proper entity naming conventions
+- Implement config flow for user configuration
+- Handle device state updates properly
+- Use Home Assistant's built-in services when possible
+
+### File Organization
+- Keep integration code in `custom_component/` directory
+- Place examples in `examples/` directory
+- Store documentation in `docs/` directory
+- Maintain clean separation between core integration and examples
+
+## Development Guidelines
+
+### AI Agent Files
+- AI agent configuration files in `docs/` should not be pushed to main branch
+- Keep development and production code separate
+- Use feature branches for AI agent development
+- Main branch should only contain clean Home Assistant integration code
+
+### Testing
+- Write tests for all new functionality
+- Use pytest for testing framework
+- Maintain good test coverage
+- Test both success and error scenarios
+
+### Documentation
+- Keep README files up to date
+- Document all configuration options
+- Provide clear examples for users
+- Maintain separate documentation for developers and users
+
+## Git Workflow
+- Use feature branches for development
+- Keep main branch clean and production-ready
+- AI agent files should not be merged to main
+- Use conventional commit messages
+- Maintain clean commit history
+
+## Dependencies
+- Minimize external dependencies
+- Use Home Assistant built-in functionality when possible
+- Document all required dependencies
+- Maintain compatibility with Home Assistant versions
+
+## Security
+- Never commit API keys or secrets
+- Use environment variables for sensitive data
+- Implement proper authentication and authorization
+- Follow security best practices for AI integrations
+
+## Performance
+- Optimize for Home Assistant performance
+- Minimize API calls and external requests
+- Implement proper caching where appropriate
+- Monitor resource usage and optimize accordingly
+
+## User Experience
+- Provide clear error messages
+- Implement user-friendly configuration
+- Support multiple languages where possible
+- Maintain backward compatibility
+- Provide helpful documentation and examples

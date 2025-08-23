@@ -1,0 +1,29 @@
+name: Validate with hassfest
+
+on:
+  push:
+    branches:
+      - main
+      - dev
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    name: Check with hassfest
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+      
+      - name: Install hassfest
+        run: pip install hassfest
+      
+      - name: Run hassfest validation
+        run: hassfest --action validate --integration-path ./custom_component/openai_conversation_plus
