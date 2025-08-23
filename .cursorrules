@@ -10,6 +10,27 @@ This is a Home Assistant custom component for OpenAI Conversation Plus integrati
 - `tests/` - Test files and testing configuration
 - `.github/workflows/` - CI/CD and validation workflows
 
+## Background Agent Development
+
+### Agent Configuration
+- AI agent files are stored in `docs/` directory
+- Use `docs/agent.md` as the main agent configuration template
+- Background agents can be configured for continuous monitoring and automation
+- Agents can interact with Home Assistant services and entities
+
+### Agent Capabilities
+- **Continuous Monitoring**: Monitor system status, energy usage, and device states
+- **Automated Responses**: Respond to events and conditions automatically
+- **Service Execution**: Execute Home Assistant services based on triggers
+- **Data Analysis**: Process sensor data and provide insights
+- **Proactive Actions**: Take actions before issues arise
+
+### Development Workflow
+- Develop agents in the `dev` branch
+- Test agents with sample data and scenarios
+- Document agent behavior and configuration
+- Use examples in `examples/` directory for testing
+
 ## Code Standards
 
 ### Python Code
