@@ -36,7 +36,9 @@ jobs:
           python-version: "3.11"
       
       - name: Install hassfest
-        run: pip install hassfest
+        run: |
+          pip install --upgrade pip
+          pip install git+https://github.com/home-assistant/core.git#subdirectory=package/requirements/pyproject.toml&subdirectory=package/requirements/hassfest
       
       - name: Run hassfest
         run: hassfest --action validate --integration-path ./custom_components/openai_conversation_plus
