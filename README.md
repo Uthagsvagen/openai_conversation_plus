@@ -1,145 +1,144 @@
-# Extended OpenAI Conversation
+# OpenAI Conversation Plus
 
-Extended OpenAI Conversation integration for Home Assistant that enhances the default OpenAI conversation agent with additional features and customization options.
+OpenAI Conversation Plus is a custom Home Assistant integration that enhances the native conversation experience with modern OpenAI capabilities: GPT‑5 model support, streaming responses, built‑in web search, and powerful custom tool calls (functions).
 
-## Current Status
+This project is a fork of Extended OpenAI Conversation. Big thanks to the original creator, [jekalmin](https://github.com/jekalmin), for the excellent foundation and inspiration.
 
-This integration is under active development. Recent updates include:
+- Original project: `extended_openai_conversation`
+- Examples in the original project: https://github.com/jekalmin/extended_openai_conversation/tree/main/examples
 
-✅ **Completed Features:**
-- Response API migration with backward compatibility
-- GPT-5 model support (gpt-5, gpt-5-mini, gpt-5-nano, gpt-5-pro)
-- Native web search integration
-- AI Task platform for structured data generation
-- Streaming support for Chat Completions API
-- Enhanced safety features
-- Comprehensive testing framework
+## Key Features
 
-🚧 **In Progress:**
-- Documentation updates
-- Frontend UI components
-- Additional Response API features
+- GPT‑5 family support (where available)
+- Streaming responses for a responsive UX
+- Native web search integration (Response API powered)
+- Custom tool calls (functions) with Home Assistant service execution
+- AI Task support for structured data generation
+- Backward compatible with classic Chat Completions where needed
 
-## Features
+## Requirements
 
-### Core Features
-- **OpenAI Response API**: Next-generation API with enhanced capabilities
-- **Multiple Model Support**: GPT-4, GPT-4o, GPT-5 variants, and custom models
-- **Web Search**: Built-in internet search capabilities
-- **AI Tasks**: Generate structured data from natural language
-- **Custom Functions**: Define custom functions accessible from Home Assistant UI
-- **Streaming Responses**: Real-time response streaming for better UX
-- **Context Management**: Intelligent conversation history management
-
-### Configuration Options
-- Response API toggle
-- Web search enable/disable
-- Search context size (low/medium/high)
-- User location for geo-aware searches
-- Reasoning level for GPT-5 models
-- Verbosity control
-- Conversation persistence
-- Custom prompt templates
-- Function call limits
-- Temperature and token controls
+- Home Assistant 2024.1.0 or newer
+- Python 3.11+
+- OpenAI API key (or compatible endpoint)
 
 ## Installation
 
 ### HACS (Recommended)
-1. Add this repository to HACS: `jekalmin/extended_openai_conversation`
-2. Install from HACS store
-3. Restart Home Assistant
+1. Open HACS in Home Assistant
+2. Add this repository as a custom repository: `aselling/openai_conversation_plus`
+3. Install the integration
+4. Restart Home Assistant
 
-### Manual
-1. Copy `custom_components/extended_openai_conversation` to your config directory
+### Manual Installation
+1. Copy the folder `custom_components/extended_openai_conversation/` into your Home Assistant `config/custom_components/` directory
 2. Restart Home Assistant
+
+## Preparations
+
+1. Obtain an OpenAI API key
+2. (Optional) If you use a custom/compatible endpoint, provide your base URL and organization
+3. Decide whether to enable Response API features like web search and conversation storage
+
+## How It Works
+
+OpenAI Conversation Plus registers as a Home Assistant Conversation agent and follows the official Conversation API flow. It:
+
+- Builds a system prompt with knowledge of your exposed entities
+- Sends messages to OpenAI (Response API or Chat Completions)
+- Streams or returns the final response
+- Executes custom tools (functions) to call Home Assistant services when appropriate
+
+For more about the Conversation API, see Home Assistant documentation:
+`https://developers.home-assistant.io/docs/intent_conversation_api/`
 
 ## Configuration
 
-1. Go to Settings → Devices & Services
-2. Click "Add Integration"
-3. Search for "Extended OpenAI Conversation"
-4. Enter your OpenAI API key and configure options
+Go to Settings → Devices & Services → Add Integration → OpenAI Conversation Plus.
 
-### Basic Configuration
-- **Name**: Assistant name
-- **API Key**: Your OpenAI API key
-- **Model**: Select AI model (GPT-4, GPT-5, etc.)
+Typical options:
+- Model (e.g., GPT‑4o, GPT‑5 variants if available)
+- Temperature, top_p, and max tokens
+- Use Response API (enable advanced features)
+- Enable Web Search (and configure search depth and user location)
+- Conversation storage (persist conversation state server‑side)
+- Reasoning level and verbosity (for GPT‑5 variants)
+- Custom functions (YAML) and max function calls per conversation
 
-### Advanced Options
-- **Use Response API**: Enable new Response API features
-- **Enable Web Search**: Allow AI to search the internet
-- **Reasoning Level**: Thinking intensity (minimal/low/medium/high)
-- **Custom Functions**: YAML configuration for custom functions
+## Functions (Custom Tool Calls)
 
-## Usage
+Define custom functions to extend the agent with your automation logic. You can map function specs to:
+- Native Home Assistant service execution
+- REST calls
+- Other supported executors
 
-### Voice Commands
-Simply use Home Assistant's voice assistant or type in the conversation interface:
-- "Turn on the living room lights"
-- "What's the weather like?"
-- "Search the web for the latest news about AI"
-- "Generate a shopping list based on my calendar events"
-
-### AI Tasks
-Create automations that use AI for structured data:
-```yaml
-service: conversation.process
-data:
-  agent_id: YOUR_AGENT_ID
-  text: "Extract all email addresses from this text..."
-```
-
-### Custom Functions
-Define custom functions in the configuration:
+Example spec (simplified):
 ```yaml
 functions:
   - spec:
-      name: get_weather
-      description: Get weather for a location
+      name: execute_services
+      description: Execute Home Assistant services
       parameters:
         type: object
         properties:
-          location:
-            type: string
+          list:
+            type: array
+            items:
+              type: object
+              properties:
+                domain: { type: string }
+                service: { type: string }
+                service_data:
+                  type: object
+                  properties:
+                    entity_id: { type: string }
+                  required: [entity_id]
+              required: [domain, service, service_data]
     function:
-      type: rest
-      url: https://api.weather.com/...
+      type: native
+      name: execute_service
 ```
 
-## Development
+### Function Usage
+- The agent decides when to call a function (`auto`) or you can limit calls per conversation
+- Use confirmations for safety where appropriate
+- Great for device control, querying states, or orchestrating complex automations
 
-### Testing
-Run tests without Home Assistant:
-```bash
-python run_tests.py
+## Streaming & Web Search
+
+- Streaming (Chat Completions): enables incremental tokens for faster perceived responses
+- Web Search (Response API): allows the model to fetch fresh information and include citations
+
+Configure both in the integration options. Web search supports:
+- Search context size (low/medium/high)
+- Optional user location for better local results
+
+## AI Tasks (Structured Data)
+
+The integration supports AI Tasks for generating structured outputs (e.g., JSON). Provide an optional JSON schema to guide the output and parse the result into Home Assistant.
+
+## Examples & Videos
+
+The original project by `jekalmin` includes several examples and reference materials:
+- Examples directory: https://github.com/jekalmin/extended_openai_conversation/tree/main/examples
+- You’ll also find helpful videos under: https://github.com/jekalmin/ explaining different usage scenarios
+
+## Credits
+
+- Forked from: `extended_openai_conversation` by [jekalmin](https://github.com/jekalmin)
+- Community contributions and Home Assistant developers
+
+## Support & Issues
+
+- Open issues and feature requests here: `https://github.com/aselling/openai_conversation_plus/issues`
+- Enable debug logs if you need to report a bug:
+```yaml
+logger:
+  logs:
+    custom_components.extended_openai_conversation: debug
+    homeassistant.components.conversation: debug
 ```
-
-Or use make:
-```bash
-make test
-```
-
-See [README_TESTING.md](README_TESTING.md) for detailed testing documentation.
-
-### Contributing
-1. Fork the repository
-2. Create a feature branch
-3. Run tests: `make validate-all`
-4. Submit a pull request
-
-## Requirements
-- Home Assistant 2024.1 or newer
-- Python 3.11+
-- OpenAI API key
 
 ## License
-MIT License - see LICENSE file for details
 
-## Support
-- [GitHub Issues](https://github.com/jekalmin/extended_openai_conversation/issues)
-- [Home Assistant Community](https://community.home-assistant.io/)
-
-## Acknowledgments
-Based on the official Home Assistant OpenAI Conversation integration with extended functionality.
-# openai_conversation_plus
+This project follows the same open-source spirit as the original. See repository for license details.
