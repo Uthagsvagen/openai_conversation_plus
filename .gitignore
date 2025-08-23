@@ -116,3 +116,7 @@ logs/
 # Secrets
 secrets.yaml
 .secrets/
+
+# Agent development files (excluded from main branch)
+ai_agent_task_list.md
+agent.md

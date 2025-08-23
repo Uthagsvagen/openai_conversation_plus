@@ -1,0 +1,40 @@
+# Git attributes for branch-specific file handling
+
+# Development files - these should not be in main branch
+ai_agent_task_list.md -text
+agent.md -text
+README_TESTING.md -text
+SETUP_COMPLETE.md -text
+TROUBLESHOOTING.md -text
+QUICK_FIX.md -text
+
+# Development directories
+scripts/ -text
+tests/ -text
+.github/ -text
+
+# Development configuration files
+requirements_test.txt -text
+pytest.ini -text
+pyproject.toml -text
+setup.py -text
+Makefile -text
+.pre-commit-config.yaml -text
+
+# Development tools
+safari-fix.js -text
+frontend_dev_setup.sh -text
+
+# Integration files - these should always be in main branch
+__init__.py text
+const.py text
+config_flow.py text
+services.py text
+helpers.py text
+exceptions.py text
+entity.py text
+ai_task.py text
+manifest.json text
+strings.json text
+translations/ text
+README.md text
