@@ -14,7 +14,7 @@
     "scrape"
   ],
   "documentation": "https://github.com/Uthagsvagen/openai_conversation_plus",
-  "homeassistant": "2024.1.0",
+  "homeassistant": "2023.8.0",
   "integration_type": "service",
   "iot_class": "cloud_polling",
   "issue_tracker": "https://github.com/Uthagsvagen/openai_conversation_plus/issues",
