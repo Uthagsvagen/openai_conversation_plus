@@ -2,7 +2,7 @@
 
 OpenAI Conversation Plus is a custom Home Assistant integration that enhances the native conversation experience with modern OpenAI capabilities: GPT‑5 model support, streaming responses, built‑in web search, and powerful custom tool calls (functions).
 
-This project is a fork of Extended OpenAI Conversation. Big thanks to the original creator, [jekalmin](https://github.com/jekalmin), for the excellent foundation and inspiration.
+This project is a fork of OpenAI Conversation Plus. Big thanks to the original creator, [jekalmin](https://github.com/jekalmin), for the excellent foundation and inspiration.
 
 - Original project: `extended_openai_conversation`
 - Examples in the original project: https://github.com/jekalmin/extended_openai_conversation/tree/main/examples

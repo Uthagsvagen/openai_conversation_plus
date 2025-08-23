@@ -1,4 +1,4 @@
-"""Test the Extended OpenAI Conversation config flow."""
+"""Test the OpenAI Conversation Plus config flow."""
 from __future__ import annotations
 
 import pytest

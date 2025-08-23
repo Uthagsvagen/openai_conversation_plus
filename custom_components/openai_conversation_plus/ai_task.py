@@ -1,4 +1,4 @@
-"""AI Task integration for Extended OpenAI Conversation."""
+"""AI Task integration for OpenAI Conversation Plus."""
 
 from __future__ import annotations
 

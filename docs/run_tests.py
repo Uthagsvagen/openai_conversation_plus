@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Test runner for Extended OpenAI Conversation integration.
+Test runner for OpenAI Conversation Plus integration.
 
 This script sets up the test environment and runs pytest with proper configuration.
 It can be run as a background agent for continuous testing.
@@ -145,7 +145,7 @@ def run_hassfest():
 
 def main():
     """Main test runner function."""
-    logger.info("Starting Extended OpenAI Conversation test runner")
+    logger.info("Starting OpenAI Conversation Plus test runner")
     
     # Create virtual environment if it doesn't exist
     if not VENV_DIR.exists():

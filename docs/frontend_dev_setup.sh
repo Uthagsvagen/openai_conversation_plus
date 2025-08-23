@@ -1,8 +1,8 @@
 #!/bin/bash
-# Frontend development setup for Extended OpenAI Conversation
+# Frontend development setup for OpenAI Conversation Plus
 # Based on Home Assistant frontend development guide
 
-echo "Extended OpenAI Conversation - Frontend Development Setup"
+echo "OpenAI Conversation Plus - Frontend Development Setup"
 echo "========================================================"
 
 # Check if the component has frontend files
@@ -40,7 +40,7 @@ else
 {
   "name": "extended-openai-conversation-frontend",
   "version": "1.0.0",
-  "description": "Frontend for Extended OpenAI Conversation",
+  "description": "Frontend for OpenAI Conversation Plus",
   "scripts": {
     "build": "rollup -c",
     "dev": "rollup -c -w",

@@ -1,4 +1,4 @@
-"""Test Extended OpenAI Conversation integration setup."""
+"""Test OpenAI Conversation Plus integration setup."""
 from __future__ import annotations
 
 import pytest

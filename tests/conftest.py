@@ -1,4 +1,4 @@
-"""Global fixtures for Extended OpenAI Conversation integration tests."""
+"""Global fixtures for OpenAI Conversation Plus integration tests."""
 from __future__ import annotations
 
 import pytest
@@ -30,7 +30,7 @@ def mock_config_entry() -> ConfigEntry:
     """Return a mock config entry."""
     return ConfigEntry(
         domain=DOMAIN,
-        title="Extended OpenAI Conversation",
+        title="OpenAI Conversation Plus",
         data={
             CONF_NAME: "Test Assistant",
             CONF_API_KEY: "test-api-key",
