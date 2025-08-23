@@ -32,14 +32,14 @@ agent:
   type: "monitoring|automation|analysis"
   enabled: true
   schedule: "continuous|daily|hourly|custom"
-  
+
   triggers:
     - condition: "state_change"
       entity: "sensor.example"
       threshold: 25
     - condition: "time"
       time: "08:00"
-    
+
   actions:
     - service: "notify.mobile_app"
       data:
@@ -57,24 +57,24 @@ agent:
   type: "monitoring"
   enabled: true
   schedule: "continuous"
-  
+
   data_sources:
     - sensor.electricity_price
     - sensor.house_consumption
     - sensor.solar_production
     - sensor.battery_level
-  
+
   analysis_rules:
     - name: "High Cost Alert"
       condition: "electricity_price > 2.0"
       action: "notify_high_cost"
       cooldown: 3600  # 1 hour
-    
+
     - name: "Solar Optimization"
       condition: "solar_production > 0"
       action: "optimize_usage"
       priority: "high"
-  
+
   responses:
     - trigger: "high_cost"
       actions:
@@ -83,7 +83,7 @@ agent:
             title: "High Electricity Cost"
             message: "Current price: {{ states('sensor.electricity_price') }} kr/kWh"
         - service: "script.optimize_energy_usage"
-    
+
     - trigger: "solar_surplus"
       actions:
         - service: "script.charge_battery"
@@ -153,18 +153,18 @@ docs/
 agent:
   name: "Energy Cost Monitor"
   type: "monitoring"
-  
+
   triggers:
     - condition: "price_threshold"
       sensor: "sensor.electricity_price"
       threshold: 1.5
       operator: ">"
-    
+
     - condition: "usage_spike"
       sensor: "sensor.house_consumption"
       threshold: 5000  # watts
       operator: ">"
-  
+
   actions:
     - name: "High Cost Alert"
       trigger: "price_threshold"
@@ -172,7 +172,7 @@ agent:
       data:
         title: "High Electricity Cost"
         message: "Current price: {{ states('sensor.electricity_price') }} kr/kWh"
-    
+
     - name: "Usage Optimization"
       trigger: "usage_spike"
       service: "script.optimize_energy_usage"
@@ -187,17 +187,17 @@ agent:
 agent:
   name: "Security Monitor"
   type: "monitoring"
-  
+
   triggers:
     - condition: "motion_detected"
       sensor: "binary_sensor.motion_detector"
       state: "on"
-    
+
     - condition: "door_opened"
       sensor: "binary_sensor.front_door"
       state: "on"
       time_restriction: "22:00-06:00"
-  
+
   actions:
     - name: "Motion Alert"
       trigger: "motion_detected"
@@ -205,7 +205,7 @@ agent:
       data:
         title: "Motion Detected"
         message: "Motion detected in {{ area_name('binary_sensor.motion_detector') }}"
-    
+
     - name: "Late Night Door Alert"
       trigger: "door_opened"
       service: "script.security_response"
@@ -221,20 +221,20 @@ agent:
 test_scenario:
   name: "High Energy Cost Test"
   description: "Test agent response to high electricity prices"
-  
+
   input_data:
     sensor.electricity_price: 2.5
     sensor.house_consumption: 3000
     time: "14:30"
-  
+
   expected_actions:
     - service: "notify.mobile_app"
       data:
         title: "High Electricity Cost"
         message: "Current price: 2.5 kr/kWh"
-    
+
     - service: "script.optimize_energy_usage"
-  
+
   validation:
     - check_notification_sent: true
     - check_script_executed: true

@@ -60,7 +60,7 @@ Today is: {{ now().strftime('%A') }}
 {% endif %}
 
 Electricity price now: {{ states('sensor.electricity_price_main_street') | round(2) | replace('.', ',') }} kr
-Electricity purchased from grid now: 
+Electricity purchased from grid now:
 {{ (states('sensor.shelly_3em_house_consumption_total_active_power') | float / 1000) | round(2) | replace('.', ',') }} kilowatt
 
 EV Charger 1 consumption now: {{ (states('sensor.main_street_charger_2109013766a_1_power') | float / 1000) | round(2) | replace('.', ',') }} Kilowatt
@@ -70,7 +70,7 @@ Audi Q8 e-tron battery: {{ states('sensor.audi_q8_e_tron_state_of_charge') }} pe
 
 ## Energy Price Guidelines
 - **Under 0.5 kr**: Cheap
-- **Over 1 kr**: Expensive  
+- **Over 1 kr**: Expensive
 - **Over 2 kr**: Very expensive
 - **Over 3 kr**: Extremely expensive
 

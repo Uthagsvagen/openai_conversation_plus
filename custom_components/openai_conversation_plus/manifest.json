@@ -1,25 +1,18 @@
 {
-  "domain": "openai_conversation_plus",
-  "name": "OpenAI Conversation Plus",
-  "codeowners": [
-    "@aselling"
-  ],
-  "config_flow": true,
-  "dependencies": [
-    "conversation",
-    "energy",
-    "history",
-    "recorder",
-    "rest",
-    "scrape"
-  ],
-  "documentation": "https://github.com/Uthagsvagen/openai_conversation_plus",
-  "homeassistant": "2023.8.0",
-  "integration_type": "integration",
-  "iot_class": "cloud_polling",
-  "issue_tracker": "https://github.com/Uthagsvagen/openai_conversation_plus/issues",
-  "requirements": [
-    "openai~=1.76.2"
-  ],
-  "version": "1.0.5"
+	"domain": "openai_conversation_plus",
+	"name": "OpenAI Conversation Plus",
+	"codeowners": [
+		"@aselling"
+	],
+	"config_flow": true,
+	"dependencies": [],
+	"documentation": "https://github.com/Uthagsvagen/openai_conversation_plus",
+	"homeassistant": "2023.8.0",
+	"integration_type": "integration",
+	"iot_class": "cloud_polling",
+	"issue_tracker": "https://github.com/Uthagsvagen/openai_conversation_plus/issues",
+	"requirements": [
+		"openai~=1.76.2"
+	],
+	"version": "1.0.5"
 }
