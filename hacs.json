@@ -5,6 +5,8 @@
   "render_readme": true,
   "zip_release": true,
   "hide_default_branch": false,
-  "homeassistant": "2024.1.0",
-  "persistent_directory": "custom_components/openai_conversation_plus"
+  "homeassistant": "2025.8.3",
+  "persistent_directory": "custom_components/openai_conversation_plus",
+  "logo": "logos/openai_conversation_plus.svg",
+  "icon": "logos/icon.png"
 }
