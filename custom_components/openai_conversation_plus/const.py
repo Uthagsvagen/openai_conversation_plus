@@ -1,5 +1,9 @@
 """Constants for the OpenAI Conversation Plus integration."""
 
+from __future__ import annotations
+
+from typing import Dict
+
 DOMAIN = "openai_conversation_plus"
 DEFAULT_NAME = "OpenAI Conversation Plus"
 CONF_ORGANIZATION = "organization"
@@ -106,7 +110,7 @@ DEFAULT_ENABLE_WEB_SEARCH = False
 CONF_SEARCH_CONTEXT_SIZE = "search_context_size"
 DEFAULT_SEARCH_CONTEXT_SIZE = "medium"
 CONF_USER_LOCATION = "user_location"
-DEFAULT_USER_LOCATION = {}
+DEFAULT_USER_LOCATION: Dict[str, float] = {}
 CONF_STORE_CONVERSATIONS = "store_conversations"
 DEFAULT_STORE_CONVERSATIONS = True
 
@@ -120,3 +124,6 @@ DEFAULT_VERBOSITY = "balanced"
 # Streaming Configuration
 CONF_ENABLE_STREAMING = "enable_streaming"
 DEFAULT_ENABLE_STREAMING = True
+
+# hass.data key for agent, used by tests
+DATA_AGENT = "agent"

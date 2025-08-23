@@ -34,7 +34,7 @@ if [ -f "package.json" ]; then
     yarn install
 else
     echo "No package.json found. Creating basic frontend structure..."
-    
+
     # Create package.json
     cat > package.json << 'EOF'
 {
@@ -94,7 +94,7 @@ EOF
 
     # Create src directory
     mkdir -p src
-    
+
     # Create basic TypeScript config
     cat > tsconfig.json << 'EOF'
 {
