@@ -116,3 +116,7 @@ CONF_REASONING_LEVEL = "reasoning_level"
 DEFAULT_REASONING_LEVEL = "medium"
 CONF_VERBOSITY = "verbosity"
 DEFAULT_VERBOSITY = "balanced"
+
+# Streaming Configuration
+CONF_ENABLE_STREAMING = "enable_streaming"
+DEFAULT_ENABLE_STREAMING = True

@@ -33,6 +33,7 @@ from .const import (
     CONF_CHAT_MODEL,
     CONF_CONTEXT_THRESHOLD,
     CONF_CONTEXT_TRUNCATE_STRATEGY,
+    CONF_ENABLE_STREAMING,
     CONF_ENABLE_WEB_SEARCH,
     CONF_FUNCTIONS,
     CONF_MAX_FUNCTION_CALLS_PER_CONVERSATION,
@@ -56,6 +57,7 @@ from .const import (
     DEFAULT_CONF_FUNCTIONS,
     DEFAULT_CONTEXT_THRESHOLD,
     DEFAULT_CONTEXT_TRUNCATE_STRATEGY,
+    DEFAULT_ENABLE_STREAMING,
     DEFAULT_ENABLE_WEB_SEARCH,
     DEFAULT_MAX_FUNCTION_CALLS_PER_CONVERSATION,
     DEFAULT_MAX_TOKENS,
@@ -238,38 +240,43 @@ class OptionsFlow(config_entries.OptionsFlow):
                 CONF_TEMPERATURE,
                 description={"suggested_value": options[CONF_TEMPERATURE]},
                 default=DEFAULT_TEMPERATURE,
-            ): NumberSelector(NumberSelectorConfig(min=0, max=1, step=0.05)),
+            ): NumberSelector(NumberSelectorConfig(min=0, max=2, step=0.1)),
             vol.Optional(
                 CONF_MAX_FUNCTION_CALLS_PER_CONVERSATION,
                 description={
-                    "suggested_value": options[CONF_MAX_FUNCTION_CALLS_PER_CONVERSATION]
+                    "suggested_value": options.get(
+                        CONF_MAX_FUNCTION_CALLS_PER_CONVERSATION,
+                        DEFAULT_MAX_FUNCTION_CALLS_PER_CONVERSATION,
+                    )
                 },
                 default=DEFAULT_MAX_FUNCTION_CALLS_PER_CONVERSATION,
             ): int,
             vol.Optional(
                 CONF_FUNCTIONS,
-                description={"suggested_value": options.get(CONF_FUNCTIONS)},
+                description={"suggested_value": options.get(CONF_FUNCTIONS, {})},
                 default=DEFAULT_CONF_FUNCTIONS_STR,
-            ): TemplateSelector(),
+            ): str,
             vol.Optional(
                 CONF_ATTACH_USERNAME,
-                description={"suggested_value": options.get(CONF_ATTACH_USERNAME)},
+                description={"suggested_value": options.get(CONF_ATTACH_USERNAME, {})},
                 default=DEFAULT_ATTACH_USERNAME,
             ): BooleanSelector(),
             vol.Optional(
                 CONF_USE_TOOLS,
-                description={"suggested_value": options.get(CONF_USE_TOOLS)},
+                description={"suggested_value": options.get(CONF_USE_TOOLS, {})},
                 default=DEFAULT_USE_TOOLS,
             ): BooleanSelector(),
             vol.Optional(
                 CONF_CONTEXT_THRESHOLD,
-                description={"suggested_value": options.get(CONF_CONTEXT_THRESHOLD)},
+                description={"suggested_value": options.get(CONF_CONTEXT_THRESHOLD, {})},
                 default=DEFAULT_CONTEXT_THRESHOLD,
             ): int,
             vol.Optional(
                 CONF_CONTEXT_TRUNCATE_STRATEGY,
                 description={
-                    "suggested_value": options.get(CONF_CONTEXT_TRUNCATE_STRATEGY)
+                    "suggested_value": options.get(
+                        CONF_CONTEXT_TRUNCATE_STRATEGY, DEFAULT_CONTEXT_TRUNCATE_STRATEGY
+                    )
                 },
                 default=DEFAULT_CONTEXT_TRUNCATE_STRATEGY,
             ): SelectSelector(
@@ -306,6 +313,10 @@ class OptionsFlow(config_entries.OptionsFlow):
                 )
             ),
             vol.Optional(
+                CONF_USER_LOCATION,
+                description={"suggested_value": options.get(CONF_USER_LOCATION, {})},
+            ): ObjectSelector(),
+            vol.Optional(
                 CONF_STORE_CONVERSATIONS,
                 description={"suggested_value": options.get(CONF_STORE_CONVERSATIONS)},
                 default=DEFAULT_STORE_CONVERSATIONS,
@@ -340,36 +351,8 @@ class OptionsFlow(config_entries.OptionsFlow):
                 )
             ),
             vol.Optional(
-                CONF_USE_RESPONSE_API,
-                description={"suggested_value": options.get(CONF_USE_RESPONSE_API)},
-                default=DEFAULT_USE_RESPONSE_API,
-            ): BooleanSelector(),
-            vol.Optional(
-                CONF_ENABLE_WEB_SEARCH,
-                description={"suggested_value": options.get(CONF_ENABLE_WEB_SEARCH)},
-                default=DEFAULT_ENABLE_WEB_SEARCH,
-            ): BooleanSelector(),
-            vol.Optional(
-                CONF_SEARCH_CONTEXT_SIZE,
-                description={"suggested_value": options.get(CONF_SEARCH_CONTEXT_SIZE)},
-                default=DEFAULT_SEARCH_CONTEXT_SIZE,
-            ): SelectSelector(
-                SelectSelectorConfig(
-                    options=[
-                        SelectOptionDict(value="low", label="Low"),
-                        SelectOptionDict(value="medium", label="Medium"),
-                        SelectOptionDict(value="high", label="High"),
-                    ],
-                    mode=SelectSelectorMode.DROPDOWN,
-                )
-            ),
-            vol.Optional(
-                CONF_USER_LOCATION,
-                description={"suggested_value": options.get(CONF_USER_LOCATION, {})},
-            ): ObjectSelector(),
-            vol.Optional(
-                CONF_STORE_CONVERSATIONS,
-                description={"suggested_value": options.get(CONF_STORE_CONVERSATIONS)},
-                default=DEFAULT_STORE_CONVERSATIONS,
+                CONF_ENABLE_STREAMING,
+                description={"suggested_value": options.get(CONF_ENABLE_STREAMING)},
+                default=DEFAULT_ENABLE_STREAMING,
             ): BooleanSelector(),
         }
