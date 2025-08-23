@@ -188,6 +188,8 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
     async def async_process(
         self, user_input: conversation.ConversationInput
     ) -> conversation.ConversationResult:
+        """Process a sentence from the user."""
+        _LOGGER.debug("Processing user input: %s", user_input.text)
         exposed_entities = self.get_exposed_entities()
 
         if user_input.conversation_id in self.history:
@@ -222,7 +224,7 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
         try:
             query_response = await self.query(user_input, messages, exposed_entities, 0)
         except OpenAIError as err:
-            _LOGGER.error(err)
+            _LOGGER.error("OpenAI API error: %s", err)
             intent_response = intent.IntentResponse(language=user_input.language)
             intent_response.async_set_error(
                 intent.IntentResponseErrorCode.UNKNOWN,
@@ -232,7 +234,7 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
                 response=intent_response, conversation_id=conversation_id
             )
         except HomeAssistantError as err:
-            _LOGGER.error(err, exc_info=err)
+            _LOGGER.error("Home Assistant error: %s", err, exc_info=err)
             intent_response = intent.IntentResponse(language=user_input.language)
             intent_response.async_set_error(
                 intent.IntentResponseErrorCode.UNKNOWN,
@@ -241,14 +243,54 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
             return conversation.ConversationResult(
                 response=intent_response, conversation_id=conversation_id
             )
+        except Exception as err:
+            _LOGGER.error("Unexpected error during intent recognition: %s", err, exc_info=True)
+            intent_response = intent.IntentResponse(language=user_input.language)
+            intent_response.async_set_error(
+                intent.IntentResponseErrorCode.UNKNOWN,
+                "Unexpected error during intent recognition",
+            )
+            return conversation.ConversationResult(
+                response=intent_response, conversation_id=conversation_id
+            )
 
-        messages.append(query_response.message.model_dump(exclude_none=True))
+        # Convert message to dict format
+        message_dict = {
+            "role": getattr(query_response.message, 'role', 'assistant'),
+            "content": query_response.message.content or ""
+        }
+        if hasattr(query_response.message, 'function_call') and query_response.message.function_call:
+            message_dict["function_call"] = {
+                "name": query_response.message.function_call.name,
+                "arguments": query_response.message.function_call.arguments
+            }
+        if hasattr(query_response.message, 'tool_calls') and query_response.message.tool_calls:
+            message_dict["tool_calls"] = [
+                {
+                    "id": tool.id,
+                    "type": tool.type,
+                    "function": {
+                        "name": tool.function.name,
+                        "arguments": tool.function.arguments
+                    }
+                } for tool in query_response.message.tool_calls
+            ]
+        
+        messages.append(message_dict)
         self.history[conversation_id] = messages
 
         self.hass.bus.async_fire(
             EVENT_CONVERSATION_FINISHED,
             {
-                "response": query_response.response.model_dump(),
+                "response": {
+                    "id": query_response.response.id,
+                    "model": query_response.response.model,
+                    "usage": {
+                        "prompt_tokens": query_response.response.usage.prompt_tokens,
+                        "completion_tokens": query_response.response.usage.completion_tokens,
+                        "total_tokens": query_response.response.usage.total_tokens
+                    } if query_response.response.usage else None
+                },
                 "user_input": user_input,
                 "messages": messages,
             },
@@ -632,7 +674,28 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
         exposed_entities,
         n_requests,
     ) -> OpenAIQueryResponse:
-        messages.append(message.model_dump(exclude_none=True))
+        # Convert message to dict format
+        message_dict = {
+            "role": getattr(message, 'role', 'assistant'),
+            "content": message.content or ""
+        }
+        if hasattr(message, 'function_call') and message.function_call:
+            message_dict["function_call"] = {
+                "name": message.function_call.name,
+                "arguments": message.function_call.arguments
+            }
+        if hasattr(message, 'tool_calls') and message.tool_calls:
+            message_dict["tool_calls"] = [
+                {
+                    "id": tool.id,
+                    "type": tool.type,
+                    "function": {
+                        "name": tool.function.name,
+                        "arguments": tool.function.arguments
+                    }
+                } for tool in message.tool_calls
+            ]
+        messages.append(message_dict)
         for tool in message.tool_calls:
             function_name = tool.function.name
             function = next(
