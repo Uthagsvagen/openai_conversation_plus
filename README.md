@@ -26,7 +26,7 @@ This project is a fork of Extended OpenAI Conversation. Big thanks to the origin
 
 ### HACS (Recommended)
 1. Open HACS in Home Assistant
-2. Add this repository as a custom repository: `aselling/openai_conversation_plus`
+2. Add this repository as a custom repository: `Uthagsvagen/openai_conversation_plus`
 3. Install the integration
 4. Restart Home Assistant
 
@@ -130,7 +130,7 @@ The original project by `jekalmin` includes several examples and reference mater
 
 ## Support & Issues
 
-- Open issues and feature requests here: `https://github.com/aselling/openai_conversation_plus/issues`
+- Open issues and feature requests here: `https://github.com/Uthagsvagen/openai_conversation_plus/issues`
 - Enable debug logs if you need to report a bug:
 ```yaml
 logger:

@@ -80,7 +80,7 @@ logger:
 ## Getting Help
 
 1. Check the logs first - they usually contain the specific error
-2. Create an issue at: https://github.com/aselling/openai_conversation_plus/issues
+2. Create an issue at: https://github.com/Uthagsvagen/openai_conversation_plus/issues
 3. Include:
    - Home Assistant version
    - Browser and version

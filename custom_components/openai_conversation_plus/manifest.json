@@ -13,11 +13,11 @@
     "rest",
     "scrape"
   ],
-  "documentation": "https://github.com/aselling/openai_conversation_plus",
+  "documentation": "https://github.com/Uthagsvagen/openai_conversation_plus",
   "homeassistant": "2024.1.0",
   "integration_type": "service",
   "iot_class": "cloud_polling",
-  "issue_tracker": "https://github.com/aselling/openai_conversation_plus/issues",
+  "issue_tracker": "https://github.com/Uthagsvagen/openai_conversation_plus/issues",
   "requirements": [
     "openai~=1.76.2"
   ],
