@@ -22,6 +22,7 @@
         "step": {
             "init": {
                 "data": {
+                    "api_key": "API Key",
                     "max_tokens": "Maximum tokens to return in response",
                     "model": "Completion Model",
                     "prompt": "Prompt Template",
@@ -61,7 +62,7 @@
                 },
                 "prompt": {
                     "name": "Prompt",
-                    "description": "The text to ask about image",
+                    "description": "What's in this image?",
                     "example": "What's in this image?"
                 },
                 "images": {

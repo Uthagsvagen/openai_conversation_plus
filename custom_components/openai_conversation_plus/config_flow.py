@@ -22,6 +22,9 @@ from homeassistant.helpers.selector import (
     SelectSelectorConfig,
     SelectSelectorMode,
     TemplateSelector,
+    TextSelector,
+    TextSelectorConfig,
+    TextSelectorType,
 )
 from openai._exceptions import APIConnectionError, AuthenticationError
 
@@ -195,6 +198,13 @@ class OptionsFlow(config_entries.OptionsFlow):
     ) -> FlowResult:
         """Manage the options."""
         if user_input is not None:
+            # Update API key in entry data if provided
+            api_key = user_input.get(CONF_API_KEY)
+            if api_key:
+                self.hass.config_entries.async_update_entry(
+                    self.config_entry,
+                    data={**self.config_entry.data, CONF_API_KEY: api_key},
+                )
             allowed_keys = {CONF_CHAT_MODEL, CONF_MAX_TOKENS, CONF_TEMPERATURE, CONF_TOP_P}
             filtered = {k: v for k, v in user_input.items() if k in allowed_keys}
             return self.async_create_entry(title=user_input.get(CONF_NAME, DEFAULT_NAME), data=filtered)
@@ -209,150 +219,162 @@ class OptionsFlow(config_entries.OptionsFlow):
         if not options:
             options = DEFAULT_OPTIONS
 
-        return {
-            vol.Optional(
-                CONF_PROMPT,
-                description={"suggested_value": options.get(CONF_PROMPT, DEFAULT_PROMPT)},
-                default=DEFAULT_PROMPT,
-            ): TemplateSelector(),
-            vol.Optional(
-                CONF_CHAT_MODEL,
-                description={
-                    # New key in HA 2023.4
-                    "suggested_value": options.get(CONF_CHAT_MODEL, DEFAULT_CHAT_MODEL)
-                },
-                default=DEFAULT_CHAT_MODEL,
-            ): str,
-            vol.Optional(
-                CONF_MAX_TOKENS,
-                description={"suggested_value": options.get(CONF_MAX_TOKENS, DEFAULT_MAX_TOKENS)},
-                default=DEFAULT_MAX_TOKENS,
-            ): int,
-            vol.Optional(
-                CONF_TOP_P,
-                description={"suggested_value": options.get(CONF_TOP_P, DEFAULT_TOP_P)},
-                default=DEFAULT_TOP_P,
-            ): NumberSelector(NumberSelectorConfig(min=0, max=1, step=0.05)),
-            vol.Optional(
-                CONF_TEMPERATURE,
-                description={"suggested_value": options.get(CONF_TEMPERATURE, DEFAULT_TEMPERATURE)},
-                default=DEFAULT_TEMPERATURE,
-            ): NumberSelector(NumberSelectorConfig(min=0, max=2, step=0.1)),
-            vol.Optional(
-                CONF_MAX_FUNCTION_CALLS_PER_CONVERSATION,
-                description={
-                    "suggested_value": options.get(
-                        CONF_MAX_FUNCTION_CALLS_PER_CONVERSATION,
-                        DEFAULT_MAX_FUNCTION_CALLS_PER_CONVERSATION,
-                    )
-                },
-                default=DEFAULT_MAX_FUNCTION_CALLS_PER_CONVERSATION,
-            ): int,
-            vol.Optional(
-                CONF_FUNCTIONS,
-                description={"suggested_value": options.get(CONF_FUNCTIONS, DEFAULT_CONF_FUNCTIONS_STR)},
-                default=DEFAULT_CONF_FUNCTIONS_STR,
-            ): str,
-            vol.Optional(
-                CONF_ATTACH_USERNAME,
-                description={"suggested_value": options.get(CONF_ATTACH_USERNAME, DEFAULT_ATTACH_USERNAME)},
-                default=DEFAULT_ATTACH_USERNAME,
-            ): BooleanSelector(),
-            vol.Optional(
-                CONF_USE_TOOLS,
-                description={"suggested_value": options.get(CONF_USE_TOOLS, DEFAULT_USE_TOOLS)},
-                default=DEFAULT_USE_TOOLS,
-            ): BooleanSelector(),
-            vol.Optional(
-                CONF_CONTEXT_THRESHOLD,
-                description={
-                    "suggested_value": options.get(CONF_CONTEXT_THRESHOLD, DEFAULT_CONTEXT_THRESHOLD)
-                },
-                default=DEFAULT_CONTEXT_THRESHOLD,
-            ): int,
-            vol.Optional(
-                CONF_CONTEXT_TRUNCATE_STRATEGY,
-                description={
-                    "suggested_value": options.get(
-                        CONF_CONTEXT_TRUNCATE_STRATEGY,
-                        DEFAULT_CONTEXT_TRUNCATE_STRATEGY,
-                    )
-                },
-                default=DEFAULT_CONTEXT_TRUNCATE_STRATEGY,
-            ): SelectSelector(
-                SelectSelectorConfig(
-                    options=[
-                        SelectOptionDict(value=strategy["key"], label=strategy["label"])
-                        for strategy in CONTEXT_TRUNCATE_STRATEGIES
-                    ],
-                    mode=SelectSelectorMode.DROPDOWN,
+        schema: dict = {}
+
+        # One-line textboxes and simple inputs first
+        schema[vol.Optional(CONF_API_KEY) ] = str
+        schema[vol.Optional(
+            CONF_CHAT_MODEL,
+            description={
+                # New key in HA 2023.4
+                "suggested_value": options.get(CONF_CHAT_MODEL, DEFAULT_CHAT_MODEL)
+            },
+            default=DEFAULT_CHAT_MODEL,
+        )] = str
+        schema[vol.Optional(
+            CONF_MAX_TOKENS,
+            description={"suggested_value": options.get(CONF_MAX_TOKENS, DEFAULT_MAX_TOKENS)},
+            default=DEFAULT_MAX_TOKENS,
+        )] = int
+        schema[vol.Optional(
+            CONF_TOP_P,
+            description={"suggested_value": options.get(CONF_TOP_P, DEFAULT_TOP_P)},
+            default=DEFAULT_TOP_P,
+        )] = NumberSelector(NumberSelectorConfig(min=0, max=1, step=0.05))
+        schema[vol.Optional(
+            CONF_TEMPERATURE,
+            description={"suggested_value": options.get(CONF_TEMPERATURE, DEFAULT_TEMPERATURE)},
+            default=DEFAULT_TEMPERATURE,
+        )] = NumberSelector(NumberSelectorConfig(min=0, max=2, step=0.1))
+
+        # Checkboxes
+        schema[vol.Optional(
+            CONF_ATTACH_USERNAME,
+            description={"suggested_value": options.get(CONF_ATTACH_USERNAME, DEFAULT_ATTACH_USERNAME)},
+            default=DEFAULT_ATTACH_USERNAME,
+        )] = BooleanSelector()
+        schema[vol.Optional(
+            CONF_USE_TOOLS,
+            description={"suggested_value": options.get(CONF_USE_TOOLS, DEFAULT_USE_TOOLS)},
+            default=DEFAULT_USE_TOOLS,
+        )] = BooleanSelector()
+        schema[vol.Optional(
+            CONF_USE_RESPONSE_API,
+            description={"suggested_value": options.get(CONF_USE_RESPONSE_API, DEFAULT_USE_RESPONSE_API)},
+            default=DEFAULT_USE_RESPONSE_API,
+        )] = BooleanSelector()
+        schema[vol.Optional(
+            CONF_ENABLE_WEB_SEARCH,
+            description={"suggested_value": options.get(CONF_ENABLE_WEB_SEARCH, DEFAULT_ENABLE_WEB_SEARCH)},
+            default=DEFAULT_ENABLE_WEB_SEARCH,
+        )] = BooleanSelector()
+        schema[vol.Optional(
+            CONF_STORE_CONVERSATIONS,
+            description={"suggested_value": options.get(CONF_STORE_CONVERSATIONS, DEFAULT_STORE_CONVERSATIONS)},
+            default=DEFAULT_STORE_CONVERSATIONS,
+        )] = BooleanSelector()
+        schema[vol.Optional(
+            CONF_ENABLE_STREAMING,
+            description={"suggested_value": options.get(CONF_ENABLE_STREAMING, DEFAULT_ENABLE_STREAMING)},
+            default=DEFAULT_ENABLE_STREAMING,
+        )] = BooleanSelector()
+
+        # Select lists
+        schema[vol.Optional(
+            CONF_CONTEXT_TRUNCATE_STRATEGY,
+            description={
+                "suggested_value": options.get(
+                    CONF_CONTEXT_TRUNCATE_STRATEGY,
+                    DEFAULT_CONTEXT_TRUNCATE_STRATEGY,
                 )
-            ),
-            vol.Optional(
-                CONF_USE_RESPONSE_API,
-                description={"suggested_value": options.get(CONF_USE_RESPONSE_API, DEFAULT_USE_RESPONSE_API)},
-                default=DEFAULT_USE_RESPONSE_API,
-            ): BooleanSelector(),
-            vol.Optional(
-                CONF_ENABLE_WEB_SEARCH,
-                description={"suggested_value": options.get(CONF_ENABLE_WEB_SEARCH, DEFAULT_ENABLE_WEB_SEARCH)},
-                default=DEFAULT_ENABLE_WEB_SEARCH,
-            ): BooleanSelector(),
-            vol.Optional(
-                CONF_SEARCH_CONTEXT_SIZE,
-                description={"suggested_value": options.get(CONF_SEARCH_CONTEXT_SIZE, DEFAULT_SEARCH_CONTEXT_SIZE)},
-                default=DEFAULT_SEARCH_CONTEXT_SIZE,
-            ): SelectSelector(
-                SelectSelectorConfig(
-                    options=[
-                        SelectOptionDict(value="low", label="Low"),
-                        SelectOptionDict(value="medium", label="Medium"),
-                        SelectOptionDict(value="high", label="High"),
-                    ],
-                    mode=SelectSelectorMode.DROPDOWN,
+            },
+            default=DEFAULT_CONTEXT_TRUNCATE_STRATEGY,
+        )] = SelectSelector(
+            SelectSelectorConfig(
+                options=[
+                    SelectOptionDict(value=strategy["key"], label=strategy["label"])
+                    for strategy in CONTEXT_TRUNCATE_STRATEGIES
+                ],
+                mode=SelectSelectorMode.DROPDOWN,
+            )
+        )
+        schema[vol.Optional(
+            CONF_SEARCH_CONTEXT_SIZE,
+            description={"suggested_value": options.get(CONF_SEARCH_CONTEXT_SIZE, DEFAULT_SEARCH_CONTEXT_SIZE)},
+            default=DEFAULT_SEARCH_CONTEXT_SIZE,
+        )] = SelectSelector(
+            SelectSelectorConfig(
+                options=[
+                    SelectOptionDict(value="low", label="Low"),
+                    SelectOptionDict(value="medium", label="Medium"),
+                    SelectOptionDict(value="high", label="High"),
+                ],
+                mode=SelectSelectorMode.DROPDOWN,
+            )
+        )
+        schema[vol.Optional(
+            CONF_REASONING_LEVEL,
+            description={"suggested_value": options.get(CONF_REASONING_LEVEL, DEFAULT_REASONING_LEVEL)},
+            default=DEFAULT_REASONING_LEVEL,
+        )] = SelectSelector(
+            SelectSelectorConfig(
+                options=[
+                    SelectOptionDict(value="minimal", label="Minimal"),
+                    SelectOptionDict(value="low", label="Low"),
+                    SelectOptionDict(value="medium", label="Medium"),
+                    SelectOptionDict(value="high", label="High"),
+                ],
+                mode=SelectSelectorMode.DROPDOWN,
+            )
+        )
+        schema[vol.Optional(
+            CONF_VERBOSITY,
+            description={"suggested_value": options.get(CONF_VERBOSITY, DEFAULT_VERBOSITY)},
+            default=DEFAULT_VERBOSITY,
+        )] = SelectSelector(
+            SelectSelectorConfig(
+                options=[
+                    SelectOptionDict(value="terse", label="Terse"),
+                    SelectOptionDict(value="balanced", label="Balanced"),
+                    SelectOptionDict(value="expansive", label="Expansive"),
+                ],
+                mode=SelectSelectorMode.DROPDOWN,
+            )
+        )
+
+        # Other single-line inputs
+        schema[vol.Optional(
+            CONF_CONTEXT_THRESHOLD,
+            description={
+                "suggested_value": options.get(CONF_CONTEXT_THRESHOLD, DEFAULT_CONTEXT_THRESHOLD)
+            },
+            default=DEFAULT_CONTEXT_THRESHOLD,
+        )] = int
+        schema[vol.Optional(
+            CONF_MAX_FUNCTION_CALLS_PER_CONVERSATION,
+            description={
+                "suggested_value": options.get(
+                    CONF_MAX_FUNCTION_CALLS_PER_CONVERSATION,
+                    DEFAULT_MAX_FUNCTION_CALLS_PER_CONVERSATION,
                 )
-            ),
-            vol.Optional(
-                CONF_USER_LOCATION,
-                description={"suggested_value": options.get(CONF_USER_LOCATION, DEFAULT_USER_LOCATION)},
-            ): ObjectSelector(),
-            vol.Optional(
-                CONF_STORE_CONVERSATIONS,
-                description={"suggested_value": options.get(CONF_STORE_CONVERSATIONS, DEFAULT_STORE_CONVERSATIONS)},
-                default=DEFAULT_STORE_CONVERSATIONS,
-            ): BooleanSelector(),
-            vol.Optional(
-                CONF_REASONING_LEVEL,
-                description={"suggested_value": options.get(CONF_REASONING_LEVEL, DEFAULT_REASONING_LEVEL)},
-                default=DEFAULT_REASONING_LEVEL,
-            ): SelectSelector(
-                SelectSelectorConfig(
-                    options=[
-                        SelectOptionDict(value="minimal", label="Minimal"),
-                        SelectOptionDict(value="low", label="Low"),
-                        SelectOptionDict(value="medium", label="Medium"),
-                        SelectOptionDict(value="high", label="High"),
-                    ],
-                    mode=SelectSelectorMode.DROPDOWN,
-                )
-            ),
-            vol.Optional(
-                CONF_VERBOSITY,
-                description={"suggested_value": options.get(CONF_VERBOSITY, DEFAULT_VERBOSITY)},
-                default=DEFAULT_VERBOSITY,
-            ): SelectSelector(
-                SelectSelectorConfig(
-                    options=[
-                        SelectOptionDict(value="terse", label="Terse"),
-                        SelectOptionDict(value="balanced", label="Balanced"),
-                        SelectOptionDict(value="expansive", label="Expansive"),
-                    ],
-                    mode=SelectSelectorMode.DROPDOWN,
-                )
-            ),
-            vol.Optional(
-                CONF_ENABLE_STREAMING,
-                description={"suggested_value": options.get(CONF_ENABLE_STREAMING, DEFAULT_ENABLE_STREAMING)},
-                default=DEFAULT_ENABLE_STREAMING,
-            ): BooleanSelector(),
-        }
+            },
+            default=DEFAULT_MAX_FUNCTION_CALLS_PER_CONVERSATION,
+        )] = int
+        schema[vol.Optional(
+            CONF_USER_LOCATION,
+            description={"suggested_value": options.get(CONF_USER_LOCATION, DEFAULT_USER_LOCATION)},
+        )] = ObjectSelector()
+
+        # Multiline text areas last
+        schema[vol.Optional(
+            CONF_FUNCTIONS,
+            description={"suggested_value": options.get(CONF_FUNCTIONS, DEFAULT_CONF_FUNCTIONS_STR)},
+            default=DEFAULT_CONF_FUNCTIONS_STR,
+        )] = TextSelector(TextSelectorConfig(type=TextSelectorType.TEXT, multiline=True))
+        schema[vol.Optional(
+            CONF_PROMPT,
+            description={"suggested_value": options.get(CONF_PROMPT, DEFAULT_PROMPT)},
+            default=DEFAULT_PROMPT,
+        )] = TemplateSelector()
+
+        return schema
