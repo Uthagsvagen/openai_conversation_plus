@@ -1,19 +1,19 @@
-"""Test the Extended OpenAI Conversation config flow."""
+"""Test the OpenAI Conversation Plus config flow."""
 from __future__ import annotations
 
-import pytest
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
 
+import pytest
 from homeassistant import config_entries
-from homeassistant.core import HomeAssistant
 from homeassistant.const import CONF_API_KEY, CONF_NAME
+from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
 
 from custom_components.openai_conversation_plus.const import (
-    DOMAIN,
-    DEFAULT_NAME,
     CONF_BASE_URL,
     DEFAULT_CONF_BASE_URL,
+    DEFAULT_NAME,
+    DOMAIN,
 )
 
 
@@ -95,15 +95,17 @@ async def test_form_cannot_connect(hass: HomeAssistant) -> None:
     assert result2["errors"] == {"base": "cannot_connect"}
 
 
-async def test_options_flow(hass: HomeAssistant, mock_config_entry, mock_validate_authentication) -> None:
+async def test_options_flow(
+    hass: HomeAssistant, mock_config_entry, mock_validate_authentication
+) -> None:
     """Test options flow."""
     mock_config_entry.add_to_hass(hass)
-    
+
     result = await hass.config_entries.options.async_init(mock_config_entry.entry_id)
-    
+
     assert result["type"] is FlowResultType.FORM
     assert result["step_id"] == "init"
-    
+
     result2 = await hass.config_entries.options.async_configure(
         result["flow_id"],
         {
@@ -113,7 +115,7 @@ async def test_options_flow(hass: HomeAssistant, mock_config_entry, mock_validat
             "top_p": 0.9,
         },
     )
-    
+
     assert result2["type"] is FlowResultType.CREATE_ENTRY
     assert result2["data"] == {
         "chat_model": "gpt-4",

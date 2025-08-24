@@ -1,1 +1,1 @@
-"""Tests for Extended OpenAI Conversation integration."""
+"""Tests for OpenAI Conversation Plus integration."""

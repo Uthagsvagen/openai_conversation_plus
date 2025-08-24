@@ -2,7 +2,7 @@
 
 # Default target
 help:
-	@echo "Extended OpenAI Conversation - Development Commands"
+	@echo "OpenAI Conversation Plus - Development Commands"
 	@echo ""
 	@echo "make install      - Install dependencies"
 	@echo "make test         - Run all tests"

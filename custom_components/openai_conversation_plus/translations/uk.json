@@ -1,0 +1,80 @@
+{
+    "config": {
+        "error": {
+            "cannot_connect": "Не вдалося підключитися",
+            "invalid_auth": "Неправильна автентифікація",
+            "unknown": "Неочікувана помилка"
+        },
+        "step": {
+            "user": {
+                "data": {
+                    "name": "Назва",
+                    "api_key": "API ключ",
+                    "base_url": "Базовий URL",
+                    "api_version": "Версія API",
+                    "organization": "Організація",
+                    "skip_authentication": "Пропустити автентифікацію"
+                }
+            }
+        }
+    },
+    "options": {
+        "step": {
+            "init": {
+                "data": {
+                    "max_tokens": "Максимальна кількість токенів у відповіді",
+                    "model": "Модель завершення",
+                    "prompt": "Шаблон запиту",
+                    "temperature": "Температура",
+                    "top_p": "Top P",
+                    "max_function_calls_per_conversation": "Максимальна кількість викликів функцій на розмову",
+                    "functions": "Функції",
+                    "attach_username": "Додати ім'я користувача до повідомлення",
+                    "use_tools": "Використовувати інструменти",
+                    "context_threshold": "Поріг контексту",
+                    "context_truncate_strategy": "Стратегія обрізання контексту при перевищенні порогу",
+                    "use_response_api": "Використовувати Response API (Бета)",
+                    "enable_web_search": "Увімкнути веб-пошук",
+                    "search_context_size": "Розмір контексту пошуку",
+                    "user_location": "Розташування користувача (для гео-обізнаного пошуку)",
+                    "store_conversations": "Зберігати розмови (на стороні сервера)",
+                    "reasoning_level": "Рівень міркувань (GPT-5)",
+                    "verbosity": "Деталізація відповіді",
+                    "enable_streaming": "Увімкнути потокові відповіді"
+                }
+            }
+        }
+    },
+    "services": {
+        "query_image": {
+            "name": "Запит про зображення",
+            "description": "Приймати зображення та відповідати на запитання про них",
+            "fields": {
+                "config_entry": {
+                    "name": "Запис конфігурації",
+                    "description": "Запис конфігурації для використання в цій службі"
+                },
+                "model": {
+                    "name": "Модель",
+                    "description": "Модель",
+                    "example": "gpt-4-vision-preview"
+                },
+                "prompt": {
+                    "name": "Запит",
+                    "description": "Текст для запитання про зображення",
+                    "example": "Що на цьому зображенні?"
+                },
+                "images": {
+                    "name": "Зображення",
+                    "description": "Список зображень, про які запитують",
+                    "example": "{\"url\": \"https://upload.wikimedia.org/wikipedia/commons/thumb/d/dd/Gfp-wisconsin-madison-the-nature-boardwalk.jpg/2560px-Gfp-wisconsin-madison-the-nature-boardwalk.jpg\"}"
+                },
+                "max_tokens": {
+                    "name": "Максимум токенів",
+                    "description": "Максимальна кількість токенів",
+                    "example": "300"
+                }
+            }
+        }
+    }
+}

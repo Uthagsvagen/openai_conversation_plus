@@ -1,0 +1,80 @@
+{
+    "config": {
+        "error": {
+            "cannot_connect": "تعذر الاتصال",
+            "invalid_auth": "مصادقة غير صالحة",
+            "unknown": "خطأ غير متوقع"
+        },
+        "step": {
+            "user": {
+                "data": {
+                    "name": "الاسم",
+                    "api_key": "مفتاح API",
+                    "base_url": "رابط أساسي",
+                    "api_version": "إصدار API",
+                    "organization": "المنظمة",
+                    "skip_authentication": "تخطي المصادقة"
+                }
+            }
+        }
+    },
+    "options": {
+        "step": {
+            "init": {
+                "data": {
+                    "max_tokens": "الحد الأقصى لعدد الرموز المميزة في الاستجابة",
+                    "model": "نموذج الإكمال",
+                    "prompt": "قالب المطالبة",
+                    "temperature": "درجة الحرارة",
+                    "top_p": "أعلى P",
+                    "max_function_calls_per_conversation": "الحد الأقصى لعدد استدعاءات الدالة لكل محادثة",
+                    "functions": "الدوال",
+                    "attach_username": "إرفاق اسم المستخدم بالرسالة",
+                    "use_tools": "استخدام الأدوات",
+                    "context_threshold": "عتبة السياق",
+                    "context_truncate_strategy": "استراتيجية اقتطاع السياق عند تجاوز العتبة",
+                    "use_response_api": "استخدام Response API (تجريبي)",
+                    "enable_web_search": "تمكين البحث على الويب",
+                    "search_context_size": "حجم سياق البحث",
+                    "user_location": "موقع المستخدم (للبحث الجغرافي)",
+                    "store_conversations": "تخزين المحادثات (جانب الخادم)",
+                    "reasoning_level": "مستوى الاستدلال (GPT-5)",
+                    "verbosity": "تفصيل الاستجابة",
+                    "enable_streaming": "تمكين الاستجابات المتدفقة"
+                }
+            }
+        }
+    },
+    "services": {
+        "query_image": {
+            "name": "استعلام الصورة",
+            "description": "استقبال الصور والإجابة على الأسئلة المتعلقة بها",
+            "fields": {
+                "config_entry": {
+                    "name": "إدخال التكوين",
+                    "description": "إدخال التكوين المستخدم لهذه الخدمة"
+                },
+                "model": {
+                    "name": "النموذج",
+                    "description": "النموذج",
+                    "example": "gpt-4-vision-preview"
+                },
+                "prompt": {
+                    "name": "المطالبة",
+                    "description": "النص للسؤال عن الصورة",
+                    "example": "ماذا في هذه الصورة؟"
+                },
+                "images": {
+                    "name": "الصور",
+                    "description": "قائمة بالصور التي سيتم السؤال عنها",
+                    "example": "{\"url\": \"https://upload.wikimedia.org/wikipedia/commons/thumb/d/dd/Gfp-wisconsin-madison-the-nature-boardwalk.jpg/2560px-Gfp-wisconsin-madison-the-nature-boardwalk.jpg\"}"
+                },
+                "max_tokens": {
+                    "name": "الحد الأقصى للرموز المميزة",
+                    "description": "الحد الأقصى لعدد الرموز المميزة",
+                    "example": "300"
+                }
+            }
+        }
+    }
+}

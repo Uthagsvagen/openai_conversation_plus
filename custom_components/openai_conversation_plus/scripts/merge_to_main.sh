@@ -44,7 +44,7 @@ DEV_FILES=(
     "SETUP_COMPLETE.md"
     "TROUBLESHOOTING.md"
     "QUICK_FIX.md"
-    
+
     # Development scripts and configs
     "scripts/"
     "tests/"
@@ -56,10 +56,10 @@ DEV_FILES=(
     ".pre-commit-config.yaml"
     "safari-fix.js"
     "frontend_dev_setup.sh"
-    
+
     # Development workflows
     ".github/"
-    
+
     # Development environment
     "venv_test/"
     ".pytest_cache/"
