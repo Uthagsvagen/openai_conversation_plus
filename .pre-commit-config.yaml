@@ -1,4 +1,4 @@
-# Pre-commit configuration for Extended OpenAI Conversation
+# Pre-commit configuration for OpenAI Conversation Plus
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.5.0
@@ -68,7 +68,7 @@ repos:
     hooks:
       - id: manifest-validation
         name: Validate manifest.json
-        entry: python -m json.tool
+        entry: python3 -m json.tool
         language: system
         files: manifest\.json$
         pass_filenames: true

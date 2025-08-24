@@ -3,7 +3,7 @@
 
 if (navigator.userAgent.includes('Safari') && !navigator.userAgent.includes('Chrome')) {
   console.log('Applying Safari fix for ha-assist-chat');
-  
+
   // Patch to prevent uninitialized variable access
   const originalAddEventListener = EventTarget.prototype.addEventListener;
   EventTarget.prototype.addEventListener = function(type, listener, options) {

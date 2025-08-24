@@ -1,4 +1,4 @@
-# Testing requirements for Extended OpenAI Conversation integration
+# Testing requirements for OpenAI Conversation Plus integration
 pytest>=7.1.2
 pytest-homeassistant-custom-component>=0.13.0
 pytest-cov>=4.0.0
@@ -12,8 +12,9 @@ mypy>=1.5.0
 black>=23.0.0
 
 # Home Assistant specific validation
-hassfest
+# hassfest is run via GitHub Action, not installed here
 
 # Additional development dependencies
 types-PyYAML
 types-requests
+hassil>=1.0.6

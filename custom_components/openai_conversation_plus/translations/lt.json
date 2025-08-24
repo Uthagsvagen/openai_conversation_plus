@@ -1,0 +1,80 @@
+{
+    "config": {
+        "error": {
+            "cannot_connect": "Nepavyko prisijungti",
+            "invalid_auth": "Neteisingas autentifikavimas",
+            "unknown": "Netikėta klaida"
+        },
+        "step": {
+            "user": {
+                "data": {
+                    "name": "Pavadinimas",
+                    "api_key": "API raktas",
+                    "base_url": "Pagrindinis URL",
+                    "api_version": "API versija",
+                    "organization": "Organizacija",
+                    "skip_authentication": "Praleisti autentifikavimą"
+                }
+            }
+        }
+    },
+    "options": {
+        "step": {
+            "init": {
+                "data": {
+                    "max_tokens": "Maksimalus žetonų skaičius atsakyme",
+                    "model": "Užbaigimo modelis",
+                    "prompt": "Prompt šablonas",
+                    "temperature": "Temperatūra",
+                    "top_p": "Top P",
+                    "max_function_calls_per_conversation": "Maksimalus funkcijų iškvietimų skaičius pokalbiui",
+                    "functions": "Funkcijos",
+                    "attach_username": "Pridėti vartotojo vardą prie žinutės",
+                    "use_tools": "Naudoti įrankius",
+                    "context_threshold": "Konteksto slenkstis",
+                    "context_truncate_strategy": "Konteksto sutrumpinimo strategija viršijant slenkstį",
+                    "use_response_api": "Naudoti Response API (Beta)",
+                    "enable_web_search": "Įjungti interneto paiešką",
+                    "search_context_size": "Paieškos konteksto dydis",
+                    "user_location": "Vartotojo vieta (geo-pažintoms paieškoms)",
+                    "store_conversations": "Saugoti pokalbius (serverio pusėje)",
+                    "reasoning_level": "Mąstymo lygis (GPT-5)",
+                    "verbosity": "Atsakymo išsamumas",
+                    "enable_streaming": "Įjungti srauto atsakymus"
+                }
+            }
+        }
+    },
+    "services": {
+        "query_image": {
+            "name": "Klausti apie paveikslėlį",
+            "description": "Priimti paveikslėlius ir atsakyti į klausimus apie juos",
+            "fields": {
+                "config_entry": {
+                    "name": "Konfigūracijos įrašas",
+                    "description": "Konfigūracijos įrašas, naudojamas šiam paslaugai"
+                },
+                "model": {
+                    "name": "Modelis",
+                    "description": "Modelis",
+                    "example": "gpt-4-vision-preview"
+                },
+                "prompt": {
+                    "name": "Prompt",
+                    "description": "Tekstas klausimui apie paveikslėlį",
+                    "example": "Kas yra šiame paveikslėlyje?"
+                },
+                "images": {
+                    "name": "Paveikslėliai",
+                    "description": "Paveikslėlių sąrašas, apie kuriuos klausiama",
+                    "example": "{\"url\": \"https://upload.wikimedia.org/wikipedia/commons/thumb/d/dd/Gfp-wisconsin-madison-the-nature-boardwalk.jpg/2560px-Gfp-wisconsin-madison-the-nature-boardwalk.jpg\"}"
+                },
+                "max_tokens": {
+                    "name": "Maksimalus žetonų skaičius",
+                    "description": "Maksimalus žetonų skaičius",
+                    "example": "300"
+                }
+            }
+        }
+    }
+}

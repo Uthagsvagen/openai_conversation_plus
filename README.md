@@ -8,7 +8,7 @@
 
 OpenAI Conversation Plus is a custom Home Assistant integration that enhances the native conversation experience with modern OpenAI capabilities: GPT‑5 model support, streaming responses, built‑in web search, and powerful custom tool calls (functions).
 
-This project is a fork of Extended OpenAI Conversation. Big thanks to the original creator, [jekalmin](https://github.com/jekalmin), for the excellent foundation and inspiration.
+This project is a fork of OpenAI Conversation Plus. Big thanks to the original creator, [jekalmin](https://github.com/jekalmin), for the excellent foundation and inspiration.
 
 - Original project: `extended_openai_conversation`
 - Examples in the original project: https://github.com/jekalmin/extended_openai_conversation/tree/main/examples
@@ -34,7 +34,7 @@ This project is a fork of Extended OpenAI Conversation. Big thanks to the origin
 
 ### HACS (Recommended)
 1. Open HACS in Home Assistant
-2. Add this repository as a custom repository: `aselling/openai_conversation_plus`
+2. Add this repository as a custom repository: `Uthagsvagen/openai_conversation_plus`
 3. Install the integration
 4. Restart Home Assistant
 
@@ -168,7 +168,7 @@ We're actively working on expanding the capabilities of OpenAI Conversation Plus
 
 ## Support & Issues
 
-- Open issues and feature requests here: `https://github.com/aselling/openai_conversation_plus/issues`
+- Open issues and feature requests here: `https://github.com/Uthagsvagen/openai_conversation_plus/issues`
 - Enable debug logs if you need to report a bug:
 ```yaml
 logger:

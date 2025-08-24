@@ -1,0 +1,80 @@
+{
+    "config": {
+        "error": {
+            "cannot_connect": "No se pudo conectar",
+            "invalid_auth": "Autenticación inválida",
+            "unknown": "Error inesperado"
+        },
+        "step": {
+            "user": {
+                "data": {
+                    "name": "Nombre",
+                    "api_key": "Clave API",
+                    "base_url": "URL base",
+                    "api_version": "Versión de API",
+                    "organization": "Organización",
+                    "skip_authentication": "Omitir autenticación"
+                }
+            }
+        }
+    },
+    "options": {
+        "step": {
+            "init": {
+                "data": {
+                    "max_tokens": "Número máximo de tokens a devolver en la respuesta",
+                    "model": "Modelo de finalización",
+                    "prompt": "Plantilla de prompt",
+                    "temperature": "Temperatura",
+                    "top_p": "Top P",
+                    "max_function_calls_per_conversation": "Número máximo de llamadas a funciones por conversación",
+                    "functions": "Funciones",
+                    "attach_username": "Adjuntar nombre de usuario al mensaje",
+                    "use_tools": "Usar herramientas",
+                    "context_threshold": "Umbral de contexto",
+                    "context_truncate_strategy": "Estrategia de truncamiento de contexto cuando se excede el umbral",
+                    "use_response_api": "Usar Response API (Beta)",
+                    "enable_web_search": "Habilitar búsqueda web",
+                    "search_context_size": "Tamaño del contexto de búsqueda",
+                    "user_location": "Ubicación del usuario (para búsquedas geo-conscientes)",
+                    "store_conversations": "Almacenar conversaciones (lado del servidor)",
+                    "reasoning_level": "Nivel de razonamiento (GPT-5)",
+                    "verbosity": "Verbosidad de respuesta",
+                    "enable_streaming": "Habilitar respuestas de transmisión"
+                }
+            }
+        }
+    },
+    "services": {
+        "query_image": {
+            "name": "Consultar imagen",
+            "description": "Recibir imágenes y responder preguntas sobre ellas",
+            "fields": {
+                "config_entry": {
+                    "name": "Entrada de configuración",
+                    "description": "La entrada de configuración a usar para este servicio"
+                },
+                "model": {
+                    "name": "Modelo",
+                    "description": "El modelo",
+                    "example": "gpt-4-vision-preview"
+                },
+                "prompt": {
+                    "name": "Prompt",
+                    "description": "El texto para preguntar sobre la imagen",
+                    "example": "¿Qué hay en esta imagen?"
+                },
+                "images": {
+                    "name": "Imágenes",
+                    "description": "Una lista de imágenes sobre las que se preguntará",
+                    "example": "{\"url\": \"https://upload.wikimedia.org/wikipedia/commons/thumb/d/dd/Gfp-wisconsin-madison-the-nature-boardwalk.jpg/2560px-Gfp-wisconsin-madison-the-nature-boardwalk.jpg\"}"
+                },
+                "max_tokens": {
+                    "name": "Tokens máximos",
+                    "description": "El número máximo de tokens",
+                    "example": "300"
+                }
+            }
+        }
+    }
+}

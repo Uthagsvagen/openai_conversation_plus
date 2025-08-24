@@ -1,8 +1,8 @@
 #!/bin/bash
-# Frontend development setup for Extended OpenAI Conversation
+# Frontend development setup for OpenAI Conversation Plus
 # Based on Home Assistant frontend development guide
 
-echo "Extended OpenAI Conversation - Frontend Development Setup"
+echo "OpenAI Conversation Plus - Frontend Development Setup"
 echo "========================================================"
 
 # Check if the component has frontend files
@@ -34,13 +34,13 @@ if [ -f "package.json" ]; then
     yarn install
 else
     echo "No package.json found. Creating basic frontend structure..."
-    
+
     # Create package.json
     cat > package.json << 'EOF'
 {
   "name": "extended-openai-conversation-frontend",
   "version": "1.0.0",
-  "description": "Frontend for Extended OpenAI Conversation",
+  "description": "Frontend for OpenAI Conversation Plus",
   "scripts": {
     "build": "rollup -c",
     "dev": "rollup -c -w",
@@ -94,7 +94,7 @@ EOF
 
     # Create src directory
     mkdir -p src
-    
+
     # Create basic TypeScript config
     cat > tsconfig.json << 'EOF'
 {

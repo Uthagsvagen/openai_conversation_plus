@@ -16,14 +16,8 @@ jobs:
     steps:
       - name: Check out code
         uses: actions/checkout@v4
-      
-      - name: Set up Python
-        uses: actions/setup-python@v4
+
+      - name: Hassfest validation
+        uses: home-assistant/actions/hassfest@master
         with:
-          python-version: "3.11"
-      
-      - name: Install hassfest
-        run: pip install hassfest
-      
-      - name: Run hassfest validation
-        run: hassfest --action validate --integration-path ./custom_components/openai_conversation_plus
+          path: "custom_components/openai_conversation_plus"

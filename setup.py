@@ -1,17 +1,17 @@
-"""Setup file for Extended OpenAI Conversation integration."""
-from setuptools import setup, find_packages
+"""Setup file for OpenAI Conversation Plus integration."""
+from setuptools import find_packages, setup
 
-with open("README.md", "r", encoding="utf-8") as fh:
+with open("README.md", encoding="utf-8") as fh:
     long_description = fh.read()
 
 setup(
     name="extended-openai-conversation",
-    version="1.0.5",
+    version="2025.81.1",
     author="jekalmin",
-    description="Extended OpenAI Conversation integration for Home Assistant",
+    description="OpenAI Conversation Plus integration for Home Assistant",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/aselling/openai_conversation_plus",
+    url="https://github.com/Uthagsvagen/openai_conversation_plus",
     packages=find_packages(include=["custom_components", "custom_components.*"]),
     classifiers=[
         "Development Status :: 4 - Beta",

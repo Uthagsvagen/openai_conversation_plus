@@ -4,13 +4,7 @@ import mimetypes
 from pathlib import Path
 from urllib.parse import urlparse
 
-from openai import AsyncOpenAI
-from openai._exceptions import OpenAIError
-from openai.types.chat.chat_completion_content_part_image_param import (
-    ChatCompletionContentPartImageParam,
-)
 import voluptuous as vol
-
 from homeassistant.core import (
     HomeAssistant,
     ServiceCall,
@@ -18,8 +12,14 @@ from homeassistant.core import (
     SupportsResponse,
 )
 from homeassistant.exceptions import HomeAssistantError
-from homeassistant.helpers import config_validation as cv, selector
+from homeassistant.helpers import config_validation as cv
+from homeassistant.helpers import selector
 from homeassistant.helpers.typing import ConfigType
+from openai import AsyncOpenAI
+from openai._exceptions import OpenAIError
+from openai.types.chat.chat_completion_content_part_image_param import (
+    ChatCompletionContentPartImageParam,
+)
 
 from .const import DOMAIN, SERVICE_QUERY_IMAGE
 

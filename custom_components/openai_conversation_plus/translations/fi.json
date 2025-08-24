@@ -1,0 +1,80 @@
+{
+    "config": {
+        "error": {
+            "cannot_connect": "Ei voitu yhdistää",
+            "invalid_auth": "Virheellinen todennus",
+            "unknown": "Odottamaton virhe"
+        },
+        "step": {
+            "user": {
+                "data": {
+                    "name": "Nimi",
+                    "api_key": "API-avain",
+                    "base_url": "Perus-URL",
+                    "api_version": "API-versio",
+                    "organization": "Organisaatio",
+                    "skip_authentication": "Ohita todennus"
+                }
+            }
+        }
+    },
+    "options": {
+        "step": {
+            "init": {
+                "data": {
+                    "max_tokens": "Maksimimäärä tokeneja vastauksessa",
+                    "model": "Täydennysmalli",
+                    "prompt": "Prompt-malli",
+                    "temperature": "Lämpötila",
+                    "top_p": "Top P",
+                    "max_function_calls_per_conversation": "Maksimimäärä funktiokutsuja keskustelua kohden",
+                    "functions": "Funktiot",
+                    "attach_username": "Liitä käyttäjänimi viestiin",
+                    "use_tools": "Käytä työkaluja",
+                    "context_threshold": "Kontekstin kynnys",
+                    "context_truncate_strategy": "Strategia kontekstin katkaisemiseen kynnyksen ylittäessä",
+                    "use_response_api": "Käytä Response API:a (Beta)",
+                    "enable_web_search": "Ota käyttöön web-haku",
+                    "search_context_size": "Haun kontekstin koko",
+                    "user_location": "Käyttäjän sijainti (geo-tietoisille hauille)",
+                    "store_conversations": "Tallenna keskustelut (palvelinpuolella)",
+                    "reasoning_level": "Päättelytaso (GPT-5)",
+                    "verbosity": "Vastauksen yksityiskohtaisuus",
+                    "enable_streaming": "Ota käyttöön suoratoisto-vastaukset"
+                }
+            }
+        }
+    },
+    "services": {
+        "query_image": {
+            "name": "Kysy kuvasta",
+            "description": "Ota kuvia vastaan ja vastaa niihin liittyviin kysymyksiin",
+            "fields": {
+                "config_entry": {
+                    "name": "Konfiguraatiomerkintä",
+                    "description": "Tämän palvelun konfiguraatiomerkintä"
+                },
+                "model": {
+                    "name": "Malli",
+                    "description": "Malli",
+                    "example": "gpt-4-vision-preview"
+                },
+                "prompt": {
+                    "name": "Prompt",
+                    "description": "Teksti kuvan kysymiseen",
+                    "example": "Mitä tässä kuvassa on?"
+                },
+                "images": {
+                    "name": "Kuvat",
+                    "description": "Luettelo kuvista, joista kysytään",
+                    "example": "{\"url\": \"https://upload.wikimedia.org/wikipedia/commons/thumb/d/dd/Gfp-wisconsin-madison-the-nature-boardwalk.jpg/2560px-Gfp-wisconsin-madison-the-nature-boardwalk.jpg\"}"
+                },
+                "max_tokens": {
+                    "name": "Maksimi tokenit",
+                    "description": "Maksimimäärä tokeneja",
+                    "example": "300"
+                }
+            }
+        }
+    }
+}

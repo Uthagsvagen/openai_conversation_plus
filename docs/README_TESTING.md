@@ -1,6 +1,6 @@
-# Testing Extended OpenAI Conversation
+# Testing OpenAI Conversation Plus
 
-This document describes how to test the Extended OpenAI Conversation integration without running the full Home Assistant Core.
+This document describes how to test the OpenAI Conversation Plus integration without running the full Home Assistant Core.
 
 ## Quick Start
 

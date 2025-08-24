@@ -15,12 +15,12 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
-    
+
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v4
       with:
         python-version: ${{ matrix.python-version }}
-    
+
     - name: Cache pip packages
       uses: actions/cache@v3
       with:
@@ -28,22 +28,22 @@ jobs:
         key: ${{ runner.os }}-pip-${{ hashFiles('requirements_test.txt') }}
         restore-keys: |
           ${{ runner.os }}-pip-
-    
+
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
         pip install -r requirements_test.txt
         pip install -e .
-    
+
     - name: Run pre-commit
       run: |
         pre-commit install
         pre-commit run --all-files
-    
+
     - name: Run tests with pytest
       run: |
-        pytest --cov=custom_components.extended_openai_conversation --cov-report=xml --cov-report=term
-    
+        pytest --cov=custom_components.openai_conversation_plus --cov-report=xml --cov-report=term
+
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v3
       with:
@@ -54,27 +54,21 @@ jobs:
 
   hassfest:
     runs-on: ubuntu-latest
-    
+
     steps:
     - uses: actions/checkout@v4
-    
-    - name: Set up Python
-      uses: actions/setup-python@v4
+
+    - name: Hassfest validation
+      uses: home-assistant/actions/hassfest@master
       with:
-        python-version: "3.11"
-    
-    - name: Install hassfest
-      run: pip install hassfest
-    
-    - name: Validate with hassfest
-      run: hassfest validate
+        path: "custom_components/openai_conversation_plus"
 
   hacs:
     runs-on: ubuntu-latest
-    
+
     steps:
     - uses: actions/checkout@v4
-    
+
     - name: HACS validation
       uses: hacs/action@main
       with:

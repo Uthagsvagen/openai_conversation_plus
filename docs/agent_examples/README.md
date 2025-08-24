@@ -88,22 +88,22 @@ agent:
   type: "monitoring|automation|analysis"
   enabled: true
   schedule: "continuous|daily|hourly|custom"
-  
+
   data_sources:
     # Define data sources and sensors
-    
+
   rules:
     # Define monitoring rules and conditions
-    
+
   triggers:
     # Define trigger conditions and events
-    
+
   actions:
     # Define automated actions and responses
-    
+
   modes:
     # Define different operational modes
-    
+
   metrics:
     # Define performance metrics and KPIs
 ```
