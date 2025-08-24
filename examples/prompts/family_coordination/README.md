@@ -88,7 +88,7 @@ Safety check-ins for family members
 ## Usage Examples
 ```
 # Family messaging
-"Send a message to John: Don't forget to pick up groceries"
+"Send a message to a family member: Don't forget to pick up groceries"
 "Announce to everyone: Dinner is ready in 10 minutes"
 "Check if a family member is home before starting the movie"
 
