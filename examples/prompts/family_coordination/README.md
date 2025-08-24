@@ -13,7 +13,7 @@ This prompt template enables family coordination and communication within smart 
 ## Household Member Management
 ```
 # Family member tracking
-Family members live at Main Street address
+Family members live at an anonymized street address
 Location tracking for family members when away from home
 Two electric vehicles in the household
 
@@ -90,7 +90,7 @@ Safety check-ins for family members
 # Family messaging
 "Send a message to John: Don't forget to pick up groceries"
 "Announce to everyone: Dinner is ready in 10 minutes"
-"Check if Sarah is home before starting the movie"
+"Check if a family member is home before starting the movie"
 
 # Schedule coordination
 "What's on the family calendar today?"

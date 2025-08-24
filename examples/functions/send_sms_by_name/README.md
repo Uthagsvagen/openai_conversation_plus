@@ -24,7 +24,7 @@ This function:
 ```yaml
 # Send a simple message
 {
-  "contact_name": "John Smith",
+  "contact_name": "Friend A",
   "message": "Hello! How are you doing today?"
 }
 

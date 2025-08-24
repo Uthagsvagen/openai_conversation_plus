@@ -12,13 +12,13 @@ This prompt template focuses on energy monitoring and management for smart homes
 
 ## Key Energy Metrics
 ```
-Electricity price now: {{ states('sensor.electricity_price_main_street') | round(2) | replace('.', ',') }} kr
+Electricity price now: {{ states('sensor.energy_price_home') | round(2) | replace('.', ',') }} kr
 Grid consumption: {{ (states('sensor.shelly_3em_house_consumption_total_active_power') | float / 1000) | round(2) | replace('.', ',') }} kW
 
-EV Charger 1: {{ (states('sensor.main_street_charger_2109013766a_1_power') | float / 1000) | round(2) | replace('.', ',') }} kW
-EV Charger 2: {{ (states('sensor.main_street_charger_2109013766a_2_power') | float / 1000) | round(2) | replace('.', ',') }} kW
+EV Charger 1: {{ (states('sensor.ev_charger_1_power') | float / 1000) | round(2) | replace('.', ',') }} kW
+EV Charger 2: {{ (states('sensor.ev_charger_2_power') | float / 1000) | round(2) | replace('.', ',') }} kW
 
-Battery status: {{ states('sensor.audi_q8_e_tron_state_of_charge') }}% charged
+Battery status: {{ states('sensor.ev_battery_state_of_charge') }}% charged
 ```
 
 ## Price Thresholds

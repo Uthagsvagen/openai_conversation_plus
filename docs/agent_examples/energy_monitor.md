@@ -25,12 +25,12 @@ agent:
 ```yaml
 data_sources:
   electricity_price:
-    entity: "sensor.electricity_price_main_street"
+    entity: "sensor.energy_price_home"
     description: "Current electricity price per kWh"
     unit: "kr/kWh"
     
   house_consumption:
-    entity: "sensor.shelly_3em_house_consumption_total_active_power"
+    entity: "sensor.house_consumption_power"
     description: "Total house power consumption"
     unit: "W"
     
@@ -45,12 +45,12 @@ data_sources:
     unit: "%"
     
   ev_charger_1:
-    entity: "sensor.main_street_charger_2109013766a_1_power"
+    entity: "sensor.ev_charger_1_power"
     description: "EV Charger 1 power consumption"
     unit: "W"
     
   ev_charger_2:
-    entity: "sensor.main_street_charger_2109013766a_2_power"
+    entity: "sensor.ev_charger_2_power"
     description: "EV Charger 2 power consumption"
     unit: "W"
 ```
@@ -165,7 +165,7 @@ notifications:
     data:
       title: "⚡ High Electricity Cost"
       message: |
-        Current price: {{ states('sensor.electricity_price_main_street') }} kr/kWh
+        Current price: {{ states('sensor.energy_price_home') }} kr/kWh
         This is {{ price_category }} pricing.
         Consider reducing usage until prices drop.
       priority: "high"

@@ -59,13 +59,13 @@ Today is: {{ now().strftime('%A') }}
   {% endfor %}
 {% endif %}
 
-Electricity price now: {{ states('sensor.electricity_price_main_street') | round(2) | replace('.', ',') }} kr
+Electricity price now: {{ states('sensor.energy_price_home') | round(2) | replace('.', ',') }} kr
 Electricity purchased from grid now: 
 {{ (states('sensor.shelly_3em_house_consumption_total_active_power') | float / 1000) | round(2) | replace('.', ',') }} kilowatt
 
-EV Charger 1 consumption now: {{ (states('sensor.main_street_charger_2109013766a_1_power') | float / 1000) | round(2) | replace('.', ',') }} Kilowatt
-EV Charger 2 consumption now: {{ (states('sensor.main_street_charger_2109013766a_2_power') | float / 1000) | round(2) | replace('.', ',') }} Kilowatt
-Audi Q8 e-tron battery: {{ states('sensor.audi_q8_e_tron_state_of_charge') }} percent charged
+EV Charger 1 consumption now: {{ (states('sensor.ev_charger_1_power') | float / 1000) | round(2) | replace('.', ',') }} Kilowatt
+EV Charger 2 consumption now: {{ (states('sensor.ev_charger_2_power') | float / 1000) | round(2) | replace('.', ',') }} Kilowatt
+EV battery: {{ states('sensor.ev_battery_state_of_charge') }} percent charged
 ```
 
 ## Energy Price Guidelines
@@ -80,7 +80,7 @@ Audi Q8 e-tron battery: {{ states('sensor.audi_q8_e_tron_state_of_charge') }} pe
 - **Solar panels and battery storage** available
 
 ## Household Members
-- **Family members** live at Main Street address
+- **Family members** live at an anonymized street address
 - **Location tracking** for family members when away from home
 - **Two electric vehicles** in the household
 
