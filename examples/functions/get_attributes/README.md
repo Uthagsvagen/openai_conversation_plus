@@ -26,12 +26,12 @@ This function uses a template to:
 ```yaml
 # Get light bulb attributes
 {
-  "entity_id": "light.living_room"
+  "entity_id": "light.room_a"
 }
 
 # Get sensor data
 {
-  "entity_id": "sensor.temperature_living_room"
+  "entity_id": "sensor.temperature_room_a"
 }
 
 # Get device tracker information

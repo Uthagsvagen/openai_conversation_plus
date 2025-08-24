@@ -111,7 +111,7 @@ agent:
   data_sources:
     motion_detectors:
       - entity: "binary_sensor.my_motion"    # Update this
-        area: "living_room"
+        area: "room_a"
 ```
 
 ## 🧪 Testing Your Agents

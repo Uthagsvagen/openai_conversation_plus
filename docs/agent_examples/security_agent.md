@@ -523,7 +523,7 @@ test_scenarios:
   - name: "Motion Detection Test"
     description: "Test motion sensor response and notification"
     input:
-      motion_sensor: "binary_sensor.living_room_motion"
+      motion_sensor: "binary_sensor.room_a_motion"
       time: "14:00"
       occupancy: "home"
     expected_actions:
@@ -535,7 +535,7 @@ test_scenarios:
   - name: "Door Breach Test"
     description: "Test unauthorized door access response"
     input:
-      door_sensor: "binary_sensor.front_door"
+      door_sensor: "binary_sensor.door_a"
       time: "23:00"
       occupancy: "away"
       security_system: "armed_away"

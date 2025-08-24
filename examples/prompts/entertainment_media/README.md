@@ -15,10 +15,10 @@ This prompt template provides comprehensive entertainment and media control capa
 ### Music Assistant Integration
 ```
 # Music playback commands
-"Play Bohemian Rhapsody in the living room"
-"Start the Workout Mix playlist in the kitchen"
-"Play jazz music in the bedroom"
-"Pause music in the office"
+"Play Bohemian Rhapsody in room A"
+"Start the Workout Mix playlist in room B"
+"Play jazz music in room C"
+"Pause music in the office room"
 ```
 
 ### Multi-Room Audio
@@ -83,13 +83,13 @@ This prompt template provides comprehensive entertainment and media control capa
 ```
 # Music control
 "Play classical music in the living room"
-"Create a dinner playlist for the kitchen"
+"Create a dinner playlist for room B"
 "Sync music across all rooms"
-"Lower the volume in the bedroom"
+"Lower the volume in room C"
 
 # Video and TV
-"Turn on the TV in the living room"
-"Start Netflix on the bedroom TV"
+"Turn on the TV in room A"
+"Start Netflix on the TV in room C"
 "Switch to HDMI input 2"
 "Set the TV to movie mode"
 

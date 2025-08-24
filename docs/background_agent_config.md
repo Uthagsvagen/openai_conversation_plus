@@ -194,7 +194,7 @@ agent:
       state: "on"
     
     - condition: "door_opened"
-      sensor: "binary_sensor.front_door"
+      sensor: "binary_sensor.door_a"
       state: "on"
       time_restriction: "22:00-06:00"
   
