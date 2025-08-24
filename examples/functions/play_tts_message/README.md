@@ -24,20 +24,20 @@ This function uses the `tts.speak` service to:
 ```yaml
 # Simple TTS message
 {
-  "message": "Hello! The weather today is sunny with a high of 75 degrees.",
-  "media_player": "media_player.living_room"
+  "message": "Hello! The weather today is sunny with a high of 24 degrees.",
+  "media_player": "media_player.room_a"
 }
 
 # Time announcement
 {
   "message": "It's currently 3:30 PM. Time for your afternoon meeting.",
-  "media_player": "media_player.kitchen"
+  "media_player": "media_player.room_b"
 }
 
 # Status update
 {
   "message": "Your laundry is finished. Please check the washing machine.",
-  "media_player": "media_player.bedroom"
+  "media_player": "media_player.room_c"
 }
 ```
 

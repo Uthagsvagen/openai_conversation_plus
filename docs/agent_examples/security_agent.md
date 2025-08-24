@@ -25,51 +25,51 @@ agent:
 ```yaml
 data_sources:
   motion_detectors:
-    - entity: "binary_sensor.living_room_motion"
-      description: "Living room motion detector"
-      area: "living_room"
+    - entity: "binary_sensor.room_a_motion"
+      description: "Room A motion detector"
+      area: "room_a"
       
-    - entity: "binary_sensor.kitchen_motion"
-      description: "Kitchen motion detector"
-      area: "kitchen"
+    - entity: "binary_sensor.room_b_motion"
+      description: "Room B motion detector"
+      area: "room_b"
       
-    - entity: "binary_sensor.bedroom_motion"
-      description: "Bedroom motion detector"
-      area: "bedroom"
+    - entity: "binary_sensor.room_c_motion"
+      description: "Room C motion detector"
+      area: "room_c"
       
-    - entity: "binary_sensor.garage_motion"
-      description: "Garage motion detector"
-      area: "garage"
+    - entity: "binary_sensor.room_d_motion"
+      description: "Room D motion detector"
+      area: "room_d"
   
   door_sensors:
-    - entity: "binary_sensor.front_door"
-      description: "Front door sensor"
-      area: "entrance"
+    - entity: "binary_sensor.door_a"
+      description: "Door A sensor"
+      area: "entry"
       
-    - entity: "binary_sensor.back_door"
-      description: "Back door sensor"
-      area: "backyard"
+    - entity: "binary_sensor.door_b"
+      description: "Door B sensor"
+      area: "outdoor_area"
       
-    - entity: "binary_sensor.garage_door"
-      description: "Garage door sensor"
-      area: "garage"
+    - entity: "binary_sensor.door_c"
+      description: "Door C sensor"
+      area: "room_d"
       
-    - entity: "binary_sensor.patio_door"
-      description: "Patio door sensor"
-      area: "patio"
+    - entity: "binary_sensor.door_d"
+      description: "Door D sensor"
+      area: "patio_area"
   
   window_sensors:
-    - entity: "binary_sensor.living_room_window"
-      description: "Living room window sensor"
-      area: "living_room"
+    - entity: "binary_sensor.room_a_window"
+      description: "Room A window sensor"
+      area: "room_a"
       
-    - entity: "binary_sensor.bedroom_window"
-      description: "Bedroom window sensor"
-      area: "bedroom"
+    - entity: "binary_sensor.room_c_window"
+      description: "Room C window sensor"
+      area: "room_c"
       
-    - entity: "binary_sensor.kitchen_window"
-      description: "Kitchen window sensor"
-      area: "kitchen"
+    - entity: "binary_sensor.room_b_window"
+      description: "Room B window sensor"
+      area: "room_b"
   
   security_system:
     - entity: "alarm_control_panel.security_system"
@@ -83,17 +83,17 @@ data_sources:
       description: "Security system trouble indicator"
   
   cameras:
-    - entity: "camera.front_door_camera"
-      description: "Front door camera"
-      area: "entrance"
+    - entity: "camera.camera_a"
+      description: "Camera A"
+      area: "entry"
       
-    - entity: "camera.backyard_camera"
-      description: "Backyard camera"
-      area: "backyard"
+    - entity: "camera.camera_b"
+      description: "Camera B"
+      area: "outdoor_area"
       
-    - entity: "camera.garage_camera"
-      description: "Garage camera"
-      area: "garage"
+    - entity: "camera.camera_c"
+      description: "Camera C"
+      area: "room_d"
 ```
 
 ## Security Rules

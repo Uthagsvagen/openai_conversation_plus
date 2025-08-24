@@ -32,7 +32,7 @@ Each item in the list array must contain:
       "domain": "light",
       "service": "turn_on",
       "service_data": {
-        "entity_id": "light.living_room"
+        "entity_id": "light.room_a"
       }
     }
   ]
@@ -45,14 +45,14 @@ Each item in the list array must contain:
       "domain": "switch",
       "service": "turn_on",
       "service_data": {
-        "entity_id": "switch.coffee_maker"
+        "entity_id": "switch.appliance_a"
       }
     },
     {
       "domain": "climate",
       "service": "set_temperature",
       "service_data": {
-        "entity_id": "climate.living_room",
+        "entity_id": "climate.room_a",
         "temperature": 22
       }
     }

@@ -24,7 +24,7 @@ The `play_track_on_media_player` function allows you to play music tracks or pla
 # Play a specific track
 {
   "media_name": "Bohemian Rhapsody",
-  "media_player": "media_player.living_room",
+  "media_player": "media_player.room_a",
   "media_type": "track",
   "artist_name": "Queen"
 }
@@ -32,14 +32,14 @@ The `play_track_on_media_player` function allows you to play music tracks or pla
 # Play a playlist
 {
   "media_name": "Workout Mix",
-  "media_player": "media_player.kitchen",
+  "media_player": "media_player.room_b",
   "media_type": "playlist"
 }
 
 # Play with minimal parameters
 {
   "media_name": "Jazz Vibes",
-  "media_player": "media_player.bedroom"
+  "media_player": "media_player.room_c"
 }
 ```
 

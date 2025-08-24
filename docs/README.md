@@ -9,7 +9,6 @@ This directory contains all development documentation, AI agent configurations, 
 - **`ai_agent_task_list.md`** - Comprehensive list of AI agent tasks and capabilities
 
 ### Setup and Configuration
-- **`SETUP_COMPLETE.md`** - Complete setup guide for the integration
 - **`QUICK_FIX.md`** - Quick troubleshooting and common fixes
 - **`TROUBLESHOOTING.md`** - Comprehensive troubleshooting guide
 
@@ -22,15 +21,13 @@ This directory contains all development documentation, AI agent configurations, 
 ## Usage
 
 ### For Developers
-1. Start with `SETUP_COMPLETE.md` for initial setup
-2. Review `agent.md` for AI agent configuration
-3. Use `README_TESTING.md` for testing procedures
-4. Reference `TROUBLESHOOTING.md` for common issues
+1. Review `agent.md` for AI agent configuration
+2. Use `README_TESTING.md` for testing procedures
+3. Reference `TROUBLESHOOTING.md` for common issues
 
 ### For Users
-1. Begin with `SETUP_COMPLETE.md` for installation
-2. Check `QUICK_FIX.md` for common problems
-3. Use `TROUBLESHOOTING.md` for detailed problem resolution
+1. Check `QUICK_FIX.md` for common problems
+2. Use `TROUBLESHOOTING.md` for detailed problem resolution
 
 ## File Descriptions
 
@@ -39,7 +36,6 @@ This directory contains all development documentation, AI agent configurations, 
 - **`ai_agent_task_list.md`**: Complete list of available AI agent functions
 
 ### Setup Files
-- **`SETUP_COMPLETE.md`**: Step-by-step installation and configuration guide
 - **`QUICK_FIX.md`**: Common issues and their solutions
 - **`TROUBLESHOOTING.md`**: Comprehensive problem-solving guide
 
