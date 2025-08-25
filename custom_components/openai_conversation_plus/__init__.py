@@ -106,7 +106,13 @@ DATA_AGENT = "agent"
 
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     """Set up OpenAI Conversation."""
+    # Ensure the integration is properly discovered
+    hass.data.setdefault(DOMAIN, {})
+    
+    # Set up services
     await async_setup_services(hass, config)
+    
+    # Return True to indicate successful setup
     return True
 
 
