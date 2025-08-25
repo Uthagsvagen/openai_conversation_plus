@@ -24,10 +24,10 @@ This project is a fork of OpenAI Conversation Plus. Big thanks to the original c
 
 ## Requirements
 
-- Home Assistant 2023.8.0 or newer
+- Home Assistant 2025.8.1 or newer
 - Python 3.11+
 - OpenAI API key (or compatible endpoint)
-- **OpenAI Python Library 1.50.0 or newer** (required for Response API support)
+- **OpenAI Python Library 1.101.0 or newer** (required for Response API support)
 
 ## Installation
 
@@ -41,7 +41,7 @@ This project is a fork of OpenAI Conversation Plus. Big thanks to the original c
 
 ### Manual Installation
 1. Copy the folder `custom_components/openai_conversation_plus/` into your Home Assistant `config/custom_components/` directory
-2. Ensure you have OpenAI Python library 1.50.0+ installed (Home Assistant will install this automatically)
+2. Ensure you have OpenAI Python library 1.101.0+ installed (Home Assistant will install this automatically)
 3. Restart Home Assistant
 
 ## Preparations

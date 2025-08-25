@@ -39,6 +39,7 @@
                     "store_conversations": "Stocker les conversations (côté serveur)",
                     "reasoning_level": "Niveau de raisonnement (GPT-5)",
                     "verbosity": "Verbosité de la réponse",
+                    "enable_conversation_events": "Activer les événements de conversation (pour le débogage)",
                 }
             }
         }

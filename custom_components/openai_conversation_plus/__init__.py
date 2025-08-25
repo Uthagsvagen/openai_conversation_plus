@@ -512,8 +512,8 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
         # Use Response API
         response_kwargs = {
             "model": model,
-            "messages": messages,  # Response API uses 'messages' not 'input'
-            "max_tokens": max_tokens,
+            "input": messages,  # Responses API >=1.101.0 uses 'input' for message array
+            "max_output_tokens": max_tokens,
             "temperature": temperature,
             "top_p": top_p,
         }
@@ -574,10 +574,10 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
         except (AttributeError, ImportError, OpenAIError, Exception) as err:
             # Response API not available in installed SDK
             _LOGGER.error(
-                "Response API not available. Please upgrade your OpenAI library to version 1.50.0 or newer: %s", err
+                "Response API not available. Please upgrade your OpenAI library to version 1.101.0 or newer: %s", err
             )
             raise ConfigEntryNotReady(
-                "Response API not available. This integration requires OpenAI library version 1.50.0 or newer. Please restart Home Assistant to install the required version."
+                "Response API not available. This integration requires OpenAI library version 1.101.0 or newer. Please restart Home Assistant to install the required version."
             ) from err
 
         _LOGGER.info("Prompt for %s: %s", model, json.dumps(messages))

@@ -39,6 +39,7 @@
                     "store_conversations": "Зберігати розмови (на стороні сервера)",
                     "reasoning_level": "Рівень міркувань (GPT-5)",
                     "verbosity": "Деталізація відповіді",
+                    "enable_conversation_events": "Увімкнути події розмови (для діагностики)",
                 }
             }
         }
