@@ -150,16 +150,14 @@ We're actively working on expanding the capabilities of OpenAI Conversation Plus
 ### 🌐 **Multi-LLM Provider Support**
 - **OpenAI Alternatives**: Support for Claude, Gemini, and other LLM providers
 - **Local Models**: Integration with local models like Ollama and LM Studio
-- **Provider Switching**: Easy switching between different LLM providers
-- **Cost Optimization**: Choose the most cost-effective provider for each use case
+- **Provider Switching**: Easy switching between different LLM providers or use several for different tasks. This can already be achieved by creating functions to call oter conversation agents. 
+
 
 ### 🚀 **Advanced Features**
 - **Custom Embeddings**: Support for custom embedding models
-- **Fine-tuning Integration**: Easy integration with fine-tuned models
 - **Performance Monitoring**: Track and optimize response times and costs
-- **Enterprise Features**: Role-based access control and audit logging
 
-*These features are in active development. Follow our releases for updates!*
+*These features are planed for development. Follow our releases for updates!*
 
 ## Credits
 
