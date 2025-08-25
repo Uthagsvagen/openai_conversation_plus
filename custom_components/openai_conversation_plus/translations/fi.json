@@ -33,14 +33,12 @@
                     "use_tools": "Käytä työkaluja",
                     "context_threshold": "Kontekstin kynnys",
                     "context_truncate_strategy": "Strategia kontekstin katkaisemiseen kynnyksen ylittäessä",
-                    "use_response_api": "Käytä Response API:a (Beta)",
                     "enable_web_search": "Ota käyttöön web-haku",
                     "search_context_size": "Haun kontekstin koko",
                     "user_location": "Käyttäjän sijainti (geo-tietoisille hauille)",
                     "store_conversations": "Tallenna keskustelut (palvelinpuolella)",
                     "reasoning_level": "Päättelytaso (GPT-5)",
                     "verbosity": "Vastauksen yksityiskohtaisuus",
-                    "enable_streaming": "Ota käyttöön suoratoisto-vastaukset"
                 }
             }
         }

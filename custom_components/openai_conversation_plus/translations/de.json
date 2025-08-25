@@ -33,14 +33,12 @@
                     "use_tools": "Werkzeuge verwenden",
                     "context_threshold": "Kontext-Schwellenwert",
                     "context_truncate_strategy": "Kontext-Kürzungsstrategie bei Überschreitung des Schwellenwerts",
-                    "use_response_api": "Response API verwenden (Beta)",
                     "enable_web_search": "Web-Suche aktivieren",
                     "search_context_size": "Suchkontext-Größe",
                     "user_location": "Benutzerstandort (für geo-bewusste Suche)",
                     "store_conversations": "Konversationen speichern (serverseitig)",
                     "reasoning_level": "Argumentationsniveau (GPT-5)",
                     "verbosity": "Antwort-Detaillierung",
-                    "enable_streaming": "Streaming-Antworten aktivieren"
                 }
             }
         }

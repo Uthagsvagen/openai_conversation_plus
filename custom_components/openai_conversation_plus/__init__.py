@@ -52,7 +52,6 @@ from .const import (
     CONF_STORE_CONVERSATIONS,
     CONF_TEMPERATURE,
     CONF_TOP_P,
-    CONF_USE_RESPONSE_API,
     CONF_USE_TOOLS,
     CONF_USER_LOCATION,
     CONF_VERBOSITY,
@@ -74,7 +73,6 @@ from .const import (
     DEFAULT_STORE_CONVERSATIONS,
     DEFAULT_TEMPERATURE,
     DEFAULT_TOP_P,
-    DEFAULT_USE_RESPONSE_API,
     DEFAULT_USE_TOOLS,
     DEFAULT_USER_LOCATION,
     DEFAULT_VERBOSITY,
@@ -471,20 +469,15 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
         if len(functions) == 0:
             tool_kwargs = {}
 
-        # Check if we should use Response API
-        use_response_api = self.entry.options.get(
-            CONF_USE_RESPONSE_API, DEFAULT_USE_RESPONSE_API
-        )
-
         # Add reasoning level and verbosity for GPT-5 models
         reasoning_level = self.entry.options.get(
             CONF_REASONING_LEVEL, DEFAULT_REASONING_LEVEL
         )
         verbosity = self.entry.options.get(CONF_VERBOSITY, DEFAULT_VERBOSITY)
 
-        if use_response_api:
-            # Build tools list for Response API
-            api_tools = []
+        # Always use Response API
+        # Build tools list for Response API
+        api_tools = []
 
             # Add custom functions as tools
             if tool_kwargs.get("tools"):

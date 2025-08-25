@@ -33,14 +33,12 @@
                     "use_tools": "Använd verktyg",
                     "context_threshold": "Kontext-tröskel",
                     "context_truncate_strategy": "Strategi för att trunkera kontext när tröskeln överskrids",
-                    "use_response_api": "Använd Response API (Beta)",
                     "enable_web_search": "Aktivera webbsökning",
                     "search_context_size": "Sökkontext-storlek",
                     "user_location": "Användarplats (för geo-medvetna sökningar)",
                     "store_conversations": "Lagra konversationer (serversida)",
                     "reasoning_level": "Resonemangsnivå (GPT-5)",
                     "verbosity": "Svarsverbositet",
-                    "enable_streaming": "Aktivera strömmande svar"
                 }
             }
         }

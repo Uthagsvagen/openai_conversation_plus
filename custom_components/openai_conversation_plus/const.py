@@ -156,8 +156,7 @@ SERVICE_QUERY_IMAGE = "query_image"
 CONF_PAYLOAD_TEMPLATE = "payload_template"
 
 # Response API Configuration
-CONF_USE_RESPONSE_API = "use_response_api"
-DEFAULT_USE_RESPONSE_API = True
+
 CONF_ENABLE_WEB_SEARCH = "enable_web_search"
 DEFAULT_ENABLE_WEB_SEARCH = True
 CONF_SEARCH_CONTEXT_SIZE = "search_context_size"
@@ -174,9 +173,7 @@ DEFAULT_REASONING_LEVEL = "medium"
 CONF_VERBOSITY = "verbosity"
 DEFAULT_VERBOSITY = "balanced"
 
-# Streaming Configuration
-CONF_ENABLE_STREAMING = "enable_streaming"
-DEFAULT_ENABLE_STREAMING = True
+
 
 # Event Logging Configuration
 CONF_ENABLE_CONVERSATION_EVENTS = "enable_conversation_events"

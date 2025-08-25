@@ -33,14 +33,12 @@
                     "use_tools": "Gebruik hulpmiddelen",
                     "context_threshold": "Context drempel",
                     "context_truncate_strategy": "Context afkapping strategie wanneer drempel wordt overschreden",
-                    "use_response_api": "Response API gebruiken (Beta)",
                     "enable_web_search": "Webzoekopdracht inschakelen",
                     "search_context_size": "Zoekcontext grootte",
                     "user_location": "Gebruikerslocatie (voor geo-bewuste zoekopdrachten)",
                     "store_conversations": "Gesprekken opslaan (server-side)",
                     "reasoning_level": "Redeneringsniveau (GPT-5)",
                     "verbosity": "Antwoord uitvoerigheid",
-                    "enable_streaming": "Streaming antwoorden inschakelen"
                 }
             }
         }

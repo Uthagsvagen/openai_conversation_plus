@@ -33,14 +33,12 @@
                     "use_tools": "Utiliser les outils",
                     "context_threshold": "Seuil de contexte",
                     "context_truncate_strategy": "Stratégie de troncature du contexte lors du dépassement du seuil",
-                    "use_response_api": "Utiliser l'API Response (Bêta)",
                     "enable_web_search": "Activer la recherche web",
                     "search_context_size": "Taille du contexte de recherche",
                     "user_location": "Localisation de l'utilisateur (pour les recherches géo-conscientes)",
                     "store_conversations": "Stocker les conversations (côté serveur)",
                     "reasoning_level": "Niveau de raisonnement (GPT-5)",
                     "verbosity": "Verbosité de la réponse",
-                    "enable_streaming": "Activer les réponses en streaming"
                 }
             }
         }

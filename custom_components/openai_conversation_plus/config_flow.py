@@ -38,7 +38,6 @@ from .const import (
     CONF_CONTEXT_THRESHOLD,
     CONF_CONTEXT_TRUNCATE_STRATEGY,
     CONF_ENABLE_CONVERSATION_EVENTS,
-    CONF_ENABLE_STREAMING,
     CONF_ENABLE_WEB_SEARCH,
     CONF_FUNCTIONS,
     CONF_MAX_FUNCTION_CALLS_PER_CONVERSATION,
@@ -51,7 +50,6 @@ from .const import (
     CONF_STORE_CONVERSATIONS,
     CONF_TEMPERATURE,
     CONF_TOP_P,
-    CONF_USE_RESPONSE_API,
     CONF_USE_TOOLS,
     CONF_USER_LOCATION,
     CONF_VERBOSITY,
@@ -63,7 +61,6 @@ from .const import (
     DEFAULT_CONTEXT_THRESHOLD,
     DEFAULT_CONTEXT_TRUNCATE_STRATEGY,
     DEFAULT_ENABLE_CONVERSATION_EVENTS,
-    DEFAULT_ENABLE_STREAMING,
     DEFAULT_ENABLE_WEB_SEARCH,
     DEFAULT_MAX_FUNCTION_CALLS_PER_CONVERSATION,
     DEFAULT_MAX_TOKENS,
@@ -75,7 +72,6 @@ from .const import (
     DEFAULT_STORE_CONVERSATIONS,
     DEFAULT_TEMPERATURE,
     DEFAULT_TOP_P,
-    DEFAULT_USE_RESPONSE_API,
     DEFAULT_USE_TOOLS,
     DEFAULT_USER_LOCATION,
     DEFAULT_VERBOSITY,
@@ -103,7 +99,6 @@ DEFAULT_OPTIONS = types.MappingProxyType(
         CONF_USE_TOOLS: DEFAULT_USE_TOOLS,
         CONF_CONTEXT_THRESHOLD: DEFAULT_CONTEXT_THRESHOLD,
         CONF_CONTEXT_TRUNCATE_STRATEGY: DEFAULT_CONTEXT_TRUNCATE_STRATEGY,
-        CONF_USE_RESPONSE_API: DEFAULT_USE_RESPONSE_API,
         CONF_ENABLE_WEB_SEARCH: DEFAULT_ENABLE_WEB_SEARCH,
         CONF_SEARCH_CONTEXT_SIZE: DEFAULT_SEARCH_CONTEXT_SIZE,
         CONF_STORE_CONVERSATIONS: DEFAULT_STORE_CONVERSATIONS,
@@ -265,11 +260,6 @@ class OptionsFlow(config_entries.OptionsFlow):
             default=DEFAULT_USE_TOOLS,
         )] = BooleanSelector()
         schema[vol.Optional(
-            CONF_USE_RESPONSE_API,
-            description={"suggested_value": options.get(CONF_USE_RESPONSE_API, DEFAULT_USE_RESPONSE_API)},
-            default=DEFAULT_USE_RESPONSE_API,
-        )] = BooleanSelector()
-        schema[vol.Optional(
             CONF_ENABLE_WEB_SEARCH,
             description={"suggested_value": options.get(CONF_ENABLE_WEB_SEARCH, DEFAULT_ENABLE_WEB_SEARCH)},
             default=DEFAULT_ENABLE_WEB_SEARCH,
@@ -278,11 +268,6 @@ class OptionsFlow(config_entries.OptionsFlow):
             CONF_STORE_CONVERSATIONS,
             description={"suggested_value": options.get(CONF_STORE_CONVERSATIONS, DEFAULT_STORE_CONVERSATIONS)},
             default=DEFAULT_STORE_CONVERSATIONS,
-        )] = BooleanSelector()
-        schema[vol.Optional(
-            CONF_ENABLE_STREAMING,
-            description={"suggested_value": options.get(CONF_ENABLE_STREAMING, DEFAULT_ENABLE_STREAMING)},
-            default=DEFAULT_ENABLE_STREAMING,
         )] = BooleanSelector()
         schema[vol.Optional(
             CONF_ENABLE_CONVERSATION_EVENTS,
