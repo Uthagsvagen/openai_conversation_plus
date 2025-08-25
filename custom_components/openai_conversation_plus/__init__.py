@@ -93,6 +93,13 @@ from .services import async_setup_services
 
 _LOGGER = logging.getLogger(__name__)
 
+# Log the OpenAI library version for debugging
+try:
+    import openai
+    _LOGGER.info("Loaded OpenAI Python library version: %s", openai.__version__)
+except ImportError:
+    _LOGGER.warning("OpenAI library not available")
+
 CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 
 # Platform list
