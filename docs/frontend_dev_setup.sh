@@ -38,7 +38,7 @@ else
     # Create package.json
     cat > package.json << 'EOF'
 {
-  "name": "extended-openai-conversation-frontend",
+  "name": "openai-conversation-plus-frontend",
   "version": "1.0.0",
   "description": "Frontend for OpenAI Conversation Plus",
   "scripts": {

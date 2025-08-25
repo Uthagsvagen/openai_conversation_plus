@@ -5,7 +5,7 @@ with open("README.md", encoding="utf-8") as fh:
     long_description = fh.read()
 
 setup(
-    name="extended-openai-conversation",
+    name="openai-conversation-plus",
     version="2025.81.1",
     author="jekalmin",
     description="OpenAI Conversation Plus integration for Home Assistant",
