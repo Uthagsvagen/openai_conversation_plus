@@ -163,7 +163,7 @@ DEFAULT_ENABLE_WEB_SEARCH = True
 CONF_SEARCH_CONTEXT_SIZE = "search_context_size"
 DEFAULT_SEARCH_CONTEXT_SIZE = "medium"
 CONF_USER_LOCATION = "user_location"
-DEFAULT_USER_LOCATION: Dict[str, float] = {}
+DEFAULT_USER_LOCATION = {"country": "Sweden", "city": "Stockholm", "region": "Stockholm County"}
 CONF_STORE_CONVERSATIONS = "store_conversations"
 DEFAULT_STORE_CONVERSATIONS = True
 

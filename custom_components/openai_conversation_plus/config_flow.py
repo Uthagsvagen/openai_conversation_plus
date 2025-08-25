@@ -5,6 +5,8 @@ import logging
 import types
 from types import MappingProxyType
 from typing import Any
+import json
+from json import JSONDecodeError
 
 import voluptuous as vol
 import yaml
@@ -81,18 +83,7 @@ from . import helpers
 
 _LOGGER = logging.getLogger(__name__)
 
-STEP_USER_DATA_SCHEMA = vol.Schema(
-    {
-        vol.Optional(CONF_NAME): str,
-        vol.Required(CONF_API_KEY): str,
-        vol.Optional(CONF_BASE_URL, default=DEFAULT_CONF_BASE_URL): str,
-        vol.Optional(CONF_API_VERSION): str,
-        vol.Optional(CONF_ORGANIZATION): str,
-        vol.Optional(
-            CONF_SKIP_AUTHENTICATION, default=DEFAULT_SKIP_AUTHENTICATION
-        ): bool,
-    }
-)
+STEP_USER_DATA_SCHEMA = None  # Built dynamically to support selectors
 
 DEFAULT_CONF_FUNCTIONS_STR = yaml.dump(DEFAULT_CONF_FUNCTIONS, sort_keys=False)
 
@@ -150,8 +141,25 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     ) -> FlowResult:
         """Handle the initial step."""
         if user_input is None:
+            # Build schema with selectors so we can show multiline user_location
+            default_location_str = json.dumps(DEFAULT_USER_LOCATION, indent=2)
+            schema = {
+                vol.Optional(CONF_NAME): str,
+                vol.Required(CONF_API_KEY): str,
+                vol.Optional(CONF_BASE_URL, default=DEFAULT_CONF_BASE_URL): str,
+                vol.Optional(CONF_API_VERSION): str,
+                vol.Optional(CONF_ORGANIZATION): str,
+                vol.Optional(
+                    CONF_SKIP_AUTHENTICATION, default=DEFAULT_SKIP_AUTHENTICATION
+                ): BooleanSelector(),
+                vol.Optional(
+                    CONF_USER_LOCATION,
+                    description={"suggested_value": default_location_str},
+                    default=default_location_str,
+                ): TextSelector(TextSelectorConfig(type=TextSelectorType.TEXT, multiline=True)),
+            }
             return self.async_show_form(
-                step_id="user", data_schema=STEP_USER_DATA_SCHEMA, errors={}
+                step_id="user", data_schema=vol.Schema(schema), errors={}
             )
 
         errors = {}
@@ -170,6 +178,8 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             # Remove skip_authentication if it's the default value, tests expect minimal keys
             if entry_data.get(CONF_SKIP_AUTHENTICATION, DEFAULT_SKIP_AUTHENTICATION) == DEFAULT_SKIP_AUTHENTICATION:
                 entry_data.pop(CONF_SKIP_AUTHENTICATION, None)
+            # Do not store user_location in data (options are used for runtime settings)
+            entry_data.pop(CONF_USER_LOCATION, None)
             return self.async_create_entry(
                 title=entry_data.get(CONF_NAME, DEFAULT_NAME), data=entry_data
             )
@@ -205,9 +215,16 @@ class OptionsFlow(config_entries.OptionsFlow):
                     self.config_entry,
                     data={**self.config_entry.data, CONF_API_KEY: api_key},
                 )
-            allowed_keys = {CONF_CHAT_MODEL, CONF_MAX_TOKENS, CONF_TEMPERATURE, CONF_TOP_P}
-            filtered = {k: v for k, v in user_input.items() if k in allowed_keys}
-            return self.async_create_entry(title=user_input.get(CONF_NAME, DEFAULT_NAME), data=filtered)
+            # Parse user_location JSON if provided as text
+            if isinstance(user_input.get(CONF_USER_LOCATION), str):
+                try:
+                    user_input[CONF_USER_LOCATION] = json.loads(user_input[CONF_USER_LOCATION])
+                except JSONDecodeError:
+                    # If invalid JSON, drop it so default applies
+                    user_input.pop(CONF_USER_LOCATION, None)
+            # Do not persist api_key in options
+            user_input.pop(CONF_API_KEY, None)
+            return self.async_create_entry(title=user_input.get(CONF_NAME, DEFAULT_NAME), data=user_input)
         schema = self.openai_config_option_schema(self.config_entry.options)
         return self.async_show_form(
             step_id="init",
@@ -360,10 +377,14 @@ class OptionsFlow(config_entries.OptionsFlow):
             },
             default=DEFAULT_MAX_FUNCTION_CALLS_PER_CONVERSATION,
         )] = int
+        default_location_str = json.dumps(
+            options.get(CONF_USER_LOCATION, DEFAULT_USER_LOCATION), indent=2
+        )
         schema[vol.Optional(
             CONF_USER_LOCATION,
-            description={"suggested_value": options.get(CONF_USER_LOCATION, DEFAULT_USER_LOCATION)},
-        )] = ObjectSelector()
+            description={"suggested_value": default_location_str},
+            default=default_location_str,
+        )] = TextSelector(TextSelectorConfig(type=TextSelectorType.TEXT, multiline=True))
 
         # Multiline text areas last
         schema[vol.Optional(

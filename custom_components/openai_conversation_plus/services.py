@@ -41,7 +41,7 @@ _LOGGER = logging.getLogger(__package__)
 
 
 async def async_setup_services(hass: HomeAssistant, config: ConfigType) -> None:
-    """Set up services for the extended openai conversation component."""
+    """Set up services for the openai conversation plus component."""
 
     async def query_image(call: ServiceCall) -> ServiceResponse:
         """Query an image."""
