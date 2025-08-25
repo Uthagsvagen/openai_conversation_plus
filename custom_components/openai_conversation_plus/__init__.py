@@ -39,6 +39,7 @@ from .const import (
     CONF_CHAT_MODEL,
     CONF_CONTEXT_THRESHOLD,
     CONF_CONTEXT_TRUNCATE_STRATEGY,
+    CONF_ENABLE_CONVERSATION_EVENTS,
     CONF_ENABLE_WEB_SEARCH,
     CONF_FUNCTIONS,
     CONF_MAX_FUNCTION_CALLS_PER_CONVERSATION,
@@ -57,12 +58,15 @@ from .const import (
     CONF_VERBOSITY,
     DEFAULT_ATTACH_USERNAME,
     DEFAULT_CHAT_MODEL,
+    DEFAULT_CONF_BASE_URL,
     DEFAULT_CONF_FUNCTIONS,
     DEFAULT_CONTEXT_THRESHOLD,
     DEFAULT_CONTEXT_TRUNCATE_STRATEGY,
+    DEFAULT_ENABLE_CONVERSATION_EVENTS,
     DEFAULT_ENABLE_WEB_SEARCH,
     DEFAULT_MAX_FUNCTION_CALLS_PER_CONVERSATION,
     DEFAULT_MAX_TOKENS,
+    DEFAULT_NAME,
     DEFAULT_PROMPT,
     DEFAULT_REASONING_LEVEL,
     DEFAULT_SEARCH_CONTEXT_SIZE,
@@ -308,24 +312,29 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
         messages.append(message_dict)
         self.history[conversation_id] = messages
 
-        self.hass.bus.async_fire(
-            EVENT_CONVERSATION_FINISHED,
-            {
-                "response": {
-                    "id": query_response.response.id,
-                    "model": query_response.response.model,
-                    "usage": {
-                        "prompt_tokens": query_response.response.usage.prompt_tokens,
-                        "completion_tokens": query_response.response.usage.completion_tokens,
-                        "total_tokens": query_response.response.usage.total_tokens,
-                    }
-                    if query_response.response.usage
-                    else None,
+        # Only fire event if enabled (prevents database performance issues)
+        if self.entry.options.get(CONF_ENABLE_CONVERSATION_EVENTS, DEFAULT_ENABLE_CONVERSATION_EVENTS):
+            self.hass.bus.async_fire(
+                EVENT_CONVERSATION_FINISHED,
+                {
+                    "response": {
+                        "id": query_response.response.id,
+                        "model": query_response.response.model,
+                        "usage": {
+                            "prompt_tokens": query_response.response.usage.prompt_tokens,
+                            "completion_tokens": query_response.response.usage.completion_tokens,
+                            "total_tokens": query_response.response.usage.total_tokens,
+                        }
+                        if query_response.response.usage
+                        else None,
+                    },
+                    "conversation_id": conversation_id,
+                    "user_input_length": len(user_input.text) if user_input.text else 0,
+                    "response_length": len(query_response.message.content) if query_response.message.content else 0,
+                    "message_count": len(messages),
+                    "timestamp": time.time(),
                 },
-                "user_input": user_input,
-                "messages": messages,
-            },
-        )
+            )
 
         intent_response = intent.IntentResponse(language=user_input.language)
         intent_response.async_set_speech(query_response.message.content)

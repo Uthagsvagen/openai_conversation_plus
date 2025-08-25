@@ -22,7 +22,6 @@
     "step": {
       "init": {
         "data": {
-          "api_key": "[%key:common::config_flow::data::api_key%]",
           "prompt": "Prompt Template",
           "model": "Completion Model",
           "max_tokens": "Maximum tokens to return in response",
@@ -41,7 +40,8 @@
           "store_conversations": "Store Conversations (server-side)",
           "reasoning_level": "Reasoning Level (GPT-5)",
           "verbosity": "Response Verbosity",
-          "enable_streaming": "Enable Streaming Responses"
+          "enable_streaming": "Enable Streaming Responses",
+          "enable_conversation_events": "Enable Conversation Events (for debugging)"
         }
       }
     }
