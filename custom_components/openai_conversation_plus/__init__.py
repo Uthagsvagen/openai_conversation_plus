@@ -574,10 +574,10 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
         except (AttributeError, ImportError, OpenAIError, Exception) as err:
             # Response API not available in installed SDK
             _LOGGER.error(
-                "Response API not available. Please upgrade your OpenAI library: %s", err
+                "Response API not available. Please upgrade your OpenAI library to version 1.50.0 or newer: %s", err
             )
             raise ConfigEntryNotReady(
-                "Response API not available. Please upgrade your OpenAI library."
+                "Response API not available. This integration requires OpenAI library version 1.50.0 or newer. Please restart Home Assistant to install the required version."
             ) from err
 
         _LOGGER.info("Prompt for %s: %s", model, json.dumps(messages))
