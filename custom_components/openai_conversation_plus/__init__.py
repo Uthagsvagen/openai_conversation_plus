@@ -479,168 +479,106 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
         # Build tools list for Response API
         api_tools = []
 
-            # Add custom functions as tools
-            if tool_kwargs.get("tools"):
-                api_tools.extend(tool_kwargs["tools"])
+        # Add custom functions as tools
+        if tool_kwargs.get("tools"):
+            api_tools.extend(tool_kwargs["tools"])
 
-            # Add web search if enabled
-            if self.entry.options.get(CONF_ENABLE_WEB_SEARCH, DEFAULT_ENABLE_WEB_SEARCH):
-                api_tools.append({
-                    "type": "web_search",
-                    "search_context_size": self.entry.options.get(
-                        CONF_SEARCH_CONTEXT_SIZE, DEFAULT_SEARCH_CONTEXT_SIZE
-                    ),
-                    "user_location": (
-                        {
-                            "type": "approximate",
-                            "country": (self.entry.options.get(CONF_USER_LOCATION, DEFAULT_USER_LOCATION) or {}).get("country", ""),
-                            "city": (self.entry.options.get(CONF_USER_LOCATION, DEFAULT_USER_LOCATION) or {}).get("city", ""),
-                            "region": (self.entry.options.get(CONF_USER_LOCATION, DEFAULT_USER_LOCATION) or {}).get("region", ""),
-                        }
-                    )
-                })
-                use_response_api = True
-
-            # Check for previous response ID for conversation continuity
-            previous_response_id = None
-            if hasattr(user_input, "agent_response_id"):
-                previous_response_id = user_input.agent_response_id
-
-            # Use Response API
-            response_kwargs = {
-                "model": model,
-                "messages": messages,  # Response API uses 'messages' not 'input'
-                "max_tokens": max_tokens,
-                "temperature": temperature,
-                "top_p": top_p,
+        # Add web search if enabled
+        if self.entry.options.get(CONF_ENABLE_WEB_SEARCH, DEFAULT_ENABLE_WEB_SEARCH):
+            web_search_tool = {
+                "type": "web_search",
+                "search_context_size": self.entry.options.get(
+                    CONF_SEARCH_CONTEXT_SIZE, DEFAULT_SEARCH_CONTEXT_SIZE
+                ),
             }
+            
+            # Add user location if configured
+            user_location = self.entry.options.get(CONF_USER_LOCATION, DEFAULT_USER_LOCATION)
+            if user_location and any(user_location.values()):
+                web_search_tool["user_location"] = {
+                    "type": "approximate",
+                    "country": user_location.get("country", ""),
+                    "city": user_location.get("city", ""),
+                    "region": user_location.get("region", ""),
+                }
+            
+            api_tools.append(web_search_tool)
 
-            # Add GPT-5 specific parameters
-            if model in GPT5_MODELS:
-                response_kwargs["reasoning_effort"] = reasoning_level
-                response_kwargs["verbosity"] = verbosity
+        # Check for previous response ID for conversation continuity
+        previous_response_id = None
+        if hasattr(user_input, "agent_response_id"):
+            previous_response_id = user_input.agent_response_id
 
-            if api_tools:
-                response_kwargs["tools"] = api_tools
-                response_kwargs["tool_choice"] = tool_kwargs.get("tool_choice", "auto")
+        # Use Response API
+        response_kwargs = {
+            "model": model,
+            "messages": messages,  # Response API uses 'messages' not 'input'
+            "max_tokens": max_tokens,
+            "temperature": temperature,
+            "top_p": top_p,
+        }
 
-            if previous_response_id:
-                response_kwargs["previous_response_id"] = previous_response_id
+        # Add GPT-5 specific parameters
+        if model in GPT5_MODELS:
+            response_kwargs["reasoning_effort"] = reasoning_level
+            response_kwargs["verbosity"] = verbosity
 
-            # Add store parameter for conversation persistence
-            response_kwargs["store"] = self.entry.options.get(
-                CONF_STORE_CONVERSATIONS, DEFAULT_STORE_CONVERSATIONS
+        if api_tools:
+            response_kwargs["tools"] = api_tools
+            response_kwargs["tool_choice"] = tool_kwargs.get("tool_choice", "auto")
+
+        if previous_response_id:
+            response_kwargs["previous_response_id"] = previous_response_id
+
+        # Add store parameter for conversation persistence
+        response_kwargs["store"] = self.entry.options.get(
+            CONF_STORE_CONVERSATIONS, DEFAULT_STORE_CONVERSATIONS
+        )
+
+        try:
+            # Call the Responses API
+            response = await self.client.responses.create(**response_kwargs)
+            _LOGGER.info(
+                "Response API Prompt for %s: %s", model, json.dumps(messages)
             )
 
-            try:
-                # Attempt to call the Responses API. Some openai versions may not
-                # ship the streaming responses types; catch and gracefully fall back.
-                response = await self.client.responses.create(**response_kwargs)
-                _LOGGER.info(
-                    "Response API Prompt for %s: %s", model, json.dumps(messages)
-                )
+            # Store response ID for conversation continuity
+            if hasattr(response, "id"):
+                user_input.agent_response_id = response.id
 
-                # Store response ID for conversation continuity
-                if hasattr(response, "id"):
-                    user_input.agent_response_id = response.id
+            # Handle Response API response format
+            # The Response API maintains backward compatibility with Chat Completions
+            # so the response structure should be similar
+            if hasattr(response, "choices") and response.choices:
+                choice = response.choices[0]
+                message = choice.message
 
-                # Handle Response API response format
-                # The Response API maintains backward compatibility with Chat Completions
-                # so the response structure should be similar
-                if hasattr(response, "choices") and response.choices:
-                    choice = response.choices[0]
-                    message = choice.message
+                # Handle web search citations if present
+                if hasattr(message, "annotations") and message.annotations:
+                    # Process citations and add to content
+                    citations = []
+                    for annotation in message.annotations:
+                        if annotation.type == "cite" and hasattr(annotation, "url"):
+                            citations.append(
+                                f"[{annotation.text}]({annotation.url})"
+                            )
 
-                    # Handle web search citations if present
-                    if hasattr(message, "annotations") and message.annotations:
-                        # Process citations and add to content
-                        citations = []
-                        for annotation in message.annotations:
-                            if annotation.type == "cite" and hasattr(annotation, "url"):
-                                citations.append(
-                                    f"[{annotation.text}]({annotation.url})"
-                                )
+                    if citations:
+                        message.content += "\n\nSources:\n" + "\n".join(citations)
 
-                        if citations:
-                            message.content += "\n\nSources:\n" + "\n".join(citations)
-
-                    return OpenAIQueryResponse(response=response, message=message)
-                else:
-                    # Fallback if response structure is unexpected
-                    raise OpenAIError("Unexpected Response API format")
-
-            except (AttributeError, ImportError, OpenAIError, Exception) as err:
-                # Response API not available in installed SDK, fall back to Chat Completions
-                _LOGGER.info(
-                    "Response API not available, using Chat Completions API (%s)", err
-                )
-                use_response_api = False
-
-        if not use_response_api:
-            # Use Chat Completions API (existing code)
-            # Check if streaming is requested
-            if self.entry.options.get("enable_streaming", False):
-                # Streaming implementation
-                stream = await self.client.chat.completions.create(
-                    model=model,
-                    messages=messages,
-                    max_completion_tokens=max_tokens,
-                    temperature=temperature,
-                    user=user_input.conversation_id,
-                    stream=True,
-                    **tool_kwargs,
-                )
-
-                # Collect the streamed response
-                collected_messages = []
-                async for chunk in stream:
-                    if chunk.choices and chunk.choices[0].delta.content:
-                        collected_messages.append(chunk.choices[0].delta.content)
-
-                # Create a complete response from streamed chunks
-                complete_content = "".join(collected_messages)
-
-                # Create a ChatCompletion-like response
-                from openai.types.chat import ChatCompletionMessage
-                from openai.types.chat.chat_completion import Choice, CompletionUsage
-
-                message = ChatCompletionMessage(
-                    role="assistant",
-                    content=complete_content,
-                    function_call=None,
-                    tool_calls=None,
-                )
-
-                choice = Choice(finish_reason="stop", index=0, message=message)
-
-                # Create usage data (approximate)
-                usage = CompletionUsage(
-                    completion_tokens=len(complete_content.split()),
-                    prompt_tokens=sum(
-                        len(m.get("content", "").split()) for m in messages
-                    ),
-                    total_tokens=0,
-                )
-                usage.total_tokens = usage.completion_tokens + usage.prompt_tokens
-
-                response = ChatCompletion(
-                    id="stream-" + ulid.ulid(),
-                    choices=[choice],
-                    created=int(time.time()),
-                    model=model,
-                    object="chat.completion",
-                    usage=usage,
-                )
+                return OpenAIQueryResponse(response=response, message=message)
             else:
-                # Non-streaming implementation
-                response: ChatCompletion = await self.client.chat.completions.create(
-                    model=model,
-                    messages=messages,
-                    max_completion_tokens=max_tokens,
-                    temperature=temperature,
-                    user=user_input.conversation_id,
-                    **tool_kwargs,
-                )
+                # Fallback if response structure is unexpected
+                raise OpenAIError("Unexpected Response API format")
+
+        except (AttributeError, ImportError, OpenAIError, Exception) as err:
+            # Response API not available in installed SDK
+            _LOGGER.error(
+                "Response API not available. Please upgrade your OpenAI library: %s", err
+            )
+            raise ConfigEntryNotReady(
+                "Response API not available. Please upgrade your OpenAI library."
+            ) from err
 
         _LOGGER.info("Prompt for %s: %s", model, json.dumps(messages))
 
