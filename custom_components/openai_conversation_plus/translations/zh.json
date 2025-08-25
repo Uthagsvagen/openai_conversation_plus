@@ -39,6 +39,7 @@
                     "store_conversations": "存储对话（服务器端）",
                     "reasoning_level": "推理级别（GPT-5）",
                     "verbosity": "响应详细程度",
+                    "enable_conversation_events": "启用对话事件（用于调试）"
                 }
             }
         }
