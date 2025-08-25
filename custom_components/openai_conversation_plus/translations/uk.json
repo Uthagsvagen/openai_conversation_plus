@@ -33,14 +33,12 @@
                     "use_tools": "Використовувати інструменти",
                     "context_threshold": "Поріг контексту",
                     "context_truncate_strategy": "Стратегія обрізання контексту при перевищенні порогу",
-                    "use_response_api": "Використовувати Response API (Бета)",
                     "enable_web_search": "Увімкнути веб-пошук",
                     "search_context_size": "Розмір контексту пошуку",
                     "user_location": "Розташування користувача (для гео-обізнаного пошуку)",
                     "store_conversations": "Зберігати розмови (на стороні сервера)",
                     "reasoning_level": "Рівень міркувань (GPT-5)",
                     "verbosity": "Деталізація відповіді",
-                    "enable_streaming": "Увімкнути потокові відповіді"
                 }
             }
         }

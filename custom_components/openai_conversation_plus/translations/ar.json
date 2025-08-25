@@ -33,14 +33,12 @@
                     "use_tools": "استخدام الأدوات",
                     "context_threshold": "عتبة السياق",
                     "context_truncate_strategy": "استراتيجية اقتطاع السياق عند تجاوز العتبة",
-                    "use_response_api": "استخدام Response API (تجريبي)",
                     "enable_web_search": "تمكين البحث على الويب",
                     "search_context_size": "حجم سياق البحث",
                     "user_location": "موقع المستخدم (للبحث الجغرافي)",
                     "store_conversations": "تخزين المحادثات (جانب الخادم)",
                     "reasoning_level": "مستوى الاستدلال (GPT-5)",
                     "verbosity": "تفصيل الاستجابة",
-                    "enable_streaming": "تمكين الاستجابات المتدفقة"
                 }
             }
         }

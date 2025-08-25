@@ -33,14 +33,12 @@
                     "use_tools": "Bruk verktøy",
                     "context_threshold": "Kontekst terskel",
                     "context_truncate_strategy": "Strategi for å trunkere kontekst når terskelen overskrides",
-                    "use_response_api": "Bruk Response API (Beta)",
                     "enable_web_search": "Aktiver webbsøk",
                     "search_context_size": "Søkekontekst størrelse",
                     "user_location": "Brukerplassering (for geo-bevisste søk)",
                     "store_conversations": "Lagre samtaler (server-side)",
                     "reasoning_level": "Resonnement nivå (GPT-5)",
                     "verbosity": "Svar verbositet",
-                    "enable_streaming": "Aktiver strømmende svar"
                 }
             }
         }

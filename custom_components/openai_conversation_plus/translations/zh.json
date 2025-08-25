@@ -33,14 +33,12 @@
                     "use_tools": "使用工具",
                     "context_threshold": "上下文阈值",
                     "context_truncate_strategy": "超过阈值时的上下文截断策略",
-                    "use_response_api": "使用响应API（测试版）",
                     "enable_web_search": "启用网络搜索",
                     "search_context_size": "搜索上下文大小",
                     "user_location": "用户位置（用于地理感知搜索）",
                     "store_conversations": "存储对话（服务器端）",
                     "reasoning_level": "推理级别（GPT-5）",
                     "verbosity": "响应详细程度",
-                    "enable_streaming": "启用流式响应"
                 }
             }
         }

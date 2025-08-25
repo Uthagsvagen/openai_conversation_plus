@@ -33,14 +33,12 @@
                     "use_tools": "Naudoti įrankius",
                     "context_threshold": "Konteksto slenkstis",
                     "context_truncate_strategy": "Konteksto sutrumpinimo strategija viršijant slenkstį",
-                    "use_response_api": "Naudoti Response API (Beta)",
                     "enable_web_search": "Įjungti interneto paiešką",
                     "search_context_size": "Paieškos konteksto dydis",
                     "user_location": "Vartotojo vieta (geo-pažintoms paieškoms)",
                     "store_conversations": "Saugoti pokalbius (serverio pusėje)",
                     "reasoning_level": "Mąstymo lygis (GPT-5)",
                     "verbosity": "Atsakymo išsamumas",
-                    "enable_streaming": "Įjungti srauto atsakymus"
                 }
             }
         }

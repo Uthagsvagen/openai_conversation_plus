@@ -58,3 +58,7 @@ When adding new documentation:
 - **`examples/`** - Example configurations and templates
 - **`custom_components/`** - The actual Home Assistant integration
 - **`.github/workflows/`** - CI/CD and validation workflows
+
+## Release
+
+When creating a release on github also update the hacs.json with the correct version mathing the tag in github.

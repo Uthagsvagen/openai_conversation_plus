@@ -33,14 +33,12 @@
                     "use_tools": "Kasuta tööriistu",
                     "context_threshold": "Konteksti lävi",
                     "context_truncate_strategy": "Konteksti kärpimise strateegia läve ületamisel",
-                    "use_response_api": "Kasuta Response API-d (Beta)",
                     "enable_web_search": "Luba veebiotsing",
                     "search_context_size": "Otsingu konteksti suurus",
                     "user_location": "Kasutaja asukoht (geo-teadlike otsingute jaoks)",
                     "store_conversations": "Salvesta vestlused (serveri poolel)",
                     "reasoning_level": "Arutlemise tase (GPT-5)",
                     "verbosity": "Vastuse üksikasjalikkus",
-                    "enable_streaming": "Luba voogedastus-vastused"
                 }
             }
         }
