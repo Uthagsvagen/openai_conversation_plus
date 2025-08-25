@@ -178,5 +178,9 @@ DEFAULT_VERBOSITY = "balanced"
 CONF_ENABLE_STREAMING = "enable_streaming"
 DEFAULT_ENABLE_STREAMING = True
 
+# Event Logging Configuration
+CONF_ENABLE_CONVERSATION_EVENTS = "enable_conversation_events"
+DEFAULT_ENABLE_CONVERSATION_EVENTS = False
+
 # hass.data key for agent, used by tests
 DATA_AGENT = "agent"

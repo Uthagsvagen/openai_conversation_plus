@@ -37,6 +37,7 @@ from .const import (
     CONF_CHAT_MODEL,
     CONF_CONTEXT_THRESHOLD,
     CONF_CONTEXT_TRUNCATE_STRATEGY,
+    CONF_ENABLE_CONVERSATION_EVENTS,
     CONF_ENABLE_STREAMING,
     CONF_ENABLE_WEB_SEARCH,
     CONF_FUNCTIONS,
@@ -61,6 +62,7 @@ from .const import (
     DEFAULT_CONF_FUNCTIONS,
     DEFAULT_CONTEXT_THRESHOLD,
     DEFAULT_CONTEXT_TRUNCATE_STRATEGY,
+    DEFAULT_ENABLE_CONVERSATION_EVENTS,
     DEFAULT_ENABLE_STREAMING,
     DEFAULT_ENABLE_WEB_SEARCH,
     DEFAULT_MAX_FUNCTION_CALLS_PER_CONVERSATION,
@@ -75,9 +77,10 @@ from .const import (
     DEFAULT_TOP_P,
     DEFAULT_USE_RESPONSE_API,
     DEFAULT_USE_TOOLS,
+    DEFAULT_USER_LOCATION,
     DEFAULT_VERBOSITY,
     DOMAIN,
-    DEFAULT_USER_LOCATION,
+    GPT5_MODELS,
 )
 from . import helpers
 
@@ -204,13 +207,6 @@ class OptionsFlow(config_entries.OptionsFlow):
     ) -> FlowResult:
         """Manage the options."""
         if user_input is not None:
-            # Update API key in entry data if provided
-            api_key = user_input.get(CONF_API_KEY)
-            if api_key:
-                self.hass.config_entries.async_update_entry(
-                    self.config_entry,
-                    data={**self.config_entry.data, CONF_API_KEY: api_key},
-                )
             # Parse user_location JSON if provided as text
             if isinstance(user_input.get(CONF_USER_LOCATION), str):
                 try:
@@ -218,8 +214,6 @@ class OptionsFlow(config_entries.OptionsFlow):
                 except JSONDecodeError:
                     # If invalid JSON, drop it so default applies
                     user_input.pop(CONF_USER_LOCATION, None)
-            # Do not persist api_key in options
-            user_input.pop(CONF_API_KEY, None)
             return self.async_create_entry(title=user_input.get(CONF_NAME, DEFAULT_NAME), data=user_input)
         schema = self.openai_config_option_schema(self.config_entry.options)
         return self.async_show_form(
@@ -235,7 +229,6 @@ class OptionsFlow(config_entries.OptionsFlow):
         schema: dict = {}
 
         # One-line textboxes and simple inputs first
-        schema[vol.Optional(CONF_API_KEY) ] = str
         schema[vol.Optional(
             CONF_CHAT_MODEL,
             description={
@@ -290,6 +283,11 @@ class OptionsFlow(config_entries.OptionsFlow):
             CONF_ENABLE_STREAMING,
             description={"suggested_value": options.get(CONF_ENABLE_STREAMING, DEFAULT_ENABLE_STREAMING)},
             default=DEFAULT_ENABLE_STREAMING,
+        )] = BooleanSelector()
+        schema[vol.Optional(
+            CONF_ENABLE_CONVERSATION_EVENTS,
+            description={"suggested_value": options.get(CONF_ENABLE_CONVERSATION_EVENTS, DEFAULT_ENABLE_CONVERSATION_EVENTS)},
+            default=DEFAULT_ENABLE_CONVERSATION_EVENTS,
         )] = BooleanSelector()
 
         # Select lists
