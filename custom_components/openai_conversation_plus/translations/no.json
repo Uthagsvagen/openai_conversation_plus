@@ -39,6 +39,7 @@
                     "store_conversations": "Lagre samtaler (server-side)",
                     "reasoning_level": "Resonnement nivå (GPT-5)",
                     "verbosity": "Svar verbositet",
+                    "enable_conversation_events": "Aktiver samtalehendelser (for feilsøking)"
                 }
             }
         }
