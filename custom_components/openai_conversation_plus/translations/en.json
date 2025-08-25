@@ -39,7 +39,7 @@
                     "user_location": "User Location (for geo-aware searches)",
                     "store_conversations": "Store Conversations (server-side)",
                     "reasoning_level": "Reasoning Level (GPT-5)",
-                    "verbosity": "Response Verbosity",
+                    "verbosity": "Response Verbosity"
                 }
             }
         }
