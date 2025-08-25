@@ -36,7 +36,7 @@ setup(
             "pytest-timeout>=2.1.0",
             "pre-commit>=3.3.3",
             "ruff>=0.1.0",
-            "mypy>=1.5.0",
+            "mypy>=1.101.0",
             "black>=23.0.0",
             "hassfest",
         ],
