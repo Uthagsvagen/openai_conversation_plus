@@ -39,6 +39,7 @@
                     "store_conversations": "Gesprekken opslaan (server-side)",
                     "reasoning_level": "Redeneringsniveau (GPT-5)",
                     "verbosity": "Antwoord uitvoerigheid",
+                    "enable_conversation_events": "Conversatiegebeurtenissen inschakelen (voor foutopsporing)",
                 }
             }
         }
