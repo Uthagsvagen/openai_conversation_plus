@@ -27,7 +27,7 @@ This project is a fork of OpenAI Conversation Plus. Big thanks to the original c
 - Home Assistant 2023.8.0 or newer
 - Python 3.11+
 - OpenAI API key (or compatible endpoint)
-- **OpenAI Python Library 1.50.0 or newer** (required for Response API support)
+- **OpenAI Python Library 1.101.0 or newer** (required for Response API support)
 
 ## Installation
 
