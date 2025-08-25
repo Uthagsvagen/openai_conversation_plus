@@ -476,29 +476,22 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
                 api_tools.extend(tool_kwargs["tools"])
 
             # Add web search if enabled
-            if self.entry.options.get(
-                CONF_ENABLE_WEB_SEARCH, DEFAULT_ENABLE_WEB_SEARCH
-            ):
-                web_search_tool = {
-                    "type": "web_search_preview",
+            if self.entry.options.get(CONF_ENABLE_WEB_SEARCH, DEFAULT_ENABLE_WEB_SEARCH):
+                api_tools.append({
+                    "type": "web_search",
                     "search_context_size": self.entry.options.get(
                         CONF_SEARCH_CONTEXT_SIZE, DEFAULT_SEARCH_CONTEXT_SIZE
                     ),
-                }
-
-                # Add user location if configured
-                user_location = self.entry.options.get(
-                    CONF_USER_LOCATION, DEFAULT_USER_LOCATION
-                )
-                if user_location and any(user_location.values()):
-                    web_search_tool["user_location"] = {
-                        "type": "approximate",
-                        "country": user_location.get("country", ""),
-                        "city": user_location.get("city", ""),
-                        "region": user_location.get("region", ""),
-                    }
-
-                api_tools.append(web_search_tool)
+                    "user_location": (
+                        {
+                            "type": "approximate",
+                            "country": (self.entry.options.get(CONF_USER_LOCATION, DEFAULT_USER_LOCATION) or {}).get("country", ""),
+                            "city": (self.entry.options.get(CONF_USER_LOCATION, DEFAULT_USER_LOCATION) or {}).get("city", ""),
+                            "region": (self.entry.options.get(CONF_USER_LOCATION, DEFAULT_USER_LOCATION) or {}).get("region", ""),
+                        }
+                    )
+                })
+                use_response_api = True
 
             # Check for previous response ID for conversation continuity
             previous_response_id = None
