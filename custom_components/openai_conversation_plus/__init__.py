@@ -534,10 +534,18 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
             "top_p": top_p,
         }
 
-        # Add GPT-5 specific parameters
+        # Add GPT-5 specific parameters (only if supported by the library)
         if model in GPT5_MODELS:
-            response_kwargs["reasoning_effort"] = reasoning_level
-            response_kwargs["verbosity"] = verbosity
+            try:
+                # Test if these parameters are supported by checking the client
+                if hasattr(self.client.responses, 'create'):
+                    # Add parameters one by one to avoid breaking the request
+                    response_kwargs["reasoning_effort"] = reasoning_level
+                    response_kwargs["verbosity"] = verbosity
+                    _LOGGER.debug("Added GPT-5 specific parameters: reasoning_effort=%s, verbosity=%s", reasoning_level, verbosity)
+            except Exception as e:
+                _LOGGER.debug("GPT-5 specific parameters not supported in this OpenAI library version: %s", e)
+                # Continue without GPT-5 specific parameters
 
         if api_tools:
             response_kwargs["tools"] = api_tools
@@ -590,11 +598,19 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
         except (AttributeError, ImportError, OpenAIError, Exception) as err:
             # Response API not available in installed SDK
             _LOGGER.error(
-                "Response API not available. Please upgrade your OpenAI library to version 1.101.0 or newer: %s", err
+                "Response API error: %s", err
             )
-            raise ConfigEntryNotReady(
-                "Response API not available. This integration requires OpenAI library version 1.101.0 or newer. Please restart Home Assistant to install the required version."
-            ) from err
+            
+            # Provide more specific error messages
+            if "unexpected keyword argument" in str(err):
+                _LOGGER.error("Parameter compatibility issue detected. This may be due to OpenAI library version mismatch.")
+                raise ConfigEntryNotReady(
+                    "OpenAI API parameter compatibility issue. Please ensure you have OpenAI library version 1.101.0 or newer installed."
+                ) from err
+            else:
+                raise ConfigEntryNotReady(
+                    "Response API not available. This integration requires OpenAI library version 1.101.0 or newer. Please restart Home Assistant to install the required version."
+                ) from err
 
         _LOGGER.info("Prompt for %s: %s", model, json.dumps(messages))
 
