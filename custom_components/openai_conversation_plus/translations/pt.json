@@ -39,7 +39,7 @@
                     "store_conversations": "Armazenar conversas (lado do servidor)",
                     "reasoning_level": "Nível de raciocínio (GPT-5)",
                     "verbosity": "Verbosidade da resposta",
-                    "enable_conversation_events": "Habilitar eventos de conversa (para depuração)",
+                    "enable_conversation_events": "Habilitar eventos de conversa (para depuração)"
                 }
             }
         }

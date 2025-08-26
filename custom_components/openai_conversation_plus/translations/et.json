@@ -39,7 +39,7 @@
                     "store_conversations": "Salvesta vestlused (serveri poolel)",
                     "reasoning_level": "Arutlemise tase (GPT-5)",
                     "verbosity": "Vastuse üksikasjalikkus",
-                    "enable_conversation_events": "Luba vestlussündmused (veateate jaoks)",
+                    "enable_conversation_events": "Luba vestlussündmused (veateate jaoks)"
                 }
             }
         }

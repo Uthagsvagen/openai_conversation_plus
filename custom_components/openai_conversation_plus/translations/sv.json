@@ -38,7 +38,8 @@
                     "user_location": "Användarplats (för geo-medvetna sökningar)",
                     "store_conversations": "Lagra konversationer (serversida)",
                     "reasoning_level": "Resonemangsnivå (GPT-5)",
-                    "verbosity": "Svarsverbositet"
+                    "verbosity": "Svarsverbositet",
+                    "enable_conversation_events": "Aktivera konversationshändelser (för felsökning)"
                 }
             }
         }
