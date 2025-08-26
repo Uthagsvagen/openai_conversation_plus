@@ -93,12 +93,7 @@ from .services import async_setup_services
 
 _LOGGER = logging.getLogger(__name__)
 
-# Log the OpenAI library version for debugging
-try:
-    import openai
-    _LOGGER.info("Loaded OpenAI Python library version: %s", openai.__version__)
-except ImportError:
-    _LOGGER.warning("OpenAI library not available")
+
 
 CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 
@@ -111,6 +106,13 @@ DATA_AGENT = "agent"
 
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     """Set up OpenAI Conversation."""
+    # Log OpenAI library version for debugging
+    try:
+        import openai
+        _LOGGER.info("OpenAI Conversation Plus: Loaded OpenAI Python library version: %s", openai.__version__)
+    except ImportError:
+        _LOGGER.warning("OpenAI Conversation Plus: OpenAI library not available")
+    
     # Ensure the integration is properly discovered
     hass.data.setdefault(DOMAIN, {})
     
@@ -123,6 +125,13 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up OpenAI Conversation from a config entry."""
+    
+    # Log OpenAI library version when setting up entry
+    try:
+        import openai
+        _LOGGER.info("OpenAI Conversation Plus: Setting up entry with OpenAI library version: %s", openai.__version__)
+    except ImportError:
+        _LOGGER.warning("OpenAI Conversation Plus: OpenAI library not available during entry setup")
 
     try:
         await helpers.validate_authentication(
