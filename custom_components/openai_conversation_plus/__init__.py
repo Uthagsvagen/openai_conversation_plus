@@ -6,6 +6,7 @@ import json
 import logging
 import time
 from typing import Literal
+from importlib.metadata import PackageNotFoundError, version
 
 import yaml
 from homeassistant.components import conversation
@@ -118,6 +119,15 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     
     # Set up services
     await async_setup_services(hass, config)
+    
+    # Log installed openai library version on startup
+    try:
+        openai_version = version("openai")
+    except PackageNotFoundError:
+        openai_version = "unknown"
+    except Exception as err:
+        openai_version = f"unknown ({err})"
+    _LOGGER.info("OpenAI Conversation Plus: openai library version %s", openai_version)
     
     # Return True to indicate successful setup
     return True
