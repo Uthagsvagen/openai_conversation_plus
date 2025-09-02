@@ -44,7 +44,7 @@ from homeassistant.helpers.script import Script
 from homeassistant.helpers.template import Template
 from openai import AsyncAzureOpenAI, AsyncOpenAI
 
-from .const import CONF_PAYLOAD_TEMPLATE, DOMAIN, EVENT_AUTOMATION_REGISTERED
+from .const import CONF_PAYLOAD_TEMPLATE, DOMAIN, EVENT_AUTOMATION_REGISTERED, INTEGRATION_VERSION
 from .exceptions import (
     CallServiceError,
     EntityNotExposed,
@@ -272,7 +272,7 @@ class NativeFunctionExecutor(FunctionExecutor):
             )
             return {"success": True}
         except HomeAssistantError as e:
-            _LOGGER.error(e)
+            _LOGGER.error("[v%s] %s", INTEGRATION_VERSION, e)
             return {"error": str(e)}
 
     async def execute_service(
@@ -604,12 +604,12 @@ class ScrapeFunctionExecutor(FunctionExecutor):
                 else:
                     value = tag.text
         except IndexError:
-            _LOGGER.warning("Index '%s' not found", index)
+            _LOGGER.warning("[v%s] Index '%s' not found", INTEGRATION_VERSION, index)
             value = None
         except KeyError:
-            _LOGGER.warning("Attribute '%s' not found", attr)
+            _LOGGER.warning("[v%s] Attribute '%s' not found", INTEGRATION_VERSION, attr)
             value = None
-        _LOGGER.debug("Parsed value: %s", value)
+        _LOGGER.debug("[v%s] Parsed value: %s", INTEGRATION_VERSION, value)
         return value
 
 
@@ -725,7 +725,7 @@ class SqliteFunctionExecutor(FunctionExecutor):
         template_arguments.update(arguments)
 
         q = Template(query, hass).async_render(template_arguments)
-        _LOGGER.info("Rendered query: %s", q)
+        _LOGGER.info("[v%s] Rendered query: %s", INTEGRATION_VERSION, q)
 
         with sqlite3.connect(db_url, uri=True) as conn:
             cursor = conn.cursor().execute(q)

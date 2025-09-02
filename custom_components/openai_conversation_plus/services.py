@@ -18,7 +18,7 @@ from homeassistant.helpers.typing import ConfigType
 from openai import AsyncOpenAI
 from openai._exceptions import OpenAIError
 
-from .const import DOMAIN, SERVICE_QUERY_IMAGE, GPT5_MODELS
+from .const import DOMAIN, SERVICE_QUERY_IMAGE, GPT5_MODELS, INTEGRATION_VERSION
 
 QUERY_IMAGE_SCHEMA = vol.Schema(
     {
@@ -68,14 +68,13 @@ async def async_setup_services(hass: HomeAssistant, config: ConfigType) -> None:
                     })
                 messages[0]["attachments"] = attachments
 
-            _LOGGER.info("Prompt for %s: %s", model, messages)
+            _LOGGER.info("[v%s] Prompt for %s: %s", INTEGRATION_VERSION, model, messages)
 
             # Använd Responses API istället för Chat Completions
             response_kwargs = {
                 "model": model,
                 "input": messages,  # Responses API använder 'input'
                 "max_output_tokens": call.data["max_tokens"],  # Responses API använder 'max_output_tokens'
-                "response_format": {"type": "text"},
             }
             
             # Lägg till GPT-5 specifika parametrar
@@ -83,6 +82,8 @@ async def async_setup_services(hass: HomeAssistant, config: ConfigType) -> None:
                 response_kwargs["reasoning"] = {"effort": reasoning_level}
                 if verbosity:
                     response_kwargs["text"] = {"verbosity": verbosity}
+
+            _LOGGER.debug("[v%s] Full response_kwargs being sent to API: %s", INTEGRATION_VERSION, response_kwargs)
 
             response = await AsyncOpenAI(
                 api_key=hass.data[DOMAIN][call.data["config_entry"]]["api_key"]
@@ -109,7 +110,7 @@ async def async_setup_services(hass: HomeAssistant, config: ConfigType) -> None:
                 "usage": getattr(response, "usage", None)
             }
             
-            _LOGGER.info("Response %s", response_dict)
+            _LOGGER.info("[v%s] Response %s", INTEGRATION_VERSION, response_dict)
             
         except OpenAIError as err:
             raise HomeAssistantError(f"Error generating image response: {err}") from err
