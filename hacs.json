@@ -4,6 +4,5 @@
   "render_readme": true,
   "hide_default_branch": false,
   "homeassistant": "2025.8.1.4",
-  "logo": "logos/openai_conversation_plus.svg",
-  "icon": "logos/icon.png"
+  "version": "2025.9.2.3"
 }

@@ -526,6 +526,7 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
         except TypeError:
             response_kwargs.pop("reasoning", None)
             response_kwargs.pop("text", None)
+            response_kwargs.pop("response_format", None)
             response = await self.client.responses.create(**response_kwargs)
         except Exception as err:
             _LOGGER.error("Response API error: %s", err)
