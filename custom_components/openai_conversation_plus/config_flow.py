@@ -77,6 +77,7 @@ from .const import (
     DEFAULT_VERBOSITY,
     DOMAIN,
     GPT5_MODELS,
+    INTEGRATION_VERSION,
 )
 from . import helpers
 
@@ -169,7 +170,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         except AuthenticationError:
             errors["base"] = "invalid_auth"
         except Exception:  # pylint: disable=broad-except
-            _LOGGER.exception("Authentication failed or unexpected exception")
+            _LOGGER.exception("[v%s] Authentication failed or unexpected exception", INTEGRATION_VERSION)
             errors["base"] = "invalid_auth"
         else:
             entry_data = dict(user_input)
@@ -217,7 +218,7 @@ class OptionsFlow(config_entries.OptionsFlow):
                 data_schema=vol.Schema(schema),
             )
         except Exception as err:
-            _LOGGER.error("Error in options flow: %s", err)
+            _LOGGER.error("[v%s] Error in options flow: %s", INTEGRATION_VERSION, err)
             return self.async_abort(reason="unknown")
 
     def openai_config_option_schema(self, options: MappingProxyType[str, Any]) -> dict:

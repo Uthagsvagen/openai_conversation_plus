@@ -22,6 +22,7 @@ except ImportError:
     _LOGGER.warning("AI Task component not available")
 
 from .entity import OpenAIBaseLLMEntity
+from .const import INTEGRATION_VERSION
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -33,7 +34,7 @@ async def async_setup_entry(
 ) -> None:
     """Set up AI Task entities."""
     if not AI_TASK_AVAILABLE:
-        _LOGGER.info("AI Task component not available, skipping AI Task entity setup")
+        _LOGGER.info("[v%s] AI Task component not available, skipping AI Task entity setup", INTEGRATION_VERSION)
         return
 
     # Create a single AI Task entity for this config entry
@@ -122,4 +123,4 @@ else:
             """Initialize the fallback entity."""
             super().__init__(hass, config_entry, "AI Task")
             self._attr_unique_id = f"{config_entry.entry_id}_ai_task"
-            _LOGGER.info("Created fallback AI Task entity")
+            _LOGGER.info("[v%s] Created fallback AI Task entity", INTEGRATION_VERSION)

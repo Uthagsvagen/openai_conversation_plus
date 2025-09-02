@@ -7,7 +7,7 @@ from typing import Any
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity import Entity
 
-from .const import DOMAIN
+from .const import DOMAIN, INTEGRATION_VERSION
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -137,14 +137,14 @@ class OpenAIBaseLLMEntity(Entity):
                     data = json.loads(content)
                     return {"data": data}
                 except json.JSONDecodeError as e:
-                    _LOGGER.error("Failed to parse JSON response: %s", e)
+                    _LOGGER.error("[v%s] Failed to parse JSON response: %s", INTEGRATION_VERSION, e)
                     return {
-                        "error": f"Failed to parse JSON: {str(e)}",
+                        "error": f"Failed to parse JSON (v{INTEGRATION_VERSION}): {str(e)}",
                         "raw_response": content,
                     }
             else:
                 return {"response": content}
 
         except Exception as e:
-            _LOGGER.error("Error handling chat log: %s", e)
+            _LOGGER.error("[v%s] Error handling chat log: %s", INTEGRATION_VERSION, e)
             return {"error": str(e)}
