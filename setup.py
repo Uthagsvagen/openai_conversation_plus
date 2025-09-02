@@ -6,8 +6,8 @@ with open("README.md", encoding="utf-8") as fh:
 
 setup(
     name="openai-conversation-plus",
-    version="2025.81.1",
-    author="jekalmin",
+    version="2025.9.2.1",
+    author="aselling",
     description="OpenAI Conversation Plus integration for Home Assistant",
     long_description=long_description,
     long_description_content_type="text/markdown",
@@ -16,16 +16,17 @@ setup(
     classifiers=[
         "Development Status :: 4 - Beta",
         "Intended Audience :: End Users/Desktop",
-        "License :: OSI Approved :: MIT License",
+        "License :: OSI Approved :: Apache Software License",
         "Operating System :: OS Independent",
         "Programming Language :: Python :: 3",
         "Programming Language :: Python :: 3.11",
         "Programming Language :: Python :: 3.12",
+        "Programming Language :: Python :: 3.13",
         "Topic :: Home Automation",
     ],
     python_requires=">=3.11",
     install_requires=[
-        "openai~=1.76.2",
+        "openai>=1.101.0",
     ],
     extras_require={
         "test": [
@@ -36,9 +37,10 @@ setup(
             "pytest-timeout>=2.1.0",
             "pre-commit>=3.3.3",
             "ruff>=0.1.0",
-            "mypy>=1.101.0",
+            "mypy>=1.5.0",
             "black>=23.0.0",
             "hassfest",
         ],
     },
+    license="Apache-2.0",
 )
