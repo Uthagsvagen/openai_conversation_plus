@@ -95,7 +95,7 @@ from .services import async_setup_services
 _LOGGER = logging.getLogger(__name__)
 
 # Version for logging
-INTEGRATION_VERSION = "2025.9.2.5"
+INTEGRATION_VERSION = "2025.9.2.6"
 
 CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 PLATFORMS = ["ai_task"]
@@ -475,14 +475,21 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
         ):
             function_call = "none"
 
-        tool_kwargs = {"functions": functions, "function_call": function_call}
-        if use_tools:
-            tool_kwargs = {
-                "tools": [{"type": "function", "function": func} for func in functions],
-                "tool_choice": function_call,
-            }
-        if len(functions) == 0:
-            tool_kwargs = {}
+        # Build Responses API-native tools list
+        responses_function_tools = []
+        if use_tools and functions:
+            for func in functions:
+                # Responses API expects top-level name/description/parameters
+                responses_function_tools.append(
+                    {
+                        "type": "function",
+                        "name": func.get("name"),
+                        "description": func.get("description", ""),
+                        "parameters": func.get(
+                            "parameters", {"type": "object", "properties": {}}
+                        ),
+                    }
+                )
 
         reasoning_level = self.entry.options.get(
             CONF_REASONING_LEVEL, DEFAULT_REASONING_LEVEL
@@ -490,8 +497,16 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
         verbosity = self.entry.options.get(CONF_VERBOSITY, DEFAULT_VERBOSITY)
 
         api_tools = []
-        if tool_kwargs.get("tools"):
-            api_tools.extend(tool_kwargs["tools"])
+        if responses_function_tools:
+            # Ensure list type
+            if isinstance(responses_function_tools, list):
+                api_tools.extend(responses_function_tools)
+            else:
+                _LOGGER.warning(
+                    "[v%s] responses_function_tools is not a list: %s",
+                    INTEGRATION_VERSION,
+                    type(responses_function_tools),
+                )
 
         if self.entry.options.get(CONF_ENABLE_WEB_SEARCH, DEFAULT_ENABLE_WEB_SEARCH):
             web_search_tool = {
@@ -534,38 +549,66 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
             response_kwargs["response_format"] = {"type": "text"}
 
         if api_tools:
-            # Validate tools structure - separate function tools from special tools
+            # Validate tools structure for Responses API
             validated_tools = []
             for tool in api_tools:
-                if tool.get("type") == "function":
-                    # Function tools must have a function.name field
-                    if tool.get("function", {}).get("name"):
+                tool_type = tool.get("type")
+                if tool_type == "function":
+                    # Must have top-level name for Responses API
+                    if tool.get("name"):
                         validated_tools.append(tool)
                     else:
-                        _LOGGER.warning("[v%s] Skipping function tool without name: %s", INTEGRATION_VERSION, tool)
-                elif tool.get("type") == "web_search":
-                    # Web search is a special tool type for Realtime API, keep it separate
-                    _LOGGER.debug("[v%s] Web search tool detected, may not be compatible with standard chat completions", INTEGRATION_VERSION)
-                    # Don't include web_search in standard tools array
+                        _LOGGER.warning(
+                            "[v%s] Skipping function tool without top-level name: %s",
+                            INTEGRATION_VERSION,
+                            tool,
+                        )
+                elif tool_type == "web_search":
+                    # Keep as-is; supported by Responses API
+                    validated_tools.append(tool)
                 else:
-                    _LOGGER.warning("[v%s] Unknown tool type: %s", INTEGRATION_VERSION, tool.get("type"))
-            
+                    _LOGGER.warning(
+                        "[v%s] Unknown tool type: %s",
+                        INTEGRATION_VERSION,
+                        tool_type,
+                    )
+
             if validated_tools:
-                # Debug log the tools being sent to API
-                _LOGGER.debug("[v%s] API tools being sent: %s", INTEGRATION_VERSION, json.dumps(validated_tools))
+                _LOGGER.debug(
+                    "[v%s] API tools being sent: %s",
+                    INTEGRATION_VERSION,
+                    json.dumps(validated_tools),
+                )
                 response_kwargs["tools"] = validated_tools
-                response_kwargs["tool_choice"] = tool_kwargs.get("tool_choice", "auto")
+                response_kwargs["tool_choice"] = function_call
 
         if previous_response_id:
             response_kwargs["previous_response_id"] = previous_response_id
 
+        # Log the complete request for debugging
+        _LOGGER.debug("[v%s] Full response_kwargs being sent to API: %s", INTEGRATION_VERSION, json.dumps(response_kwargs))
+        
         try:
             response = await self.client.responses.create(**response_kwargs)
-        except TypeError:
+        except TypeError as e:
+            _LOGGER.warning("[v%s] TypeError in responses.create, removing incompatible parameters: %s", INTEGRATION_VERSION, e)
             response_kwargs.pop("reasoning", None)
             response_kwargs.pop("text", None)
             response_kwargs.pop("response_format", None)
             response = await self.client.responses.create(**response_kwargs)
+        except OpenAIError as e:
+            # Check if it's a tools error
+            if "tools[0].name" in str(e) or "tools" in str(e):
+                _LOGGER.warning("[v%s] Tools error detected, retrying without tools: %s", INTEGRATION_VERSION, e)
+                response_kwargs.pop("tools", None)
+                response_kwargs.pop("tool_choice", None)
+                try:
+                    response = await self.client.responses.create(**response_kwargs)
+                except Exception as retry_err:
+                    _LOGGER.error("[v%s] Retry without tools also failed: %s", INTEGRATION_VERSION, retry_err)
+                    raise retry_err
+            else:
+                raise e
         except Exception as err:
             _LOGGER.error("[v%s] Response API error: %s", INTEGRATION_VERSION, err)
             raise ConfigEntryNotReady(
