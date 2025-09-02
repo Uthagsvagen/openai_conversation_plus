@@ -17,11 +17,8 @@ from homeassistant.helpers import selector
 from homeassistant.helpers.typing import ConfigType
 from openai import AsyncOpenAI
 from openai._exceptions import OpenAIError
-from openai.types.chat.chat_completion_content_part_image_param import (
-    ChatCompletionContentPartImageParam,
-)
 
-from .const import DOMAIN, SERVICE_QUERY_IMAGE
+from .const import DOMAIN, SERVICE_QUERY_IMAGE, GPT5_MODELS
 
 QUERY_IMAGE_SCHEMA = vol.Schema(
     {
@@ -30,10 +27,12 @@ QUERY_IMAGE_SCHEMA = vol.Schema(
                 "integration": DOMAIN,
             }
         ),
-        vol.Required("model", default="gpt-4-vision-preview"): cv.string,
+        vol.Required("model", default="gpt-5"): cv.string,  # Ändra till GPT-5
         vol.Required("prompt"): cv.string,
         vol.Required("images"): vol.All(cv.ensure_list, [{"url": cv.string}]),
         vol.Optional("max_tokens", default=300): cv.positive_int,
+        vol.Optional("reasoning_level", default="medium"): cv.string,  # Lägg till GPT-5 parametrar
+        vol.Optional("verbosity", default="medium"): cv.string,
     }
 )
 
@@ -44,33 +43,76 @@ async def async_setup_services(hass: HomeAssistant, config: ConfigType) -> None:
     """Set up services for the openai conversation plus component."""
 
     async def query_image(call: ServiceCall) -> ServiceResponse:
-        """Query an image."""
+        """Query an image using Responses API with GPT-5 support."""
         try:
             model = call.data["model"]
-            images = [
-                {"type": "image_url", "image_url": to_image_param(hass, image)}
-                for image in call.data["images"]
-            ]
-
+            reasoning_level = call.data.get("reasoning_level", "medium")
+            verbosity = call.data.get("verbosity", "medium")
+            
+            # Skapa messages för Responses API
             messages = [
                 {
-                    "role": "user",
-                    "content": [{"type": "text", "text": call.data["prompt"]}] + images,
+                    "role": "user", 
+                    "content": call.data["prompt"]
                 }
             ]
+            
+            # Lägg till bilder som attachments (GPT-5 stöd)
+            if call.data.get("images"):
+                # För GPT-5, hantera bilder som attachments
+                attachments = []
+                for image in call.data["images"]:
+                    attachments.append({
+                        "type": "image_url",
+                        "image_url": to_image_param(hass, image)
+                    })
+                messages[0]["attachments"] = attachments
+
             _LOGGER.info("Prompt for %s: %s", model, messages)
+
+            # Använd Responses API istället för Chat Completions
+            response_kwargs = {
+                "model": model,
+                "input": messages,  # Responses API använder 'input'
+                "max_output_tokens": call.data["max_tokens"],  # Responses API använder 'max_output_tokens'
+                "response_format": {"type": "text"},
+            }
+            
+            # Lägg till GPT-5 specifika parametrar
+            if model in GPT5_MODELS:
+                response_kwargs["reasoning"] = {"effort": reasoning_level}
+                if verbosity:
+                    response_kwargs["text"] = {"verbosity": verbosity}
 
             response = await AsyncOpenAI(
                 api_key=hass.data[DOMAIN][call.data["config_entry"]]["api_key"]
-            ).chat.completions.create(
-                model=model,
-                messages=messages,
-                max_tokens=call.data["max_tokens"],
-            )
-            response_dict = response.model_dump()
+            ).responses.create(**response_kwargs)
+            
+            # Extrahera text från Responses API
+            text = getattr(response, "output_text", None)
+            if not text and hasattr(response, "output") and response.output:
+                try:
+                    first = response.output[0]
+                    parts = getattr(first, "content", []) or []
+                    texts = []
+                    for p in parts:
+                        t = getattr(getattr(p, "text", None), "value", None)
+                        if t:
+                            texts.append(t)
+                    text = "\n".join(texts) if texts else None
+                except Exception:
+                    pass
+            
+            response_dict = {
+                "content": text or "",
+                "model": model,
+                "usage": getattr(response, "usage", None)
+            }
+            
             _LOGGER.info("Response %s", response_dict)
+            
         except OpenAIError as err:
-            raise HomeAssistantError(f"Error generating image: {err}") from err
+            raise HomeAssistantError(f"Error generating image response: {err}") from err
 
         return response_dict
 
@@ -83,12 +125,12 @@ async def async_setup_services(hass: HomeAssistant, config: ConfigType) -> None:
     )
 
 
-def to_image_param(hass: HomeAssistant, image) -> ChatCompletionContentPartImageParam:
+def to_image_param(hass: HomeAssistant, image) -> dict:
     """Convert url to base64 encoded image if local."""
     url = image["url"]
 
     if urlparse(url).scheme in cv.EXTERNAL_URL_PROTOCOL_SCHEMA_LIST:
-        return image
+        return {"url": url}
 
     if not hass.config.is_allowed_path(url):
         raise HomeAssistantError(
@@ -102,8 +144,7 @@ def to_image_param(hass: HomeAssistant, image) -> ChatCompletionContentPartImage
     if mime_type is None or not mime_type.startswith("image"):
         raise HomeAssistantError(f"`{url}` is not an image")
 
-    image["url"] = f"data:{mime_type};base64,{encode_image(url)}"
-    return image
+    return {"url": f"data:{mime_type};base64,{encode_image(url)}"}
 
 
 def encode_image(image_path):

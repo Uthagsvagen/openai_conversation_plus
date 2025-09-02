@@ -6,7 +6,7 @@ import json
 import logging
 import time
 from typing import Literal
-from importlib.metadata import PackageNotFoundError, version
+from types import SimpleNamespace
 
 import yaml
 from homeassistant.components import conversation
@@ -94,54 +94,47 @@ from .services import async_setup_services
 
 _LOGGER = logging.getLogger(__name__)
 
-
-
 CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
-
-# Platform list
 PLATFORMS = ["ai_task"]
-
-# hass.data key for agent.
 DATA_AGENT = "agent"
 
 
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
-    """Set up OpenAI Conversation."""
-    # Log OpenAI library version for debugging
     try:
         import openai
-        _LOGGER.info("OpenAI Conversation Plus: Loaded OpenAI Python library version: %s", openai.__version__)
-    except ImportError:
+        _LOGGER.info(
+            "OpenAI Conversation Plus: Loaded OpenAI Python library version: %s",
+            getattr(openai, "__version__", "unknown"),
+        )
+    except Exception:
         _LOGGER.warning("OpenAI Conversation Plus: OpenAI library not available")
-    
-    # Ensure the integration is properly discovered
+
     hass.data.setdefault(DOMAIN, {})
-    
-    # Set up services
     await async_setup_services(hass, config)
-    
-    # Log installed openai library version on startup
+
     try:
-        openai_version = version("openai")
-    except PackageNotFoundError:
-        openai_version = "unknown"
-    except Exception as err:
-        openai_version = f"unknown ({err})"
-    _LOGGER.info("OpenAI Conversation Plus: openai library version %s", openai_version)
-    
-    # Return True to indicate successful setup
+        import openai
+        _LOGGER.info(
+            "OpenAI Conversation Plus: openai library version %s",
+            getattr(openai, "__version__", "unknown"),
+        )
+    except Exception:
+        _LOGGER.info("OpenAI Conversation Plus: openai library version unknown")
+
     return True
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
-    """Set up OpenAI Conversation from a config entry."""
-    
-    # Log OpenAI library version when setting up entry
     try:
         import openai
-        _LOGGER.info("OpenAI Conversation Plus: Setting up entry with OpenAI library version: %s", openai.__version__)
-    except ImportError:
-        _LOGGER.warning("OpenAI Conversation Plus: OpenAI library not available during entry setup")
+        _LOGGER.info(
+            "OpenAI Conversation Plus: Setting up entry with OpenAI library version: %s",
+            getattr(openai, "__version__", "unknown"),
+        )
+    except Exception:
+        _LOGGER.warning(
+            "OpenAI Conversation Plus: OpenAI library not available during entry setup"
+        )
 
     try:
         await helpers.validate_authentication(
@@ -159,7 +152,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         return False
     except OpenAIError as err:
         raise ConfigEntryNotReady(err) from err
-    except Exception as err:  # Allow tests to simulate generic failures
+    except Exception as err:
         _LOGGER.error("Authentication failed: %s", err)
         return False
 
@@ -170,33 +163,29 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     data[DATA_AGENT] = agent
 
     conversation.async_set_agent(hass, entry, agent)
-    
-    # Mark entry as loaded before forwarding platforms
+
     try:
         from homeassistant.config_entries import ConfigEntryState
-        if hasattr(entry, 'mock_state'):
+        if hasattr(entry, "mock_state"):
             entry.mock_state(hass, ConfigEntryState.LOADED)  # type: ignore[arg-type]
-        elif hasattr(entry, '_async_set_state'):
+        elif hasattr(entry, "_async_set_state"):
             entry._async_set_state(hass, ConfigEntryState.LOADED)  # type: ignore[attr-defined]
         else:
             entry.state = ConfigEntryState.LOADED
     except Exception:
         pass
-    
-    # Forward the entry to the platforms after loaded (best-effort)
+
     try:
         hass.async_create_task(
             hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
         )
     except Exception:
         _LOGGER.debug("Deferred platform forwarding")
-    
+
     return True
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
-    """Unload OpenAI."""
-    # Unload platforms
     unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
     if unload_ok:
         try:
@@ -208,10 +197,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
 
 class OpenAIAgent(conversation.AbstractConversationAgent):
-    """OpenAI conversation agent."""
-
     def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
-        """Initialize the agent."""
         self.hass = hass
         self.entry = entry
         self.history: dict[str, list[dict]] = {}
@@ -231,18 +217,15 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
                 organization=entry.data.get(CONF_ORGANIZATION),
                 http_client=get_async_client(hass),
             )
-        # Cache current platform data which gets added to each request (caching done by library)
         _ = hass.async_add_executor_job(self.client.platform_headers)
 
     @property
     def supported_languages(self) -> list[str] | Literal["*"]:
-        """Return a list of supported languages."""
         return MATCH_ALL
 
     async def async_process(
         self, user_input: conversation.ConversationInput
     ) -> conversation.ConversationResult:
-        """Process a sentence from the user."""
         _LOGGER.debug("Processing user input: %s", user_input.text)
         exposed_entities = self.get_exposed_entities()
 
@@ -310,7 +293,6 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
                 response=intent_response, conversation_id=conversation_id
             )
 
-        # Convert message to dict format
         message_dict = {
             "role": getattr(query_response.message, "role", "assistant"),
             "content": query_response.message.content or "",
@@ -342,25 +324,22 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
         messages.append(message_dict)
         self.history[conversation_id] = messages
 
-        # Only fire event if enabled (prevents database performance issues)
-        if self.entry.options.get(CONF_ENABLE_CONVERSATION_EVENTS, DEFAULT_ENABLE_CONVERSATION_EVENTS):
+        if self.entry.options.get(
+            CONF_ENABLE_CONVERSATION_EVENTS, DEFAULT_ENABLE_CONVERSATION_EVENTS
+        ):
             self.hass.bus.async_fire(
                 EVENT_CONVERSATION_FINISHED,
                 {
                     "response": {
-                        "id": query_response.response.id,
-                        "model": query_response.response.model,
-                        "usage": {
-                            "prompt_tokens": query_response.response.usage.prompt_tokens,
-                            "completion_tokens": query_response.response.usage.completion_tokens,
-                            "total_tokens": query_response.response.usage.total_tokens,
-                        }
-                        if query_response.response.usage
-                        else None,
+                        "id": getattr(query_response.response, "id", None),
+                        "model": getattr(query_response.response, "model", None),
+                        "usage": getattr(query_response.response, "usage", None),
                     },
                     "conversation_id": conversation_id,
                     "user_input_length": len(user_input.text) if user_input.text else 0,
-                    "response_length": len(query_response.message.content) if query_response.message.content else 0,
+                    "response_length": len(query_response.message.content)
+                    if query_response.message.content
+                    else 0,
                     "message_count": len(messages),
                     "timestamp": time.time(),
                 },
@@ -385,7 +364,6 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
         exposed_entities,
         user_input: conversation.ConversationInput,
     ) -> str:
-        """Generate a prompt for the user."""
         return template.Template(raw_prompt, self.hass).async_render(
             {
                 "ha_name": self.hass.config.location_name,
@@ -406,11 +384,9 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
         for state in states:
             entity_id = state.entity_id
             entity = entity_registry.async_get(entity_id)
-
             aliases = []
             if entity and entity.aliases:
                 aliases = entity.aliases
-
             exposed_entities.append(
                 {
                     "entity_id": entity_id,
@@ -442,21 +418,17 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
     async def truncate_message_history(
         self, messages, exposed_entities, user_input: conversation.ConversationInput
     ):
-        """Truncate message history."""
         strategy = self.entry.options.get(
             CONF_CONTEXT_TRUNCATE_STRATEGY, DEFAULT_CONTEXT_TRUNCATE_STRATEGY
         )
-
         if strategy == "clear":
             last_user_message_index = None
             for i in reversed(range(len(messages))):
                 if messages[i]["role"] == "user":
                     last_user_message_index = i
                     break
-
             if last_user_message_index is not None:
                 del messages[1:last_user_message_index]
-                # refresh system prompt when all messages are deleted
                 messages[0] = self._generate_system_message(
                     exposed_entities, user_input
                 )
@@ -467,8 +439,7 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
         messages,
         exposed_entities,
         n_requests,
-    ) -> OpenAIQueryResponse:
-        """Process a sentence."""
+    ) -> "OpenAIQueryResponse":
         model = self.entry.options.get(CONF_CHAT_MODEL, DEFAULT_CHAT_MODEL)
         max_tokens = self.entry.options.get(CONF_MAX_TOKENS, DEFAULT_MAX_TOKENS)
         top_p = self.entry.options.get(CONF_TOP_P, DEFAULT_TOP_P)
@@ -491,25 +462,18 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
                 "tools": [{"type": "function", "function": func} for func in functions],
                 "tool_choice": function_call,
             }
-
         if len(functions) == 0:
             tool_kwargs = {}
 
-        # Add reasoning level and verbosity for GPT-5 models
         reasoning_level = self.entry.options.get(
             CONF_REASONING_LEVEL, DEFAULT_REASONING_LEVEL
         )
         verbosity = self.entry.options.get(CONF_VERBOSITY, DEFAULT_VERBOSITY)
 
-        # Always use Response API
-        # Build tools list for Response API
         api_tools = []
-
-        # Add custom functions as tools
         if tool_kwargs.get("tools"):
             api_tools.extend(tool_kwargs["tools"])
 
-        # Add web search if enabled
         if self.entry.options.get(CONF_ENABLE_WEB_SEARCH, DEFAULT_ENABLE_WEB_SEARCH):
             web_search_tool = {
                 "type": "web_search",
@@ -517,9 +481,9 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
                     CONF_SEARCH_CONTEXT_SIZE, DEFAULT_SEARCH_CONTEXT_SIZE
                 ),
             }
-            
-            # Add user location if configured
-            user_location = self.entry.options.get(CONF_USER_LOCATION, DEFAULT_USER_LOCATION)
+            user_location = self.entry.options.get(
+                CONF_USER_LOCATION, DEFAULT_USER_LOCATION
+            )
             if user_location and any(user_location.values()):
                 web_search_tool["user_location"] = {
                     "type": "approximate",
@@ -527,35 +491,28 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
                     "city": user_location.get("city", ""),
                     "region": user_location.get("region", ""),
                 }
-            
             api_tools.append(web_search_tool)
 
-        # Check for previous response ID for conversation continuity
         previous_response_id = None
         if hasattr(user_input, "agent_response_id"):
             previous_response_id = user_input.agent_response_id
 
-        # Use Response API
         response_kwargs = {
             "model": model,
-            "input": messages,  # Responses API >=1.101.0 uses 'input' for message array
+            "input": messages,
             "max_output_tokens": max_tokens,
             "temperature": temperature,
             "top_p": top_p,
+            "store": self.entry.options.get(
+                CONF_STORE_CONVERSATIONS, DEFAULT_STORE_CONVERSATIONS
+            ),
         }
 
-        # Add GPT-5 specific parameters (only if supported by the library)
         if model in GPT5_MODELS:
-            try:
-                # Test if these parameters are supported by checking the client
-                if hasattr(self.client.responses, 'create'):
-                    # Add parameters one by one to avoid breaking the request
-                    response_kwargs["reasoning_effort"] = reasoning_level
-                    response_kwargs["verbosity"] = verbosity
-                    _LOGGER.debug("Added GPT-5 specific parameters: reasoning_effort=%s, verbosity=%s", reasoning_level, verbosity)
-            except Exception as e:
-                _LOGGER.debug("GPT-5 specific parameters not supported in this OpenAI library version: %s", e)
-                # Continue without GPT-5 specific parameters
+            response_kwargs["reasoning"] = {"effort": reasoning_level}
+            if verbosity:
+                response_kwargs["text"] = {"verbosity": verbosity}
+            response_kwargs["response_format"] = {"type": "text"}
 
         if api_tools:
             response_kwargs["tools"] = api_tools
@@ -564,82 +521,54 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
         if previous_response_id:
             response_kwargs["previous_response_id"] = previous_response_id
 
-        # Add store parameter for conversation persistence
-        response_kwargs["store"] = self.entry.options.get(
-            CONF_STORE_CONVERSATIONS, DEFAULT_STORE_CONVERSATIONS
-        )
-
         try:
-            # Call the Responses API
             response = await self.client.responses.create(**response_kwargs)
-            _LOGGER.info(
-                "Response API Prompt for %s: %s", model, json.dumps(messages)
-            )
+        except TypeError:
+            response_kwargs.pop("reasoning", None)
+            response_kwargs.pop("text", None)
+            response = await self.client.responses.create(**response_kwargs)
+        except Exception as err:
+            _LOGGER.error("Response API error: %s", err)
+            raise ConfigEntryNotReady(
+                "Response API not available or incompatible OpenAI library version."
+            ) from err
 
-            # Store response ID for conversation continuity
-            if hasattr(response, "id"):
-                user_input.agent_response_id = response.id
+        _LOGGER.info("Response API Prompt for %s: %s", model, json.dumps(messages))
 
-            # Handle Response API response format
-            # The Response API maintains backward compatibility with Chat Completions
-            # so the response structure should be similar
-            if hasattr(response, "choices") and response.choices:
-                choice = response.choices[0]
-                message = choice.message
+        text = getattr(response, "output_text", None)
+        if not text and hasattr(response, "choices") and response.choices:
+            choice0 = response.choices[0]
+            msg = getattr(choice0, "message", None)
+            if msg and getattr(msg, "content", None):
+                text = msg.content
+        if not text and hasattr(response, "output") and response.output:
+            try:
+                first = response.output[0]
+                parts = getattr(first, "content", []) or []
+                texts = []
+                for p in parts:
+                    t = getattr(getattr(p, "text", None), "value", None)
+                    if t:
+                        texts.append(t)
+                text = "\n".join(texts) if texts else None
+            except Exception:
+                pass
 
-                # Handle web search citations if present
-                if hasattr(message, "annotations") and message.annotations:
-                    # Process citations and add to content
-                    citations = []
-                    for annotation in message.annotations:
-                        if annotation.type == "cite" and hasattr(annotation, "url"):
-                            citations.append(
-                                f"[{annotation.text}]({annotation.url})"
-                            )
+        message = SimpleNamespace(role="assistant", content=text or "")
 
-                    if citations:
-                        message.content += "\n\nSources:\n" + "\n".join(citations)
+        if hasattr(response, "id"):
+            user_input.agent_response_id = response.id
 
-                return OpenAIQueryResponse(response=response, message=message)
-            else:
-                # Fallback if response structure is unexpected
-                raise OpenAIError("Unexpected Response API format")
-
-        except (AttributeError, ImportError, OpenAIError, Exception) as err:
-            # Response API not available in installed SDK
-            _LOGGER.error(
-                "Response API error: %s", err
-            )
-            
-            # Provide more specific error messages
-            if "unexpected keyword argument" in str(err):
-                _LOGGER.error("Parameter compatibility issue detected. This may be due to OpenAI library version mismatch.")
-                raise ConfigEntryNotReady(
-                    "OpenAI API parameter compatibility issue. Please ensure you have OpenAI library version 1.101.0 or newer installed."
-                ) from err
-            else:
-                raise ConfigEntryNotReady(
-                    "Response API not available. This integration requires OpenAI library version 1.101.0 or newer. Please restart Home Assistant to install the required version."
-                ) from err
-
-        _LOGGER.info("Prompt for %s: %s", model, json.dumps(messages))
-
-        if response.usage.total_tokens > context_threshold:
-            await self.truncate_message_history(messages, exposed_entities, user_input)
-
-        choice: Choice = response.choices[0]
-        message = choice.message
-
-        if choice.finish_reason == "function_call":
-            return await self.execute_function_call(
-                user_input, messages, message, exposed_entities, n_requests + 1
-            )
-        if choice.finish_reason == "tool_calls":
-            return await self.execute_tool_calls(
-                user_input, messages, message, exposed_entities, n_requests + 1
-            )
-        if choice.finish_reason == "length":
-            raise TokenLengthExceededError(response.usage.completion_tokens)
+        if getattr(response, "usage", None) and getattr(
+            response.usage, "total_tokens", None
+        ):
+            try:
+                if response.usage.total_tokens > context_threshold:
+                    await self.truncate_message_history(
+                        messages, exposed_entities, user_input
+                    )
+            except Exception:
+                pass
 
         return OpenAIQueryResponse(response=response, message=message)
 
@@ -650,7 +579,7 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
         message: ChatCompletionMessage,
         exposed_entities,
         n_requests,
-    ) -> OpenAIQueryResponse:
+    ) -> "OpenAIQueryResponse":
         function_name = message.function_call.name
         function = next(
             (s for s in self.get_functions() if s["spec"]["name"] == function_name),
@@ -675,18 +604,15 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
         exposed_entities,
         n_requests,
         function,
-    ) -> OpenAIQueryResponse:
+    ) -> "OpenAIQueryResponse":
         function_executor = get_function_executor(function["function"]["type"])
-
         try:
             arguments = json.loads(message.function_call.arguments)
         except json.decoder.JSONDecodeError as err:
             raise ParseArgumentsFailed(message.function_call.arguments) from err
-
         result = await function_executor.execute(
             self.hass, function["function"], arguments, user_input, exposed_entities
         )
-
         messages.append(
             {
                 "role": "function",
@@ -703,8 +629,7 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
         message: ChatCompletionMessage,
         exposed_entities,
         n_requests,
-    ) -> OpenAIQueryResponse:
-        # Convert message to dict format
+    ) -> "OpenAIQueryResponse":
         message_dict = {
             "role": getattr(message, "role", "assistant"),
             "content": message.content or "",
@@ -735,12 +660,8 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
             )
             if function is not None:
                 result = await self.execute_tool_function(
-                    user_input,
-                    tool,
-                    exposed_entities,
-                    function,
+                    user_input, tool, exposed_entities, function
                 )
-
                 messages.append(
                     {
                         "tool_call_id": tool.id,
@@ -759,14 +680,12 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
         tool,
         exposed_entities,
         function,
-    ) -> OpenAIQueryResponse:
+    ) -> "OpenAIQueryResponse":
         function_executor = get_function_executor(function["function"]["type"])
-
         try:
             arguments = json.loads(tool.function.arguments)
         except json.decoder.JSONDecodeError as err:
             raise ParseArgumentsFailed(tool.function.arguments) from err
-
         result = await function_executor.execute(
             self.hass, function["function"], arguments, user_input, exposed_entities
         )
@@ -774,11 +693,8 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
 
 
 class OpenAIQueryResponse:
-    """OpenAI query response value object."""
-
     def __init__(
         self, response: ChatCompletion, message: ChatCompletionMessage
     ) -> None:
-        """Initialize OpenAI query response value object."""
         self.response = response
         self.message = message
