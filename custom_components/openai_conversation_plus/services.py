@@ -75,7 +75,6 @@ async def async_setup_services(hass: HomeAssistant, config: ConfigType) -> None:
                 "model": model,
                 "input": messages,  # Responses API använder 'input'
                 "max_output_tokens": call.data["max_tokens"],  # Responses API använder 'max_output_tokens'
-                "response_format": {"type": "text"},
             }
             
             # Lägg till GPT-5 specifika parametrar

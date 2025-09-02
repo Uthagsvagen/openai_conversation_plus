@@ -552,7 +552,6 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
             response_kwargs["reasoning"] = {"effort": reasoning_level}
             if verbosity:
                 response_kwargs["text"] = {"verbosity": verbosity}
-            response_kwargs["response_format"] = {"type": "text"}
 
         if api_tools:
             # Validate tools structure for Responses API
