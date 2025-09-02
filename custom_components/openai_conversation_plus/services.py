@@ -81,7 +81,10 @@ async def async_setup_services(hass: HomeAssistant, config: ConfigType) -> None:
             if model in GPT5_MODELS:
                 response_kwargs["reasoning"] = {"effort": reasoning_level}
                 if verbosity:
-                    response_kwargs["text"] = {"verbosity": verbosity}
+                    # Map legacy verbosity values
+                    from .const import VERBOSITY_COMPAT_MAP
+                    mapped_verbosity = VERBOSITY_COMPAT_MAP.get(verbosity, verbosity)
+                    response_kwargs["text"] = {"verbosity": mapped_verbosity}
 
             _LOGGER.debug("[v%s] Full response_kwargs being sent to API: %s", INTEGRATION_VERSION, response_kwargs)
 

@@ -551,7 +551,10 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
         if model in GPT5_MODELS:
             response_kwargs["reasoning"] = {"effort": reasoning_level}
             if verbosity:
-                response_kwargs["text"] = {"verbosity": verbosity}
+                # Map legacy verbosity values to supported ones
+                from .const import VERBOSITY_COMPAT_MAP
+                mapped_verbosity = VERBOSITY_COMPAT_MAP.get(verbosity, verbosity)
+                response_kwargs["text"] = {"verbosity": mapped_verbosity}
 
         if api_tools:
             # Validate tools structure for Responses API

@@ -174,7 +174,14 @@ GPT5_MODELS = ["gpt-5", "gpt-5-mini", "gpt-5-nano", "gpt-5-pro"]
 CONF_REASONING_LEVEL = "reasoning_level"
 DEFAULT_REASONING_LEVEL = "medium"
 CONF_VERBOSITY = "verbosity"
-DEFAULT_VERBOSITY = "balanced"
+# Responses API supports: low, medium, high
+DEFAULT_VERBOSITY = "medium"
+# Backward-compat mapping for previously used values
+VERBOSITY_COMPAT_MAP: Dict[str, str] = {
+    "balanced": "medium",
+    "terse": "low",
+    "expansive": "high",
+}
 
 
 

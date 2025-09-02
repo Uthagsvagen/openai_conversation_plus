@@ -328,16 +328,20 @@ class OptionsFlow(config_entries.OptionsFlow):
                 mode=SelectSelectorMode.DROPDOWN,
             )
         )
+        # Map legacy values to Responses API supported values
+        verbosity_default = options.get(CONF_VERBOSITY, DEFAULT_VERBOSITY)
+        from .const import VERBOSITY_COMPAT_MAP
+        verbosity_default = VERBOSITY_COMPAT_MAP.get(verbosity_default, verbosity_default)
         schema[vol.Optional(
             CONF_VERBOSITY,
-            description={"suggested_value": options.get(CONF_VERBOSITY, DEFAULT_VERBOSITY)},
-            default=DEFAULT_VERBOSITY,
+            description={"suggested_value": verbosity_default},
+            default=verbosity_default,
         )] = SelectSelector(
             SelectSelectorConfig(
                 options=[
-                    SelectOptionDict(value="terse", label="Terse"),
-                    SelectOptionDict(value="balanced", label="Balanced"),
-                    SelectOptionDict(value="expansive", label="Expansive"),
+                    SelectOptionDict(value="low", label="Low"),
+                    SelectOptionDict(value="medium", label="Medium"),
+                    SelectOptionDict(value="high", label="High"),
                 ],
                 mode=SelectSelectorMode.DROPDOWN,
             )
