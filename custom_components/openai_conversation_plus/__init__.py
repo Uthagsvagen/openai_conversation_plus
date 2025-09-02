@@ -336,13 +336,27 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
         if self.entry.options.get(
             CONF_ENABLE_CONVERSATION_EVENTS, DEFAULT_ENABLE_CONVERSATION_EVENTS
         ):
+            # Ensure usage is JSON serializable
+            usage = getattr(query_response.response, "usage", None)
+            if usage is not None:
+                try:
+                    if hasattr(usage, "model_dump"):
+                        usage = usage.model_dump()
+                    elif hasattr(usage, "to_dict"):
+                        usage = usage.to_dict()
+                    else:
+                        import json as _json
+                        usage = _json.loads(_json.dumps(usage, default=str))
+                except Exception:
+                    usage = str(usage)
+
             self.hass.bus.async_fire(
                 EVENT_CONVERSATION_FINISHED,
                 {
                     "response": {
                         "id": getattr(query_response.response, "id", None),
                         "model": getattr(query_response.response, "model", None),
-                        "usage": getattr(query_response.response, "usage", None),
+                        "usage": usage,
                     },
                     "conversation_id": conversation_id,
                     "user_input_length": len(user_input.text) if user_input.text else 0,
