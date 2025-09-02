@@ -80,6 +80,7 @@ from .const import (
     DOMAIN,
     EVENT_CONVERSATION_FINISHED,
     GPT5_MODELS,
+    INTEGRATION_VERSION,
 )
 from .exceptions import (
     FunctionLoadFailed,
@@ -94,8 +95,7 @@ from .services import async_setup_services
 
 _LOGGER = logging.getLogger(__name__)
 
-# Version for logging
-INTEGRATION_VERSION = "2025.9.2.6"
+# Version is imported from const.py as INTEGRATION_VERSION
 
 CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 PLATFORMS = ["ai_task"]
