@@ -208,6 +208,8 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
         self.hass = hass
         self.entry = entry
         self.history: dict[str, list[dict]] = {}
+        # Track last response id per conversation to enable previous_response_id without mutating ConversationInput
+        self._last_response_ids: dict[str, str] = {}
         base_url = entry.data.get(CONF_BASE_URL)
         if is_azure(base_url):
             self.client = AsyncAzureOpenAI(
@@ -528,8 +530,12 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
             api_tools.append(web_search_tool)
 
         previous_response_id = None
-        if hasattr(user_input, "agent_response_id"):
-            previous_response_id = user_input.agent_response_id
+        try:
+            conversation_id_for_previous = getattr(user_input, "conversation_id", None)
+        except Exception:
+            conversation_id_for_previous = None
+        if conversation_id_for_previous:
+            previous_response_id = self._last_response_ids.get(conversation_id_for_previous)
 
         response_kwargs = {
             "model": model,
@@ -638,8 +644,13 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
 
         message = SimpleNamespace(role="assistant", content=text or "")
 
-        if hasattr(response, "id"):
-            user_input.agent_response_id = response.id
+        # Store last response id for this conversation without mutating ConversationInput
+        try:
+            conversation_id_for_store = getattr(user_input, "conversation_id", None)
+        except Exception:
+            conversation_id_for_store = None
+        if conversation_id_for_store and hasattr(response, "id"):
+            self._last_response_ids[conversation_id_for_store] = response.id
 
         if getattr(response, "usage", None) and getattr(
             response.usage, "total_tokens", None
