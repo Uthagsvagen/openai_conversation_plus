@@ -94,6 +94,9 @@ from .services import async_setup_services
 
 _LOGGER = logging.getLogger(__name__)
 
+# Version for logging
+INTEGRATION_VERSION = "2025.9.2.5"
+
 CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 PLATFORMS = ["ai_task"]
 DATA_AGENT = "agent"
@@ -103,11 +106,12 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     try:
         import openai
         _LOGGER.info(
-            "OpenAI Conversation Plus: Loaded OpenAI Python library version: %s",
+            "[v%s] OpenAI Conversation Plus: Loaded OpenAI Python library version: %s",
+            INTEGRATION_VERSION,
             getattr(openai, "__version__", "unknown"),
         )
     except Exception:
-        _LOGGER.warning("OpenAI Conversation Plus: OpenAI library not available")
+        _LOGGER.warning("[v%s] OpenAI Conversation Plus: OpenAI library not available", INTEGRATION_VERSION)
 
     hass.data.setdefault(DOMAIN, {})
     await async_setup_services(hass, config)
@@ -115,11 +119,12 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     try:
         import openai
         _LOGGER.info(
-            "OpenAI Conversation Plus: openai library version %s",
+            "[v%s] OpenAI Conversation Plus: openai library version %s",
+            INTEGRATION_VERSION,
             getattr(openai, "__version__", "unknown"),
         )
     except Exception:
-        _LOGGER.info("OpenAI Conversation Plus: openai library version unknown")
+        _LOGGER.info("[v%s] OpenAI Conversation Plus: openai library version unknown", INTEGRATION_VERSION)
 
     return True
 
@@ -128,12 +133,14 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     try:
         import openai
         _LOGGER.info(
-            "OpenAI Conversation Plus: Setting up entry with OpenAI library version: %s",
+            "[v%s] OpenAI Conversation Plus: Setting up entry with OpenAI library version: %s",
+            INTEGRATION_VERSION,
             getattr(openai, "__version__", "unknown"),
         )
     except Exception:
         _LOGGER.warning(
-            "OpenAI Conversation Plus: OpenAI library not available during entry setup"
+            "[v%s] OpenAI Conversation Plus: OpenAI library not available during entry setup",
+            INTEGRATION_VERSION
         )
 
     try:
@@ -148,12 +155,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             ),
         )
     except AuthenticationError as err:
-        _LOGGER.error("Invalid API key: %s", err)
+        _LOGGER.error("[v%s] Invalid API key: %s", INTEGRATION_VERSION, err)
         return False
     except OpenAIError as err:
         raise ConfigEntryNotReady(err) from err
     except Exception as err:
-        _LOGGER.error("Authentication failed: %s", err)
+        _LOGGER.error("[v%s] Authentication failed: %s", INTEGRATION_VERSION, err)
         return False
 
     agent = OpenAIAgent(hass, entry)
@@ -180,7 +187,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
         )
     except Exception:
-        _LOGGER.debug("Deferred platform forwarding")
+        _LOGGER.debug("[v%s] Deferred platform forwarding", INTEGRATION_VERSION)
 
     return True
 
@@ -226,7 +233,7 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
     async def async_process(
         self, user_input: conversation.ConversationInput
     ) -> conversation.ConversationResult:
-        _LOGGER.debug("Processing user input: %s", user_input.text)
+        _LOGGER.debug("[v%s] Processing user input: %s", INTEGRATION_VERSION, user_input.text)
         exposed_entities = self.get_exposed_entities()
 
         if user_input.conversation_id in self.history:
@@ -240,7 +247,7 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
                     exposed_entities, user_input
                 )
             except TemplateError as err:
-                _LOGGER.error("Error rendering prompt: %s", err)
+                _LOGGER.error("[v%s] Error rendering prompt: %s", INTEGRATION_VERSION, err)
                 intent_response = intent.IntentResponse(language=user_input.language)
                 intent_response.async_set_error(
                     intent.IntentResponseErrorCode.UNKNOWN,
@@ -261,7 +268,7 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
         try:
             query_response = await self.query(user_input, messages, exposed_entities, 0)
         except OpenAIError as err:
-            _LOGGER.error("OpenAI API error: %s", err)
+            _LOGGER.error("[v%s] OpenAI API error: %s", INTEGRATION_VERSION, err)
             intent_response = intent.IntentResponse(language=user_input.language)
             intent_response.async_set_error(
                 intent.IntentResponseErrorCode.UNKNOWN,
@@ -271,7 +278,7 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
                 response=intent_response, conversation_id=conversation_id
             )
         except HomeAssistantError as err:
-            _LOGGER.error("Home Assistant error: %s", err, exc_info=err)
+            _LOGGER.error("[v%s] Home Assistant error: %s", INTEGRATION_VERSION, err, exc_info=err)
             intent_response = intent.IntentResponse(language=user_input.language)
             intent_response.async_set_error(
                 intent.IntentResponseErrorCode.UNKNOWN,
@@ -282,7 +289,7 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
             )
         except Exception as err:
             _LOGGER.error(
-                "Unexpected error during intent recognition: %s", err, exc_info=True
+                "[v%s] Unexpected error during intent recognition: %s", INTEGRATION_VERSION, err, exc_info=True
             )
             intent_response = intent.IntentResponse(language=user_input.language)
             intent_response.async_set_error(
@@ -455,8 +462,11 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
             if func and "name" in func:
                 valid_functions.append(func)
             else:
-                _LOGGER.warning("Skipping function without name: %s", func)
+                _LOGGER.warning("[v%s] Skipping function without name: %s", INTEGRATION_VERSION, func)
         functions = valid_functions
+        
+        # Debug log the functions structure
+        _LOGGER.debug("[v%s] Functions to be used: %s", INTEGRATION_VERSION, json.dumps(functions))
         
         function_call = "auto"
         if n_requests == self.entry.options.get(
@@ -524,8 +534,27 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
             response_kwargs["response_format"] = {"type": "text"}
 
         if api_tools:
-            response_kwargs["tools"] = api_tools
-            response_kwargs["tool_choice"] = tool_kwargs.get("tool_choice", "auto")
+            # Validate tools structure - separate function tools from special tools
+            validated_tools = []
+            for tool in api_tools:
+                if tool.get("type") == "function":
+                    # Function tools must have a function.name field
+                    if tool.get("function", {}).get("name"):
+                        validated_tools.append(tool)
+                    else:
+                        _LOGGER.warning("[v%s] Skipping function tool without name: %s", INTEGRATION_VERSION, tool)
+                elif tool.get("type") == "web_search":
+                    # Web search is a special tool type for Realtime API, keep it separate
+                    _LOGGER.debug("[v%s] Web search tool detected, may not be compatible with standard chat completions", INTEGRATION_VERSION)
+                    # Don't include web_search in standard tools array
+                else:
+                    _LOGGER.warning("[v%s] Unknown tool type: %s", INTEGRATION_VERSION, tool.get("type"))
+            
+            if validated_tools:
+                # Debug log the tools being sent to API
+                _LOGGER.debug("[v%s] API tools being sent: %s", INTEGRATION_VERSION, json.dumps(validated_tools))
+                response_kwargs["tools"] = validated_tools
+                response_kwargs["tool_choice"] = tool_kwargs.get("tool_choice", "auto")
 
         if previous_response_id:
             response_kwargs["previous_response_id"] = previous_response_id
@@ -538,12 +567,12 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
             response_kwargs.pop("response_format", None)
             response = await self.client.responses.create(**response_kwargs)
         except Exception as err:
-            _LOGGER.error("Response API error: %s", err)
+            _LOGGER.error("[v%s] Response API error: %s", INTEGRATION_VERSION, err)
             raise ConfigEntryNotReady(
                 "Response API not available or incompatible OpenAI library version."
             ) from err
 
-        _LOGGER.info("Response API Prompt for %s: %s", model, json.dumps(messages))
+        _LOGGER.info("[v%s] Response API Prompt for %s: %s", INTEGRATION_VERSION, model, json.dumps(messages))
 
         text = getattr(response, "output_text", None)
         if not text and hasattr(response, "choices") and response.choices:
