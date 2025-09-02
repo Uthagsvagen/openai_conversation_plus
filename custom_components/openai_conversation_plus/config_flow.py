@@ -201,20 +201,24 @@ class OptionsFlow(config_entries.OptionsFlow):
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
         """Manage the options."""
-        if user_input is not None:
-            # Parse user_location JSON if provided as text
-            if isinstance(user_input.get(CONF_USER_LOCATION), str):
-                try:
-                    user_input[CONF_USER_LOCATION] = json.loads(user_input[CONF_USER_LOCATION])
-                except JSONDecodeError:
-                    # If invalid JSON, drop it so default applies
-                    user_input.pop(CONF_USER_LOCATION, None)
-            return self.async_create_entry(title=user_input.get(CONF_NAME, DEFAULT_NAME), data=user_input)
-        schema = self.openai_config_option_schema(self.config_entry.options)
-        return self.async_show_form(
-            step_id="init",
-            data_schema=vol.Schema(schema),
-        )
+        try:
+            if user_input is not None:
+                # Parse user_location JSON if provided as text
+                if isinstance(user_input.get(CONF_USER_LOCATION), str):
+                    try:
+                        user_input[CONF_USER_LOCATION] = json.loads(user_input[CONF_USER_LOCATION])
+                    except JSONDecodeError:
+                        # If invalid JSON, drop it so default applies
+                        user_input.pop(CONF_USER_LOCATION, None)
+                return self.async_create_entry(title=user_input.get(CONF_NAME, DEFAULT_NAME), data=user_input)
+            schema = self.openai_config_option_schema(self.config_entry.options)
+            return self.async_show_form(
+                step_id="init",
+                data_schema=vol.Schema(schema),
+            )
+        except Exception as err:
+            _LOGGER.error("Error in options flow: %s", err)
+            return self.async_abort(reason="unknown")
 
     def openai_config_option_schema(self, options: MappingProxyType[str, Any]) -> dict:
         """Return a schema for OpenAI completion options."""

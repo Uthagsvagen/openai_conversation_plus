@@ -449,6 +449,15 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
             CONF_CONTEXT_THRESHOLD, DEFAULT_CONTEXT_THRESHOLD
         )
         functions = [setting["spec"] for setting in (self.get_functions() or [])]
+        # Validate that all functions have required fields
+        valid_functions = []
+        for func in functions:
+            if func and "name" in func:
+                valid_functions.append(func)
+            else:
+                _LOGGER.warning("Skipping function without name: %s", func)
+        functions = valid_functions
+        
         function_call = "auto"
         if n_requests == self.entry.options.get(
             CONF_MAX_FUNCTION_CALLS_PER_CONVERSATION,
