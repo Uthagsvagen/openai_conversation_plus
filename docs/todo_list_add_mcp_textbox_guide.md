@@ -2,6 +2,9 @@
 
 Denna guide visar hur du utökar integrationen med en ny options-textbox för att konfigurera MCP-servrar. Dessa skickas vidare till OpenAI Responses API som `type: mcp`-tools, vilket gör att modellen kan anropa flera MCP-servrar direkt.
 
+Läs denna sida för hur openAI hanterar MCP
+https://platform.openai.com/docs/guides/tools-connectors-mcp
+
 ---
 
 ## steg 1 – const.py

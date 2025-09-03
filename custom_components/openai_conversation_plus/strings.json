@@ -31,8 +31,7 @@
           "functions": "Functions",
           "attach_username": "Attach Username to Message",
           "use_tools": "Use Tools",
-          "context_threshold": "Context Threshold",
-          "context_truncate_strategy": "Context truncation strategy when exceeded threshold",
+          
           "enable_web_search": "Enable Web Search",
           "search_context_size": "Search Context Size",
           "user_location": "User Location (for geo-aware searches)",
