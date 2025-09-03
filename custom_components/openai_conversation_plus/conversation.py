@@ -11,7 +11,13 @@ from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
 from openai import AsyncOpenAI
 
-from .const import DOMAIN, CONF_CHAT_MODEL, DEFAULT_CHAT_MODEL
+from .const import (
+    DOMAIN,
+    CONF_CHAT_MODEL,
+    DEFAULT_CHAT_MODEL,
+    CONF_STORE_CONVERSATIONS,
+    DEFAULT_STORE_CONVERSATIONS,
+)
 
 
 async def async_setup_entry(
@@ -25,7 +31,8 @@ async def async_setup_entry(
 class OpenAIConversationEntity(
     conversation.ConversationEntity, conversation.AbstractConversationAgent
 ):
-    _attr_supports_streaming = False
+    # Enable streaming per HA pattern; we'll stream deltas when possible
+    _attr_supports_streaming = True
 
     def __init__(self, entry: ConfigEntry) -> None:
         self.entry = entry
@@ -97,16 +104,51 @@ class OpenAIConversationEntity(
         kwargs: dict[str, Any] = {
             "model": model,
             "input": msgs,
-            "store": True,
+            "store": opts.get(CONF_STORE_CONVERSATIONS, DEFAULT_STORE_CONVERSATIONS),
         }
         if tools:
             kwargs["tools"] = tools
 
-        # Call Responses API
-        resp = await client.responses.create(**kwargs)
-        out = getattr(resp, "output_text", "") or ""
+        # Prefer streaming; fall back to non-streaming on error
+        try:
+            # Create a delta stream in the chat log
+            stream_obj = getattr(chat_log, "async_add_delta_content_stream", None)
+            if callable(stream_obj):
+                delta_stream = chat_log.async_add_delta_content_stream(
+                    AssistantContent(agent_id=user_input.agent_id, content="")
+                )
+                try:
+                    # OpenAI Responses streaming
+                    stream_ctx = getattr(client.responses, "stream", None)
+                    if stream_ctx is None:
+                        raise RuntimeError("Responses streaming not available")
 
-        # Append the assistant message to chat log and return standard result
+                    async with client.responses.stream(**kwargs) as resp_stream:
+                        async for event in resp_stream:
+                            etype = getattr(event, "type", "")
+                            if etype.endswith("output_text.delta"):
+                                delta = getattr(event, "delta", None)
+                                if delta:
+                                    # Push delta into HA stream API
+                                    push = getattr(delta_stream, "async_push_delta", None)
+                                    if callable(push):
+                                        await delta_stream.async_push_delta(delta)
+                    # Final response
+                    final = await resp_stream.get_final_response()
+                    out = getattr(final, "output_text", "") or ""
+                finally:
+                    # Ensure stream is closed
+                    close = getattr(delta_stream, "async_end", None)
+                    if callable(close):
+                        await delta_stream.async_end()
+            else:
+                raise RuntimeError("ChatLog delta stream not available")
+        except Exception:
+            # Non-streaming fallback
+            final = await client.responses.create(**kwargs)
+            out = getattr(final, "output_text", "") or ""
+
+        # Append the assistant message (final text) and return
         chat_log.async_add_assistant_content_without_tools(
             AssistantContent(agent_id=user_input.agent_id, content=out)
         )

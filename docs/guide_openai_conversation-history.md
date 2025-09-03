@@ -75,7 +75,7 @@ from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from .const import DOMAIN
 from openai import AsyncOpenAI
 
-GPT5_MODEL = "gpt-5.1"
+GPT5_MODEL = "gpt-5"
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddConfigEntryEntitiesCallback) -> None:
     async_add_entities([OpenAIConversationEntity(entry)])
