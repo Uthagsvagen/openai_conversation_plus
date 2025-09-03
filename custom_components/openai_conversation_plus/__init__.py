@@ -38,8 +38,6 @@ from .const import (
     CONF_ATTACH_USERNAME,
     CONF_BASE_URL,
     CONF_CHAT_MODEL,
-    CONF_CONTEXT_THRESHOLD,
-    CONF_CONTEXT_TRUNCATE_STRATEGY,
     CONF_ENABLE_CONVERSATION_EVENTS,
     CONF_ENABLE_WEB_SEARCH,
     CONF_FUNCTIONS,
@@ -60,8 +58,6 @@ from .const import (
     DEFAULT_CHAT_MODEL,
     DEFAULT_CONF_BASE_URL,
     DEFAULT_CONF_FUNCTIONS,
-    DEFAULT_CONTEXT_THRESHOLD,
-    DEFAULT_CONTEXT_TRUNCATE_STRATEGY,
     DEFAULT_ENABLE_CONVERSATION_EVENTS,
     DEFAULT_ENABLE_WEB_SEARCH,
     DEFAULT_MAX_FUNCTION_CALLS_PER_CONVERSATION,
@@ -443,20 +439,8 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
     async def truncate_message_history(
         self, messages, exposed_entities, user_input: conversation.ConversationInput
     ):
-        strategy = self.entry.options.get(
-            CONF_CONTEXT_TRUNCATE_STRATEGY, DEFAULT_CONTEXT_TRUNCATE_STRATEGY
-        )
-        if strategy == "clear":
-            last_user_message_index = None
-            for i in reversed(range(len(messages))):
-                if messages[i]["role"] == "user":
-                    last_user_message_index = i
-                    break
-            if last_user_message_index is not None:
-                del messages[1:last_user_message_index]
-                messages[0] = self._generate_system_message(
-                    exposed_entities, user_input
-                )
+        # Truncation logic removed in favor of Home Assistant ChatLog history
+        return
 
     async def query(
         self,
@@ -470,9 +454,7 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
         top_p = self.entry.options.get(CONF_TOP_P, DEFAULT_TOP_P)
         temperature = self.entry.options.get(CONF_TEMPERATURE, DEFAULT_TEMPERATURE)
         use_tools = self.entry.options.get(CONF_USE_TOOLS, DEFAULT_USE_TOOLS)
-        context_threshold = self.entry.options.get(
-            CONF_CONTEXT_THRESHOLD, DEFAULT_CONTEXT_THRESHOLD
-        )
+        # Truncation threshold removed (ChatLog controls history)
         functions = [setting["spec"] for setting in (self.get_functions() or [])]
         # Validate that all functions have required fields
         valid_functions = []
@@ -670,16 +652,7 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
         if conversation_id_for_store and hasattr(response, "id"):
             self._last_response_ids[conversation_id_for_store] = response.id
 
-        if getattr(response, "usage", None) and getattr(
-            response.usage, "total_tokens", None
-        ):
-            try:
-                if response.usage.total_tokens > context_threshold:
-                    await self.truncate_message_history(
-                        messages, exposed_entities, user_input
-                    )
-            except Exception:
-                pass
+        # Token-based history truncation removed
 
         return OpenAIQueryResponse(response=response, message=message)
 
