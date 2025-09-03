@@ -12,7 +12,7 @@ import yaml
 from homeassistant.components import conversation
 from homeassistant.components.homeassistant.exposed_entities import async_should_expose
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import ATTR_NAME, CONF_API_KEY, MATCH_ALL
+from homeassistant.const import ATTR_NAME, CONF_API_KEY, MATCH_ALL, Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import (
     ConfigEntryNotReady,
@@ -98,7 +98,7 @@ _LOGGER = logging.getLogger(__name__)
 # Version is imported from const.py as INTEGRATION_VERSION
 
 CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
-PLATFORMS = ["ai_task"]
+PLATFORMS = ["ai_task", Platform.CONVERSATION]
 DATA_AGENT = "agent"
 
 
@@ -183,6 +183,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         pass
 
     try:
+        # Store client for conversation platform to access
+        entry.runtime_data = agent.client  # type: ignore[attr-defined]
         hass.async_create_task(
             hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
         )
