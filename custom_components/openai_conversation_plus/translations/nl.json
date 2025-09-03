@@ -1,79 +1,77 @@
 {
-    "config": {
-        "error": {
-            "cannot_connect": "Verbinden mislukt",
-            "invalid_auth": "Ongeldige authenticatie",
-            "unknown": "Onverwachte fout"
-        },
-        "step": {
-            "user": {
-                "data": {
-                    "name": "Naam",
-                    "api_key": "API Sleutel",
-                    "base_url": "Basis URL",
-                    "api_version": "API Versie",
-                    "organization": "Organisatie",
-                    "skip_authentication": "Authenticatie overslaan"
-                }
-            }
-        }
+  "config": {
+    "error": {
+      "cannot_connect": "Verbinden mislukt",
+      "invalid_auth": "Ongeldige authenticatie",
+      "unknown": "Onverwachte fout"
     },
-    "options": {
-        "step": {
-            "init": {
-                "data": {
-                    "max_tokens": "Maximale aantal tokens dat mag worden gegenereerd",
-                    "model": "Voltooiingsmodel",
-                    "prompt": "Prompt Sjabloon",
-                    "temperature": "Temperatuur",
-                    "top_p": "Top P",
-                    "max_function_calls_per_conversation": "Maximale keren functies mogen worden aangeroepen per conversatie",
-                    "functions": "Functies",
-                    "attach_username": "Gebruikersnaam aan bericht toevoegen",
-                    "use_tools": "Gebruik hulpmiddelen",
-                    "context_threshold": "Context drempel",
-                    "context_truncate_strategy": "Context afkapping strategie wanneer drempel wordt overschreden",
-                    "enable_web_search": "Webzoekopdracht inschakelen",
-                    "search_context_size": "Zoekcontext grootte",
-                    "user_location": "Gebruikerslocatie (voor geo-bewuste zoekopdrachten)",
-                    "store_conversations": "Gesprekken opslaan (server-side)",
-                    "reasoning_level": "Redeneringsniveau (GPT-5)",
-                    "verbosity": "Antwoord uitvoerigheid",
-                    "enable_conversation_events": "Conversatiegebeurtenissen inschakelen (voor foutopsporing)"
-                }
-            }
+    "step": {
+      "user": {
+        "data": {
+          "name": "Naam",
+          "api_key": "API Sleutel",
+          "base_url": "Basis URL",
+          "api_version": "API Versie",
+          "organization": "Organisatie",
+          "skip_authentication": "Authenticatie overslaan"
         }
-    },
-    "services": {
-        "query_image": {
-            "name": "Afbeelding bevragen",
-            "description": "Afbeeldingen ontvangen en vragen erover beantwoorden",
-            "fields": {
-                "config_entry": {
-                    "name": "Configuratie-invoer",
-                    "description": "De configuratie-invoer om te gebruiken voor deze service"
-                },
-                "model": {
-                    "name": "Model",
-                    "description": "Het model",
-                    "example": "gpt-4-vision-preview"
-                },
-                "prompt": {
-                    "name": "Prompt",
-                    "description": "De tekst om over de afbeelding te vragen",
-                    "example": "Wat staat er op deze afbeelding?"
-                },
-                "images": {
-                    "name": "Afbeeldingen",
-                    "description": "Een lijst van afbeeldingen waarover wordt gevraagd",
-                    "example": "{\"url\": \"https://upload.wikimedia.org/wikipedia/commons/thumb/d/dd/Gfp-wisconsin-madison-the-nature-boardwalk.jpg/2560px-Gfp-wisconsin-madison-the-nature-boardwalk.jpg\"}"
-                },
-                "max_tokens": {
-                    "name": "Max Tokens",
-                    "description": "Het maximale aantal tokens",
-                    "example": "300"
-                }
-            }
-        }
+      }
     }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "data": {
+          "max_tokens": "Maximale aantal tokens dat mag worden gegenereerd",
+          "model": "Voltooiingsmodel",
+          "prompt": "Prompt Sjabloon",
+          "temperature": "Temperatuur",
+          "top_p": "Top P",
+          "max_function_calls_per_conversation": "Maximale keren functies mogen worden aangeroepen per conversatie",
+          "functions": "Functies",
+          "attach_username": "Gebruikersnaam aan bericht toevoegen",
+          "use_tools": "Gebruik hulpmiddelen",
+          "enable_web_search": "Webzoekopdracht inschakelen",
+          "search_context_size": "Zoekcontext grootte",
+          "user_location": "Gebruikerslocatie (voor geo-bewuste zoekopdrachten)",
+          "store_conversations": "Gesprekken opslaan (server-side)",
+          "reasoning_level": "Redeneringsniveau (GPT-5)",
+          "verbosity": "Antwoord uitvoerigheid",
+          "enable_conversation_events": "Conversatiegebeurtenissen inschakelen (voor foutopsporing)"
+        }
+      }
+    }
+  },
+  "services": {
+    "query_image": {
+      "name": "Afbeelding bevragen",
+      "description": "Afbeeldingen ontvangen en vragen erover beantwoorden",
+      "fields": {
+        "config_entry": {
+          "name": "Configuratie-invoer",
+          "description": "De configuratie-invoer om te gebruiken voor deze service"
+        },
+        "model": {
+          "name": "Model",
+          "description": "Het model",
+          "example": "gpt-4-vision-preview"
+        },
+        "prompt": {
+          "name": "Prompt",
+          "description": "De tekst om over de afbeelding te vragen",
+          "example": "Wat staat er op deze afbeelding?"
+        },
+        "images": {
+          "name": "Afbeeldingen",
+          "description": "Een lijst van afbeeldingen waarover wordt gevraagd",
+          "example": "{\"url\": \"https://upload.wikimedia.org/wikipedia/commons/thumb/d/dd/Gfp-wisconsin-madison-the-nature-boardwalk.jpg/2560px-Gfp-wisconsin-madison-the-nature-boardwalk.jpg\"}"
+        },
+        "max_tokens": {
+          "name": "Max Tokens",
+          "description": "Het maximale aantal tokens",
+          "example": "300"
+        }
+      }
+    }
+  }
 }

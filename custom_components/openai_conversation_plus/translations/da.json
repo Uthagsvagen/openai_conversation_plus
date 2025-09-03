@@ -1,79 +1,77 @@
 {
-    "config": {
-        "error": {
-            "cannot_connect": "Kunne ikke forbinde",
-            "invalid_auth": "Ugyldig godkendelse",
-            "unknown": "Uventet fejl"
-        },
-        "step": {
-            "user": {
-                "data": {
-                    "name": "Navn",
-                    "api_key": "API-nøgle",
-                    "base_url": "Base-URL",
-                    "api_version": "API-version",
-                    "organization": "Organisation",
-                    "skip_authentication": "Spring over godkendelse"
-                }
-            }
-        }
+  "config": {
+    "error": {
+      "cannot_connect": "Kunne ikke forbinde",
+      "invalid_auth": "Ugyldig godkendelse",
+      "unknown": "Uventet fejl"
     },
-    "options": {
-        "step": {
-            "init": {
-                "data": {
-                    "max_tokens": "Maksimalt antal tokens at returnere i svar",
-                    "model": "Fuldførelse model",
-                    "prompt": "Prompt-skabelon",
-                    "temperature": "Temperatur",
-                    "top_p": "Top P",
-                    "max_function_calls_per_conversation": "Maksimalt antal funktionskald per samtale",
-                    "functions": "Funktioner",
-                    "attach_username": "Vedhæft brugernavn til besked",
-                    "use_tools": "Brug værktøjer",
-                    "context_threshold": "Kontekst tærskel",
-                    "context_truncate_strategy": "Strategi til at afkorte kontekst når tærsklen overskrides",
-                    "enable_web_search": "Aktiver websøgning",
-                    "search_context_size": "Søgekontekst størrelse",
-                    "user_location": "Brugerplacering (for geo-bevidste søgninger)",
-                    "store_conversations": "Gem samtaler (server-side)",
-                    "reasoning_level": "Ræsonnement niveau (GPT-5)",
-                    "verbosity": "Svar verbositet",
-                    "enable_conversation_events": "Aktiver samtalehændelser (til fejlfinding)"
-                }
-            }
+    "step": {
+      "user": {
+        "data": {
+          "name": "Navn",
+          "api_key": "API-nøgle",
+          "base_url": "Base-URL",
+          "api_version": "API-version",
+          "organization": "Organisation",
+          "skip_authentication": "Spring over godkendelse"
         }
-    },
-    "services": {
-        "query_image": {
-            "name": "Spørg om billede",
-            "description": "Tag billeder ind og svar på spørgsmål om dem",
-            "fields": {
-                "config_entry": {
-                    "name": "Konfigurationspost",
-                    "description": "Konfigurationsposten at bruge for denne tjeneste"
-                },
-                "model": {
-                    "name": "Model",
-                    "description": "Modellen",
-                    "example": "gpt-4-vision-preview"
-                },
-                "prompt": {
-                    "name": "Prompt",
-                    "description": "Teksten at spørge om billedet",
-                    "example": "Hvad er i dette billede?"
-                },
-                "images": {
-                    "name": "Billeder",
-                    "description": "En liste med billeder der skal spørges om",
-                    "example": "{\"url\": \"https://upload.wikimedia.org/wikipedia/commons/thumb/d/dd/Gfp-wisconsin-madison-the-nature-boardwalk.jpg/2560px-Gfp-wisconsin-madison-the-nature-boardwalk.jpg\"}"
-                },
-                "max_tokens": {
-                    "name": "Maks tokens",
-                    "description": "Det maksimale antal tokens",
-                    "example": "300"
-                }
-            }
-        }
+      }
     }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "data": {
+          "max_tokens": "Maksimalt antal tokens at returnere i svar",
+          "model": "Fuldførelse model",
+          "prompt": "Prompt-skabelon",
+          "temperature": "Temperatur",
+          "top_p": "Top P",
+          "max_function_calls_per_conversation": "Maksimalt antal funktionskald per samtale",
+          "functions": "Funktioner",
+          "attach_username": "Vedhæft brugernavn til besked",
+          "use_tools": "Brug værktøjer",
+          "enable_web_search": "Aktiver websøgning",
+          "search_context_size": "Søgekontekst størrelse",
+          "user_location": "Brugerplacering (for geo-bevidste søgninger)",
+          "store_conversations": "Gem samtaler (server-side)",
+          "reasoning_level": "Ræsonnement niveau (GPT-5)",
+          "verbosity": "Svar verbositet",
+          "enable_conversation_events": "Aktiver samtalehændelser (til fejlfinding)"
+        }
+      }
+    }
+  },
+  "services": {
+    "query_image": {
+      "name": "Spørg om billede",
+      "description": "Tag billeder ind og svar på spørgsmål om dem",
+      "fields": {
+        "config_entry": {
+          "name": "Konfigurationspost",
+          "description": "Konfigurationsposten at bruge for denne tjeneste"
+        },
+        "model": {
+          "name": "Model",
+          "description": "Modellen",
+          "example": "gpt-4-vision-preview"
+        },
+        "prompt": {
+          "name": "Prompt",
+          "description": "Teksten at spørge om billedet",
+          "example": "Hvad er i dette billede?"
+        },
+        "images": {
+          "name": "Billeder",
+          "description": "En liste med billeder der skal spørges om",
+          "example": "{\"url\": \"https://upload.wikimedia.org/wikipedia/commons/thumb/d/dd/Gfp-wisconsin-madison-the-nature-boardwalk.jpg/2560px-Gfp-wisconsin-madison-the-nature-boardwalk.jpg\"}"
+        },
+        "max_tokens": {
+          "name": "Maks tokens",
+          "description": "Det maksimale antal tokens",
+          "example": "300"
+        }
+      }
+    }
+  }
 }

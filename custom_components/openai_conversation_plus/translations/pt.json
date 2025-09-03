@@ -1,79 +1,77 @@
 {
-    "config": {
-        "error": {
-            "cannot_connect": "Não foi possível conectar",
-            "invalid_auth": "Autenticação inválida",
-            "unknown": "Erro inesperado"
-        },
-        "step": {
-            "user": {
-                "data": {
-                    "name": "Nome",
-                    "api_key": "Chave da API",
-                    "base_url": "URL base",
-                    "api_version": "Versão da API",
-                    "organization": "Organização",
-                    "skip_authentication": "Pular autenticação"
-                }
-            }
-        }
+  "config": {
+    "error": {
+      "cannot_connect": "Não foi possível conectar",
+      "invalid_auth": "Autenticação inválida",
+      "unknown": "Erro inesperado"
     },
-    "options": {
-        "step": {
-            "init": {
-                "data": {
-                    "max_tokens": "Número máximo de tokens a retornar na resposta",
-                    "model": "Modelo de conclusão",
-                    "prompt": "Modelo de prompt",
-                    "temperature": "Temperatura",
-                    "top_p": "Top P",
-                    "max_function_calls_per_conversation": "Número máximo de chamadas de função por conversa",
-                    "functions": "Funções",
-                    "attach_username": "Anexar nome de usuário à mensagem",
-                    "use_tools": "Usar ferramentas",
-                    "context_threshold": "Limite de contexto",
-                    "context_truncate_strategy": "Estratégia de truncamento de contexto quando o limite é excedido",
-                    "enable_web_search": "Habilitar pesquisa na web",
-                    "search_context_size": "Tamanho do contexto de pesquisa",
-                    "user_location": "Localização do usuário (para pesquisas geo-conscientes)",
-                    "store_conversations": "Armazenar conversas (lado do servidor)",
-                    "reasoning_level": "Nível de raciocínio (GPT-5)",
-                    "verbosity": "Verbosidade da resposta",
-                    "enable_conversation_events": "Habilitar eventos de conversa (para depuração)"
-                }
-            }
+    "step": {
+      "user": {
+        "data": {
+          "name": "Nome",
+          "api_key": "Chave da API",
+          "base_url": "URL base",
+          "api_version": "Versão da API",
+          "organization": "Organização",
+          "skip_authentication": "Pular autenticação"
         }
-    },
-    "services": {
-        "query_image": {
-            "name": "Consultar imagem",
-            "description": "Receber imagens e responder perguntas sobre elas",
-            "fields": {
-                "config_entry": {
-                    "name": "Entrada de configuração",
-                    "description": "A entrada de configuração a usar para este serviço"
-                },
-                "model": {
-                    "name": "Modelo",
-                    "description": "O modelo",
-                    "example": "gpt-4-vision-preview"
-                },
-                "prompt": {
-                    "name": "Prompt",
-                    "description": "O texto para perguntar sobre a imagem",
-                    "example": "O que há nesta imagem?"
-                },
-                "images": {
-                    "name": "Imagens",
-                    "description": "Uma lista de imagens sobre as quais será perguntado",
-                    "example": "{\"url\": \"https://upload.wikimedia.org/wikipedia/commons/thumb/d/dd/Gfp-wisconsin-madison-the-nature-boardwalk.jpg/2560px-Gfp-wisconsin-madison-the-nature-boardwalk.jpg\"}"
-                },
-                "max_tokens": {
-                    "name": "Tokens máximos",
-                    "description": "O número máximo de tokens",
-                    "example": "300"
-                }
-            }
-        }
+      }
     }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "data": {
+          "max_tokens": "Número máximo de tokens a retornar na resposta",
+          "model": "Modelo de conclusão",
+          "prompt": "Modelo de prompt",
+          "temperature": "Temperatura",
+          "top_p": "Top P",
+          "max_function_calls_per_conversation": "Número máximo de chamadas de função por conversa",
+          "functions": "Funções",
+          "attach_username": "Anexar nome de usuário à mensagem",
+          "use_tools": "Usar ferramentas",
+          "enable_web_search": "Habilitar pesquisa na web",
+          "search_context_size": "Tamanho do contexto de pesquisa",
+          "user_location": "Localização do usuário (para pesquisas geo-conscientes)",
+          "store_conversations": "Armazenar conversas (lado do servidor)",
+          "reasoning_level": "Nível de raciocínio (GPT-5)",
+          "verbosity": "Verbosidade da resposta",
+          "enable_conversation_events": "Habilitar eventos de conversa (para depuração)"
+        }
+      }
+    }
+  },
+  "services": {
+    "query_image": {
+      "name": "Consultar imagem",
+      "description": "Receber imagens e responder perguntas sobre elas",
+      "fields": {
+        "config_entry": {
+          "name": "Entrada de configuração",
+          "description": "A entrada de configuração a usar para este serviço"
+        },
+        "model": {
+          "name": "Modelo",
+          "description": "O modelo",
+          "example": "gpt-4-vision-preview"
+        },
+        "prompt": {
+          "name": "Prompt",
+          "description": "O texto para perguntar sobre a imagem",
+          "example": "O que há nesta imagem?"
+        },
+        "images": {
+          "name": "Imagens",
+          "description": "Uma lista de imagens sobre as quais será perguntado",
+          "example": "{\"url\": \"https://upload.wikimedia.org/wikipedia/commons/thumb/d/dd/Gfp-wisconsin-madison-the-nature-boardwalk.jpg/2560px-Gfp-wisconsin-madison-the-nature-boardwalk.jpg\"}"
+        },
+        "max_tokens": {
+          "name": "Tokens máximos",
+          "description": "O número máximo de tokens",
+          "example": "300"
+        }
+      }
+    }
+  }
 }

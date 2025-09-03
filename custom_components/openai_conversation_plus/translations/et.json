@@ -1,79 +1,77 @@
 {
-    "config": {
-        "error": {
-            "cannot_connect": "Ühendust ei õnnestunud luua",
-            "invalid_auth": "Vigane autentimine",
-            "unknown": "Ootamatu viga"
-        },
-        "step": {
-            "user": {
-                "data": {
-                    "name": "Nimi",
-                    "api_key": "API-võti",
-                    "base_url": "Baas-URL",
-                    "api_version": "API-versioon",
-                    "organization": "Organisatsioon",
-                    "skip_authentication": "Jäta autentimine vahele"
-                }
-            }
-        }
+  "config": {
+    "error": {
+      "cannot_connect": "Ühendust ei õnnestunud luua",
+      "invalid_auth": "Vigane autentimine",
+      "unknown": "Ootamatu viga"
     },
-    "options": {
-        "step": {
-            "init": {
-                "data": {
-                    "max_tokens": "Maksimaalne tokenite arv vastuses",
-                    "model": "Lõpetamise mudel",
-                    "prompt": "Prompt-mall",
-                    "temperature": "Temperatuur",
-                    "top_p": "Top P",
-                    "max_function_calls_per_conversation": "Maksimaalne funktsioonide väljakutsete arv vestluse kohta",
-                    "functions": "Funktsioonid",
-                    "attach_username": "Lisa kasutajanimi sõnumisse",
-                    "use_tools": "Kasuta tööriistu",
-                    "context_threshold": "Konteksti lävi",
-                    "context_truncate_strategy": "Konteksti kärpimise strateegia läve ületamisel",
-                    "enable_web_search": "Luba veebiotsing",
-                    "search_context_size": "Otsingu konteksti suurus",
-                    "user_location": "Kasutaja asukoht (geo-teadlike otsingute jaoks)",
-                    "store_conversations": "Salvesta vestlused (serveri poolel)",
-                    "reasoning_level": "Arutlemise tase (GPT-5)",
-                    "verbosity": "Vastuse üksikasjalikkus",
-                    "enable_conversation_events": "Luba vestlussündmused (veateate jaoks)"
-                }
-            }
+    "step": {
+      "user": {
+        "data": {
+          "name": "Nimi",
+          "api_key": "API-võti",
+          "base_url": "Baas-URL",
+          "api_version": "API-versioon",
+          "organization": "Organisatsioon",
+          "skip_authentication": "Jäta autentimine vahele"
         }
-    },
-    "services": {
-        "query_image": {
-            "name": "Küsi pildi kohta",
-            "description": "Võta vastu pilte ja vasta nende kohta esitatud küsimustele",
-            "fields": {
-                "config_entry": {
-                    "name": "Konfiguratsiooni kirje",
-                    "description": "Selle teenuse jaoks kasutatav konfiguratsiooni kirje"
-                },
-                "model": {
-                    "name": "Mudel",
-                    "description": "Mudel",
-                    "example": "gpt-4-vision-preview"
-                },
-                "prompt": {
-                    "name": "Prompt",
-                    "description": "Tekst pildi kohta küsimiseks",
-                    "example": "Mis on selles pildis?"
-                },
-                "images": {
-                    "name": "Pildid",
-                    "description": "Piltide loend, mille kohta küsitakse",
-                    "example": "{\"url\": \"https://upload.wikimedia.org/wikipedia/commons/thumb/d/dd/Gfp-wisconsin-madison-the-nature-boardwalk.jpg/2560px-Gfp-wisconsin-madison-the-nature-boardwalk.jpg\"}"
-                },
-                "max_tokens": {
-                    "name": "Maksimaalne tokenite arv",
-                    "description": "Maksimaalne tokenite arv",
-                    "example": "300"
-                }
-            }
-        }
+      }
     }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "data": {
+          "max_tokens": "Maksimaalne tokenite arv vastuses",
+          "model": "Lõpetamise mudel",
+          "prompt": "Prompt-mall",
+          "temperature": "Temperatuur",
+          "top_p": "Top P",
+          "max_function_calls_per_conversation": "Maksimaalne funktsioonide väljakutsete arv vestluse kohta",
+          "functions": "Funktsioonid",
+          "attach_username": "Lisa kasutajanimi sõnumisse",
+          "use_tools": "Kasuta tööriistu",
+          "enable_web_search": "Luba veebiotsing",
+          "search_context_size": "Otsingu konteksti suurus",
+          "user_location": "Kasutaja asukoht (geo-teadlike otsingute jaoks)",
+          "store_conversations": "Salvesta vestlused (serveri poolel)",
+          "reasoning_level": "Arutlemise tase (GPT-5)",
+          "verbosity": "Vastuse üksikasjalikkus",
+          "enable_conversation_events": "Luba vestlussündmused (veateate jaoks)"
+        }
+      }
+    }
+  },
+  "services": {
+    "query_image": {
+      "name": "Küsi pildi kohta",
+      "description": "Võta vastu pilte ja vasta nende kohta esitatud küsimustele",
+      "fields": {
+        "config_entry": {
+          "name": "Konfiguratsiooni kirje",
+          "description": "Selle teenuse jaoks kasutatav konfiguratsiooni kirje"
+        },
+        "model": {
+          "name": "Mudel",
+          "description": "Mudel",
+          "example": "gpt-4-vision-preview"
+        },
+        "prompt": {
+          "name": "Prompt",
+          "description": "Tekst pildi kohta küsimiseks",
+          "example": "Mis on selles pildis?"
+        },
+        "images": {
+          "name": "Pildid",
+          "description": "Piltide loend, mille kohta küsitakse",
+          "example": "{\"url\": \"https://upload.wikimedia.org/wikipedia/commons/thumb/d/dd/Gfp-wisconsin-madison-the-nature-boardwalk.jpg/2560px-Gfp-wisconsin-madison-the-nature-boardwalk.jpg\"}"
+        },
+        "max_tokens": {
+          "name": "Maksimaalne tokenite arv",
+          "description": "Maksimaalne tokenite arv",
+          "example": "300"
+        }
+      }
+    }
+  }
 }

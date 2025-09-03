@@ -1,79 +1,77 @@
 {
-    "config": {
-        "error": {
-            "cannot_connect": "Fehler beim Verbindungsaufbau",
-            "invalid_auth": "Authentifizierung fehlgeschlagen",
-            "unknown": "Unbekannter Fehler"
-        },
-        "step": {
-            "user": {
-                "data": {
-                    "name": "Name",
-                    "api_key": "API Key",
-                    "base_url": "Base Url",
-                    "api_version": "Api Version",
-                    "organization": "Organization",
-                    "skip_authentication": "Authentifizierung überspringen"
-                }
-            }
-        }
+  "config": {
+    "error": {
+      "cannot_connect": "Fehler beim Verbindungsaufbau",
+      "invalid_auth": "Authentifizierung fehlgeschlagen",
+      "unknown": "Unbekannter Fehler"
     },
-    "options": {
-        "step": {
-            "init": {
-                "data": {
-                    "max_tokens": "Maximale Anzahl an Tokens, die in einer Antwort zurückgegeben werden",
-                    "model": "Completion Model",
-                    "prompt": "Prompt Vorlage",
-                    "temperature": "Temperatur",
-                    "top_p": "Top P",
-                    "max_function_calls_per_conversation": "Maximale Anzahl an Funktionsaufrufen pro Konversation",
-                    "functions": "Funktionen",
-                    "attach_username": "Benutzernamen mitgeben",
-                    "use_tools": "Werkzeuge verwenden",
-                    "context_threshold": "Kontext-Schwellenwert",
-                    "context_truncate_strategy": "Kontext-Kürzungsstrategie bei Überschreitung des Schwellenwerts",
-                    "enable_web_search": "Web-Suche aktivieren",
-                    "search_context_size": "Suchkontext-Größe",
-                    "user_location": "Benutzerstandort (für geo-bewusste Suche)",
-                    "store_conversations": "Konversationen speichern (serverseitig)",
-                    "reasoning_level": "Argumentationsniveau (GPT-5)",
-                    "verbosity": "Antwort-Detaillierung",
-                    "enable_conversation_events": "Konversationsereignisse aktivieren (für Fehlerbehebung)"
-                }
-            }
+    "step": {
+      "user": {
+        "data": {
+          "name": "Name",
+          "api_key": "API Key",
+          "base_url": "Base Url",
+          "api_version": "Api Version",
+          "organization": "Organization",
+          "skip_authentication": "Authentifizierung überspringen"
         }
-    },
-    "services": {
-        "query_image": {
-            "name": "Bild abfragen",
-            "description": "Bilder aufnehmen und Fragen dazu beantworten",
-            "fields": {
-                "config_entry": {
-                    "name": "Konfigurationseintrag",
-                    "description": "Der Konfigurationseintrag für diesen Dienst"
-                },
-                "model": {
-                    "name": "Modell",
-                    "description": "Das Modell",
-                    "example": "gpt-4-vision-preview"
-                },
-                "prompt": {
-                    "name": "Prompt",
-                    "description": "Der Text, um nach dem Bild zu fragen",
-                    "example": "Was ist auf diesem Bild?"
-                },
-                "images": {
-                    "name": "Bilder",
-                    "description": "Eine Liste von Bildern, nach denen gefragt wird",
-                    "example": "{\"url\": \"https://upload.wikimedia.org/wikipedia/commons/thumb/d/dd/Gfp-wisconsin-madison-the-nature-boardwalk.jpg/2560px-Gfp-wisconsin-madison-the-nature-boardwalk.jpg\"}"
-                },
-                "max_tokens": {
-                    "name": "Max Tokens",
-                    "description": "Die maximale Anzahl von Tokens",
-                    "example": "300"
-                }
-            }
-        }
+      }
     }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "data": {
+          "max_tokens": "Maximale Anzahl an Tokens, die in einer Antwort zurückgegeben werden",
+          "model": "Completion Model",
+          "prompt": "Prompt Vorlage",
+          "temperature": "Temperatur",
+          "top_p": "Top P",
+          "max_function_calls_per_conversation": "Maximale Anzahl an Funktionsaufrufen pro Konversation",
+          "functions": "Funktionen",
+          "attach_username": "Benutzernamen mitgeben",
+          "use_tools": "Werkzeuge verwenden",
+          "enable_web_search": "Web-Suche aktivieren",
+          "search_context_size": "Suchkontext-Größe",
+          "user_location": "Benutzerstandort (für geo-bewusste Suche)",
+          "store_conversations": "Konversationen speichern (serverseitig)",
+          "reasoning_level": "Argumentationsniveau (GPT-5)",
+          "verbosity": "Antwort-Detaillierung",
+          "enable_conversation_events": "Konversationsereignisse aktivieren (für Fehlerbehebung)"
+        }
+      }
+    }
+  },
+  "services": {
+    "query_image": {
+      "name": "Bild abfragen",
+      "description": "Bilder aufnehmen und Fragen dazu beantworten",
+      "fields": {
+        "config_entry": {
+          "name": "Konfigurationseintrag",
+          "description": "Der Konfigurationseintrag für diesen Dienst"
+        },
+        "model": {
+          "name": "Modell",
+          "description": "Das Modell",
+          "example": "gpt-4-vision-preview"
+        },
+        "prompt": {
+          "name": "Prompt",
+          "description": "Der Text, um nach dem Bild zu fragen",
+          "example": "Was ist auf diesem Bild?"
+        },
+        "images": {
+          "name": "Bilder",
+          "description": "Eine Liste von Bildern, nach denen gefragt wird",
+          "example": "{\"url\": \"https://upload.wikimedia.org/wikipedia/commons/thumb/d/dd/Gfp-wisconsin-madison-the-nature-boardwalk.jpg/2560px-Gfp-wisconsin-madison-the-nature-boardwalk.jpg\"}"
+        },
+        "max_tokens": {
+          "name": "Max Tokens",
+          "description": "Die maximale Anzahl von Tokens",
+          "example": "300"
+        }
+      }
+    }
+  }
 }

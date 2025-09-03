@@ -1,79 +1,77 @@
 {
-    "config": {
-        "error": {
-            "cannot_connect": "无法连接",
-            "invalid_auth": "身份验证无效",
-            "unknown": "意外错误"
-        },
-        "step": {
-            "user": {
-                "data": {
-                    "name": "名称",
-                    "api_key": "API密钥",
-                    "base_url": "基础URL",
-                    "api_version": "API版本",
-                    "organization": "组织",
-                    "skip_authentication": "跳过身份验证"
-                }
-            }
-        }
+  "config": {
+    "error": {
+      "cannot_connect": "无法连接",
+      "invalid_auth": "身份验证无效",
+      "unknown": "意外错误"
     },
-    "options": {
-        "step": {
-            "init": {
-                "data": {
-                    "max_tokens": "响应中返回的最大令牌数",
-                    "model": "完成模型",
-                    "prompt": "提示模板",
-                    "temperature": "温度",
-                    "top_p": "Top P",
-                    "max_function_calls_per_conversation": "每次对话的最大函数调用数",
-                    "functions": "函数",
-                    "attach_username": "将用户名附加到消息",
-                    "use_tools": "使用工具",
-                    "context_threshold": "上下文阈值",
-                    "context_truncate_strategy": "超过阈值时的上下文截断策略",
-                    "enable_web_search": "启用网络搜索",
-                    "search_context_size": "搜索上下文大小",
-                    "user_location": "用户位置（用于地理感知搜索）",
-                    "store_conversations": "存储对话（服务器端）",
-                    "reasoning_level": "推理级别（GPT-5）",
-                    "verbosity": "响应详细程度",
-                    "enable_conversation_events": "启用对话事件（用于调试）"
-                }
-            }
+    "step": {
+      "user": {
+        "data": {
+          "name": "名称",
+          "api_key": "API密钥",
+          "base_url": "基础URL",
+          "api_version": "API版本",
+          "organization": "组织",
+          "skip_authentication": "跳过身份验证"
         }
-    },
-    "services": {
-        "query_image": {
-            "name": "查询图像",
-            "description": "接收图像并回答有关它们的问题",
-            "fields": {
-                "config_entry": {
-                    "name": "配置条目",
-                    "description": "用于此服务的配置条目"
-                },
-                "model": {
-                    "name": "模型",
-                    "description": "模型",
-                    "example": "gpt-4-vision-preview"
-                },
-                "prompt": {
-                    "name": "提示",
-                    "description": "询问图像问题的文本",
-                    "example": "这张图片里有什么？"
-                },
-                "images": {
-                    "name": "图像",
-                    "description": "要询问的图像列表",
-                    "example": "{\"url\": \"https://upload.wikimedia.org/wikipedia/commons/thumb/d/dd/Gfp-wisconsin-madison-the-nature-boardwalk.jpg/2560px-Gfp-wisconsin-madison-the-nature-boardwalk.jpg\"}"
-                },
-                "max_tokens": {
-                    "name": "最大令牌数",
-                    "description": "最大令牌数",
-                    "example": "300"
-                }
-            }
-        }
+      }
     }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "data": {
+          "max_tokens": "响应中返回的最大令牌数",
+          "model": "完成模型",
+          "prompt": "提示模板",
+          "temperature": "温度",
+          "top_p": "Top P",
+          "max_function_calls_per_conversation": "每次对话的最大函数调用数",
+          "functions": "函数",
+          "attach_username": "将用户名附加到消息",
+          "use_tools": "使用工具",
+          "enable_web_search": "启用网络搜索",
+          "search_context_size": "搜索上下文大小",
+          "user_location": "用户位置（用于地理感知搜索）",
+          "store_conversations": "存储对话（服务器端）",
+          "reasoning_level": "推理级别（GPT-5）",
+          "verbosity": "响应详细程度",
+          "enable_conversation_events": "启用对话事件（用于调试）"
+        }
+      }
+    }
+  },
+  "services": {
+    "query_image": {
+      "name": "查询图像",
+      "description": "接收图像并回答有关它们的问题",
+      "fields": {
+        "config_entry": {
+          "name": "配置条目",
+          "description": "用于此服务的配置条目"
+        },
+        "model": {
+          "name": "模型",
+          "description": "模型",
+          "example": "gpt-4-vision-preview"
+        },
+        "prompt": {
+          "name": "提示",
+          "description": "询问图像问题的文本",
+          "example": "这张图片里有什么？"
+        },
+        "images": {
+          "name": "图像",
+          "description": "要询问的图像列表",
+          "example": "{\"url\": \"https://upload.wikimedia.org/wikipedia/commons/thumb/d/dd/Gfp-wisconsin-madison-the-nature-boardwalk.jpg/2560px-Gfp-wisconsin-madison-the-nature-boardwalk.jpg\"}"
+        },
+        "max_tokens": {
+          "name": "最大令牌数",
+          "description": "最大令牌数",
+          "example": "300"
+        }
+      }
+    }
+  }
 }

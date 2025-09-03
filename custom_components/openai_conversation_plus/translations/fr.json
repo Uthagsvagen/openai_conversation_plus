@@ -1,79 +1,77 @@
 {
-    "config": {
-        "error": {
-            "cannot_connect": "Échec de la connexion",
-            "invalid_auth": "Authentification invalide",
-            "unknown": "Erreur inconnue"
-        },
-        "step": {
-            "user": {
-                "data": {
-                    "name": "Nom",
-                    "api_key": "Clé d'API",
-                    "base_url": "Base de l'URL",
-                    "api_version": "Version de l'API",
-                    "organization": "Organisation",
-                    "skip_authentication": "Ignorer l'authentification"
-                }
-            }
-        }
+  "config": {
+    "error": {
+      "cannot_connect": "Échec de la connexion",
+      "invalid_auth": "Authentification invalide",
+      "unknown": "Erreur inconnue"
     },
-    "options": {
-        "step": {
-            "init": {
-                "data": {
-                    "max_tokens": "Nombre maximum de jetons à retourner dans la réponse",
-                    "model": "Modèle de complétion",
-                    "prompt": "Modèle de prompt",
-                    "temperature": "Température",
-                    "top_p": "Top P",
-                    "max_function_calls_per_conversation": "Nombre maximal d'appels de fonction par conversation",
-                    "functions": "Fonctions",
-                    "attach_username": "Joindre le nom d'utilisateur au message",
-                    "use_tools": "Utiliser les outils",
-                    "context_threshold": "Seuil de contexte",
-                    "context_truncate_strategy": "Stratégie de troncature du contexte lors du dépassement du seuil",
-                    "enable_web_search": "Activer la recherche web",
-                    "search_context_size": "Taille du contexte de recherche",
-                    "user_location": "Localisation de l'utilisateur (pour les recherches géo-conscientes)",
-                    "store_conversations": "Stocker les conversations (côté serveur)",
-                    "reasoning_level": "Niveau de raisonnement (GPT-5)",
-                    "verbosity": "Verbosité de la réponse",
-                    "enable_conversation_events": "Activer les événements de conversation (pour le débogage)"
-                }
-            }
+    "step": {
+      "user": {
+        "data": {
+          "name": "Nom",
+          "api_key": "Clé d'API",
+          "base_url": "Base de l'URL",
+          "api_version": "Version de l'API",
+          "organization": "Organisation",
+          "skip_authentication": "Ignorer l'authentification"
         }
-    },
-    "services": {
-        "query_image": {
-            "name": "Interroger l'image",
-            "description": "Recevoir des images et répondre aux questions les concernant",
-            "fields": {
-                "config_entry": {
-                    "name": "Entrée de configuration",
-                    "description": "L'entrée de configuration à utiliser pour ce service"
-                },
-                "model": {
-                    "name": "Modèle",
-                    "description": "Le modèle",
-                    "example": "gpt-4-vision-preview"
-                },
-                "prompt": {
-                    "name": "Prompt",
-                    "description": "Le texte pour poser une question sur l'image",
-                    "example": "Qu'y a-t-il dans cette image ?"
-                },
-                "images": {
-                    "name": "Images",
-                    "description": "Une liste d'images sur lesquelles poser des questions",
-                    "example": "{\"url\": \"https://upload.wikimedia.org/wikipedia/commons/thumb/d/dd/Gfp-wisconsin-madison-the-nature-boardwalk.jpg/2560px-Gfp-wisconsin-madison-the-nature-boardwalk.jpg\"}"
-                },
-                "max_tokens": {
-                    "name": "Jetons maximum",
-                    "description": "Le nombre maximum de jetons",
-                    "example": "300"
-                }
-            }
-        }
+      }
     }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "data": {
+          "max_tokens": "Nombre maximum de jetons à retourner dans la réponse",
+          "model": "Modèle de complétion",
+          "prompt": "Modèle de prompt",
+          "temperature": "Température",
+          "top_p": "Top P",
+          "max_function_calls_per_conversation": "Nombre maximal d'appels de fonction par conversation",
+          "functions": "Fonctions",
+          "attach_username": "Joindre le nom d'utilisateur au message",
+          "use_tools": "Utiliser les outils",
+          "enable_web_search": "Activer la recherche web",
+          "search_context_size": "Taille du contexte de recherche",
+          "user_location": "Localisation de l'utilisateur (pour les recherches géo-conscientes)",
+          "store_conversations": "Stocker les conversations (côté serveur)",
+          "reasoning_level": "Niveau de raisonnement (GPT-5)",
+          "verbosity": "Verbosité de la réponse",
+          "enable_conversation_events": "Activer les événements de conversation (pour le débogage)"
+        }
+      }
+    }
+  },
+  "services": {
+    "query_image": {
+      "name": "Interroger l'image",
+      "description": "Recevoir des images et répondre aux questions les concernant",
+      "fields": {
+        "config_entry": {
+          "name": "Entrée de configuration",
+          "description": "L'entrée de configuration à utiliser pour ce service"
+        },
+        "model": {
+          "name": "Modèle",
+          "description": "Le modèle",
+          "example": "gpt-4-vision-preview"
+        },
+        "prompt": {
+          "name": "Prompt",
+          "description": "Le texte pour poser une question sur l'image",
+          "example": "Qu'y a-t-il dans cette image ?"
+        },
+        "images": {
+          "name": "Images",
+          "description": "Une liste d'images sur lesquelles poser des questions",
+          "example": "{\"url\": \"https://upload.wikimedia.org/wikipedia/commons/thumb/d/dd/Gfp-wisconsin-madison-the-nature-boardwalk.jpg/2560px-Gfp-wisconsin-madison-the-nature-boardwalk.jpg\"}"
+        },
+        "max_tokens": {
+          "name": "Jetons maximum",
+          "description": "Le nombre maximum de jetons",
+          "example": "300"
+        }
+      }
+    }
+  }
 }
