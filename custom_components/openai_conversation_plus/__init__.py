@@ -744,6 +744,46 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
                 pass
 
         message = SimpleNamespace(role="assistant", content=text or "")
+        
+        # Check if the response looks like raw JSON (function result)
+        # This can happen when the API returns function results directly
+        if text and text.strip().startswith('{') and text.strip().endswith('}'):
+            try:
+                # Try to parse as JSON to confirm it's a function result
+                parsed_json = json.loads(text)
+                # Check if it looks like a function execution result
+                if isinstance(parsed_json, dict) and any(
+                    key in parsed_json for key in ["execute_services", "execute_service", "result", "status"]
+                ):
+                    _LOGGER.warning(
+                        "[v%s] Detected function result as response, requesting natural language summary",
+                        INTEGRATION_VERSION
+                    )
+                    # Check we haven't exceeded max function calls to prevent infinite loops
+                    max_calls = self.entry.options.get(
+                        CONF_MAX_FUNCTION_CALLS_PER_CONVERSATION,
+                        DEFAULT_MAX_FUNCTION_CALLS_PER_CONVERSATION,
+                    )
+                    if n_requests < max_calls + 1:  # Allow one extra call for natural response
+                        # Add a system message to force natural language response
+                        messages.append({
+                            "role": "system", 
+                            "content": "The function was executed successfully. Please provide a brief natural language confirmation of what was done, not the raw JSON result."
+                        })
+                        # Make another API call to get a proper response
+                        return await self.query(user_input, messages, exposed_entities, n_requests + 1)
+                    else:
+                        # Fallback: Convert JSON to simple text response
+                        _LOGGER.debug("[v%s] Max requests reached, converting JSON to text", INTEGRATION_VERSION)
+                        if "execute_services" in parsed_json or "execute_service" in parsed_json:
+                            text = "I've executed the requested action."
+                        else:
+                            text = "Action completed successfully."
+                        message.content = text
+            except (json.JSONDecodeError, Exception) as e:
+                # Not JSON or error parsing, proceed normally
+                _LOGGER.debug("[v%s] Not a JSON function result: %s", INTEGRATION_VERSION, e)
+                pass
 
         # Store last response id for this conversation without mutating ConversationInput
         try:
