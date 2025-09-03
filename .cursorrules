@@ -76,7 +76,6 @@ This is a Home Assistant custom component for OpenAI Conversation Plus integrati
 ### AI Agent Files
 - AI agent configuration files in `docs/` should not be pushed to main branch
 - Keep development and production code separate
-- Use feature branches for AI agent development
 - Main branch should only contain clean Home Assistant integration code
 
 ### Testing
@@ -106,9 +105,8 @@ This is a Home Assistant custom component for OpenAI Conversation Plus integrati
 
 ## Security
 - Never commit API keys or secrets
-- Use environment variables for sensitive data
-- Implement proper authentication and authorization
-- Follow security best practices for AI integrations
+- Use homeassistant configuration values for api-keys, passwords etc
+- Follow security best practices for homeassistant integrations
 
 ## Performance
 - Optimize for Home Assistant performance
@@ -120,5 +118,5 @@ This is a Home Assistant custom component for OpenAI Conversation Plus integrati
 - Provide clear error messages
 - Implement user-friendly configuration
 - Support multiple languages where possible
-- Maintain backward compatibility
 - Provide helpful documentation and examples
+- Log relevant information to homeassistant core logs.
