@@ -40,6 +40,7 @@ from .const import (
     CONF_FUNCTIONS,
     CONF_MAX_FUNCTION_CALLS_PER_CONVERSATION,
     CONF_MAX_TOKENS,
+    CONF_MCP_SERVERS,
     CONF_ORGANIZATION,
     CONF_PROMPT,
     CONF_REASONING_LEVEL,
@@ -59,6 +60,7 @@ from .const import (
     DEFAULT_ENABLE_WEB_SEARCH,
     DEFAULT_MAX_FUNCTION_CALLS_PER_CONVERSATION,
     DEFAULT_MAX_TOKENS,
+    DEFAULT_MCP_SERVERS,
     DEFAULT_NAME,
     DEFAULT_PROMPT,
     DEFAULT_REASONING_LEVEL,
@@ -90,6 +92,7 @@ DEFAULT_OPTIONS = types.MappingProxyType(
         CONF_TOP_P: DEFAULT_TOP_P,
         CONF_TEMPERATURE: DEFAULT_TEMPERATURE,
         CONF_FUNCTIONS: DEFAULT_CONF_FUNCTIONS_STR,
+        CONF_MCP_SERVERS: DEFAULT_MCP_SERVERS,
         CONF_ATTACH_USERNAME: DEFAULT_ATTACH_USERNAME,
         CONF_USE_TOOLS: DEFAULT_USE_TOOLS,
         # Truncation options removed
@@ -347,6 +350,11 @@ class OptionsFlow(config_entries.OptionsFlow):
             CONF_FUNCTIONS,
             description={"suggested_value": options.get(CONF_FUNCTIONS, DEFAULT_CONF_FUNCTIONS_STR)},
             default=DEFAULT_CONF_FUNCTIONS_STR,
+        )] = TemplateSelector()
+        schema[vol.Optional(
+            CONF_MCP_SERVERS,
+            description={"suggested_value": options.get(CONF_MCP_SERVERS, DEFAULT_MCP_SERVERS)},
+            default=DEFAULT_MCP_SERVERS,
         )] = TemplateSelector()
         schema[vol.Optional(
             CONF_PROMPT,

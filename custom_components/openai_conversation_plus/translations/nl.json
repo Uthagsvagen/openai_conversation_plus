@@ -29,6 +29,7 @@
           "top_p": "Top P",
           "max_function_calls_per_conversation": "Maximale keren functies mogen worden aangeroepen per conversatie",
           "functions": "Functies",
+          "mcp_servers": "MCP Servers",
           "attach_username": "Gebruikersnaam aan bericht toevoegen",
           "use_tools": "Gebruik hulpmiddelen",
           "enable_web_search": "Webzoekopdracht inschakelen",

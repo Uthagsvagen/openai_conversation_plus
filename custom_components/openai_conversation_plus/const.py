@@ -185,5 +185,9 @@ VERBOSITY_COMPAT_MAP: Dict[str, str] = {
 CONF_ENABLE_CONVERSATION_EVENTS = "enable_conversation_events"
 DEFAULT_ENABLE_CONVERSATION_EVENTS = False
 
+# MCP Server Configuration
+CONF_MCP_SERVERS = "mcp_servers"
+DEFAULT_MCP_SERVERS = ""
+
 # hass.data key for agent, used by tests
 DATA_AGENT = "agent"

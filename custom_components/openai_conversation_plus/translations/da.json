@@ -29,6 +29,7 @@
           "top_p": "Top P",
           "max_function_calls_per_conversation": "Maksimalt antal funktionskald per samtale",
           "functions": "Funktioner",
+          "mcp_servers": "MCP Servers",
           "attach_username": "Vedhæft brugernavn til besked",
           "use_tools": "Brug værktøjer",
           "enable_web_search": "Aktiver websøgning",

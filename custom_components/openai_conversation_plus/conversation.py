@@ -81,6 +81,14 @@ class OpenAIConversationEntity(
                         "parameters": getattr(t, "parameters", {}),
                     }
                 )
+        
+        # Add MCP servers as tools
+        from . import build_mcp_tools_from_options
+        mcp_tools = build_mcp_tools_from_options(opts)
+        if mcp_tools:
+            if tools is None:
+                tools = []
+            tools.extend(mcp_tools)
 
         # Build Responses API input from chat log
         msgs: list[dict[str, Any]] = []

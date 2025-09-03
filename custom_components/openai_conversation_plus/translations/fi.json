@@ -29,6 +29,7 @@
           "top_p": "Top P",
           "max_function_calls_per_conversation": "Maksimimäärä funktiokutsuja keskustelua kohden",
           "functions": "Funktiot",
+          "mcp_servers": "MCP Servers",
           "attach_username": "Liitä käyttäjänimi viestiin",
           "use_tools": "Käytä työkaluja",
           "enable_web_search": "Ota käyttöön web-haku",

@@ -43,6 +43,7 @@ from .const import (
     CONF_FUNCTIONS,
     CONF_MAX_FUNCTION_CALLS_PER_CONVERSATION,
     CONF_MAX_TOKENS,
+    CONF_MCP_SERVERS,
     CONF_ORGANIZATION,
     CONF_PROMPT,
     CONF_REASONING_LEVEL,
@@ -199,6 +200,50 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             pass
         conversation.async_unset_agent(hass, entry)
     return unload_ok
+
+
+def _normalize_mcp_items(data):
+    """Normalize MCP configuration data into a consistent format."""
+    if isinstance(data, dict) and "mcpServers" in data:
+        items = []
+        for label, cfg in data["mcpServers"].items():
+            url = None
+            key = None
+            if isinstance(cfg, dict):
+                url = cfg.get("server_url") or cfg.get("url")
+                if not url and isinstance(cfg.get("args"), list) and cfg["args"]:
+                    url = cfg["args"][0]
+                key = cfg.get("server_api_key") or cfg.get("api_key") or cfg.get("env", {}).get("API_ACCESS_TOKEN")
+            items.append({"server_label": label, "server_url": url, "server_api_key": key})
+        return items
+    if isinstance(data, list):
+        return [
+            {
+                "server_label": it.get("server_label") or it.get("label"),
+                "server_url": it.get("server_url") or it.get("url"),
+                "server_api_key": it.get("server_api_key") or it.get("api_key"),
+            }
+            for it in data if isinstance(it, dict)
+        ]
+    return []
+
+
+def build_mcp_tools_from_options(options):
+    """Build MCP tools from integration options."""
+    raw = options.get(CONF_MCP_SERVERS) or ""
+    try:
+        data = yaml.safe_load(raw) if raw.strip() else None
+    except Exception:
+        return []
+    items = _normalize_mcp_items(data) if data else []
+    tools = []
+    for it in items:
+        if it.get("server_label") and it.get("server_url"):
+            tool = {"type": "mcp", "server_label": it["server_label"], "server_url": it["server_url"]}
+            if it.get("server_api_key"):
+                tool["server_api_key"] = it["server_api_key"]
+            tools.append(tool)
+    return tools
 
 
 class OpenAIAgent(conversation.AbstractConversationAgent):
@@ -527,6 +572,14 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
                 }
             api_tools.append(web_search_tool)
 
+        # Add MCP servers as tools
+        mcp_tools = build_mcp_tools_from_options(self.entry.options)
+        if mcp_tools:
+            api_tools.extend(mcp_tools)
+            _LOGGER.debug(
+                "[v%s] Added %d MCP tools", INTEGRATION_VERSION, len(mcp_tools)
+            )
+
         previous_response_id = None
         try:
             conversation_id_for_previous = getattr(user_input, "conversation_id", None)
@@ -572,6 +625,16 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
                 elif tool_type == "web_search":
                     # Keep as-is; supported by Responses API
                     validated_tools.append(tool)
+                elif tool_type == "mcp":
+                    # MCP tool must have server_label and server_url
+                    if tool.get("server_label") and tool.get("server_url"):
+                        validated_tools.append(tool)
+                    else:
+                        _LOGGER.warning(
+                            "[v%s] Skipping MCP tool without required fields: %s",
+                            INTEGRATION_VERSION,
+                            tool,
+                        )
                 else:
                     _LOGGER.warning(
                         "[v%s] Unknown tool type: %s",

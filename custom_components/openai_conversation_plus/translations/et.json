@@ -29,6 +29,7 @@
           "top_p": "Top P",
           "max_function_calls_per_conversation": "Maksimaalne funktsioonide väljakutsete arv vestluse kohta",
           "functions": "Funktsioonid",
+          "mcp_servers": "MCP Servers",
           "attach_username": "Lisa kasutajanimi sõnumisse",
           "use_tools": "Kasuta tööriistu",
           "enable_web_search": "Luba veebiotsing",

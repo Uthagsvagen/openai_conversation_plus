@@ -29,6 +29,7 @@
           "top_p": "Top P",
           "max_function_calls_per_conversation": "Número máximo de chamadas de função por conversa",
           "functions": "Funções",
+          "mcp_servers": "MCP Servers",
           "attach_username": "Anexar nome de usuário à mensagem",
           "use_tools": "Usar ferramentas",
           "enable_web_search": "Habilitar pesquisa na web",

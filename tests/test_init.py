@@ -94,3 +94,80 @@ async def test_agent_initialization(
     assert agent.history == {}
     assert agent.client is not None
     assert agent.supported_languages == "*"
+
+
+def test_normalize_mcp_items():
+    """Test MCP configuration normalization."""
+    from custom_components.openai_conversation_plus import _normalize_mcp_items
+
+    # Test simple list format
+    data = [
+        {"server_label": "Test", "server_url": "https://test.com", "server_api_key": "key1"},
+        {"label": "Test2", "url": "https://test2.com", "api_key": "key2"},
+    ]
+    result = _normalize_mcp_items(data)
+    assert len(result) == 2
+    assert result[0]["server_label"] == "Test"
+    assert result[0]["server_url"] == "https://test.com"
+    assert result[0]["server_api_key"] == "key1"
+    assert result[1]["server_label"] == "Test2"
+    assert result[1]["server_url"] == "https://test2.com"
+    assert result[1]["server_api_key"] == "key2"
+
+    # Test mcpServers format
+    data = {
+        "mcpServers": {
+            "Test": {
+                "url": "https://test.com",
+                "api_key": "key1",
+            },
+            "Test2": {
+                "args": ["https://test2.com"],
+                "env": {"API_ACCESS_TOKEN": "key2"},
+            },
+        }
+    }
+    result = _normalize_mcp_items(data)
+    assert len(result) == 2
+    assert result[0]["server_label"] == "Test"
+    assert result[0]["server_url"] == "https://test.com"
+    assert result[0]["server_api_key"] == "key1"
+    assert result[1]["server_label"] == "Test2"
+    assert result[1]["server_url"] == "https://test2.com"
+    assert result[1]["server_api_key"] == "key2"
+
+
+def test_build_mcp_tools_from_options():
+    """Test building MCP tools from options."""
+    from custom_components.openai_conversation_plus import build_mcp_tools_from_options
+    from custom_components.openai_conversation_plus.const import CONF_MCP_SERVERS
+
+    # Test with valid YAML
+    options = {
+        CONF_MCP_SERVERS: """
+- server_label: "Test"
+  server_url: "https://test.com"
+  server_api_key: "key1"
+- server_label: "Test2"
+  server_url: "https://test2.com"
+"""
+    }
+    tools = build_mcp_tools_from_options(options)
+    assert len(tools) == 2
+    assert tools[0]["type"] == "mcp"
+    assert tools[0]["server_label"] == "Test"
+    assert tools[0]["server_url"] == "https://test.com"
+    assert tools[0]["server_api_key"] == "key1"
+    assert tools[1]["type"] == "mcp"
+    assert tools[1]["server_label"] == "Test2"
+    assert tools[1]["server_url"] == "https://test2.com"
+    assert "server_api_key" not in tools[1]
+
+    # Test with empty/invalid YAML
+    options = {CONF_MCP_SERVERS: ""}
+    tools = build_mcp_tools_from_options(options)
+    assert tools == []
+
+    options = {CONF_MCP_SERVERS: "invalid yaml {"}
+    tools = build_mcp_tools_from_options(options)
+    assert tools == []

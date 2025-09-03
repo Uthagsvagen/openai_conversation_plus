@@ -29,6 +29,7 @@
           "top_p": "Top P",
           "max_function_calls_per_conversation": "Maximalt antal funktionsanrop per konversation",
           "functions": "Funktioner",
+          "mcp_servers": "MCP Servers",
           "attach_username": "Bifoga användarnamn till meddelande",
           "use_tools": "Använd verktyg",
           "enable_web_search": "Aktivera webbsökning",

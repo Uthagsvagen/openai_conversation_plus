@@ -1,7 +1,7 @@
 # Cursor Rules for OpenAI Conversation Plus
 
 ## Project Overview
-This is a Home Assistant custom component for OpenAI Conversation Plus integration. The project provides AI-powered conversation capabilities within Home Assistant.
+This is a Home Assistant custom component for OpenAI Conversation Plus integration. The project provides AI-powered conversation capabilities within Home Assistant using OpenAI's Responses API exclusively (GPT-5 models only).
 
 ## Project Structure
 - `custom_component/openai_conversation_plus/` - Main Home Assistant integration code
@@ -24,12 +24,30 @@ This is a Home Assistant custom component for OpenAI Conversation Plus integrati
 - **Service Execution**: Execute Home Assistant services based on triggers
 - **Data Analysis**: Process sensor data and provide insights
 - **Proactive Actions**: Take actions before issues arise
+- **MCP Integration**: Connect to external tools and services via Model Context Protocol
+- **Streaming Responses**: Real-time conversation with streaming token display
+- **Web Search**: Built-in web search capability for fresh information
 
 ### Development Workflow
 - Develop agents in the `dev` branch
 - Test agents with sample data and scenarios
 - Document agent behavior and configuration
 - Use examples in `examples/` directory for testing
+
+## API Integration
+
+### OpenAI Responses API
+- **Exclusive Usage**: This integration uses OpenAI Responses API only
+- **No Chat Completions**: No fallback to chat.completions endpoint
+- **GPT-5 Support**: Full support for GPT-5 models with reasoning and verbosity controls
+- **Tool Types**: Supports function, web_search, and mcp tool types
+- **Streaming**: Native streaming support for responsive conversations
+
+### MCP (Model Context Protocol)
+- Configure MCP servers via YAML in integration options
+- Supports both simple list and mcpServers format
+- Allows connection to external services and tools
+- Properly validate server_label and server_url fields
 
 ## Code Standards
 

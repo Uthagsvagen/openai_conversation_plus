@@ -15,18 +15,19 @@ This project is a fork of OpenAI Conversation Plus. Big thanks to the original c
 
 ## Key Features
 
-- GPT‑5 family support (where available)
-- Streaming responses for a responsive UX
+- **GPT‑5 family support** (where available) - Uses OpenAI Responses API exclusively
+- **Streaming responses** for real-time conversational experience
+- **MCP (Model Context Protocol) servers** - Connect to external tools and services
 - Native web search integration (Response API powered)
 - Custom tool calls (functions) with Home Assistant service execution
 - AI Task support for structured data generation
-- Backward compatible with classic Chat Completions where needed
+- **Responses API only** - Optimized for the latest OpenAI capabilities (no fallback to Chat Completions)
 
 ## Requirements
 
 - Home Assistant 2025.8.1 or newer
 - Python 3.11+
-- OpenAI API key (or compatible endpoint)
+- OpenAI API key 
 - **OpenAI Python Library 1.101.0 or newer** (required)
 
 ## Installation
@@ -74,6 +75,43 @@ Typical options:
 - Conversation storage (persist conversation state server‑side)
 - Reasoning level and verbosity (for GPT‑5 variants)
 - Custom functions (YAML) and max function calls per conversation
+- MCP servers configuration (connect to external tools and services)
+
+## MCP (Model Context Protocol) Servers
+
+OpenAI Conversation Plus supports connecting to MCP servers, allowing your assistant to interact with external tools and services. MCP is OpenAI's protocol for tool connectivity.
+
+Configure MCP servers in the integration options using YAML format:
+
+### Simple List Format:
+```yaml
+- server_label: "Home Assistant"
+  server_url: "https://ha.domain.com/mcp_server/sse"
+  server_api_key: "your-api-key"
+- server_label: "Google Sheets"
+  server_url: "https://sheets.example.com/sse"
+  server_api_key: "another-key"
+```
+
+### Compatible with mcpServers Format:
+```yaml
+mcpServers:
+  Home Assistant:
+    command: mcp-proxy
+    args:
+      - https://ha.domain.com/mcp_server/sse
+    env:
+      API_ACCESS_TOKEN: your-api-key
+  Sheets:
+    url: https://sheets.example.com/sse
+    api_key: another-key
+```
+
+MCP servers allow your assistant to:
+- Access external databases and APIs
+- Control remote systems
+- Integrate with third-party services
+- Extend functionality beyond Home Assistant
 
 ## Functions (Custom Tool Calls)
 
@@ -116,12 +154,15 @@ functions:
 
 ## Streaming & Web Search
 
-- Streaming (Chat Completions): enables incremental tokens for faster perceived responses
-- Web Search (Response API): allows the model to fetch fresh information and include citations
+**Important:** This integration uses OpenAI's Responses API exclusively (no Chat Completions fallback). This means:
+- **Streaming**: Real-time token streaming for responsive conversations (Responses API native)
+- **GPT‑5 Models**: Full support for GPT‑5 family models with enhanced reasoning and verbosity controls
+- **Web Search**: Native web search capability for fetching fresh information with citations
 
-Configure both in the integration options. Web search supports:
-- Search context size (low/medium/high)
-- Optional user location for better local results
+Configure in the integration options:
+- Enable streaming for real-time responses (enabled by default)
+- Web search context size (low/medium/high)
+- Optional user location for geo-aware search results
 
 ## AI Tasks (Structured Data)
 
