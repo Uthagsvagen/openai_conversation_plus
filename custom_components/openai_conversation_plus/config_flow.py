@@ -51,7 +51,6 @@ from .const import (
     CONF_USE_TOOLS,
     CONF_USER_LOCATION,
     CONF_VERBOSITY,
-    CONTEXT_TRUNCATE_STRATEGIES,
     DEFAULT_ATTACH_USERNAME,
     DEFAULT_CHAT_MODEL,
     DEFAULT_CONF_BASE_URL,
@@ -72,7 +71,6 @@ from .const import (
     DEFAULT_USER_LOCATION,
     DEFAULT_VERBOSITY,
     DOMAIN,
-    GPT5_MODELS,
     INTEGRATION_VERSION,
 )
 from . import helpers
@@ -349,7 +347,7 @@ class OptionsFlow(config_entries.OptionsFlow):
             CONF_FUNCTIONS,
             description={"suggested_value": options.get(CONF_FUNCTIONS, DEFAULT_CONF_FUNCTIONS_STR)},
             default=DEFAULT_CONF_FUNCTIONS_STR,
-        )] = TextSelector(TextSelectorConfig(type=TextSelectorType.TEXT, multiline=True))
+        )] = TemplateSelector()
         schema[vol.Optional(
             CONF_PROMPT,
             description={"suggested_value": options.get(CONF_PROMPT, DEFAULT_PROMPT)},
