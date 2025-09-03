@@ -93,15 +93,18 @@ class OpenAIConversationEntity(
         # Build Responses API input from chat log
         msgs: list[dict[str, Any]] = []
         for c in chat_log.content:
-            role = "user" if getattr(c, "is_user", False) else "assistant"
+            is_user = getattr(c, "is_user", False)
+            role = "user" if is_user else "assistant"
             text = getattr(c, "content", "") or ""
+            # Use input_text for user messages, output_text for assistant messages
+            content_type = "input_text" if is_user else "output_text"
             msgs.append(
                 {
                     "type": "message",
                     "role": role,
                     "content": [
                         {
-                            "type": "input_text",
+                            "type": content_type,
                             "text": text,
                         }
                     ],
