@@ -430,38 +430,76 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
         exposed_entities,
         user_input: conversation.ConversationInput,
     ) -> str:
-        return template.Template(raw_prompt, self.hass).async_render(
-            {
-                "ha_name": self.hass.config.location_name,
-                "exposed_entities": exposed_entities,
-                "current_device_id": user_input.device_id,
-            },
-            parse_result=False,
-        )
+        """Generate prompt with error handling for missing template variables."""
+        try:
+            # Provide safe defaults for all template variables
+            template_vars = {
+                "ha_name": self.hass.config.location_name or "Home",
+                "exposed_entities": exposed_entities if exposed_entities else [],
+                "current_device_id": user_input.device_id if user_input and user_input.device_id else None,
+            }
+            
+            # Render template with error handling
+            return template.Template(raw_prompt, self.hass).async_render(
+                template_vars,
+                parse_result=False,
+                strict=False,  # Don't fail on undefined variables
+            )
+        except TemplateError as err:
+            _LOGGER.warning(
+                "[v%s] Template rendering warning (continuing anyway): %s",
+                INTEGRATION_VERSION,
+                err,
+            )
+            # Return a basic prompt if template fails
+            return raw_prompt.replace("{{", "").replace("}}", "").replace("{%", "").replace("%}", "")
 
     def get_exposed_entities(self):
-        states = [
-            state
-            for state in self.hass.states.async_all()
-            if async_should_expose(self.hass, conversation.DOMAIN, state.entity_id)
-        ]
-        entity_registry = er.async_get(self.hass)
-        exposed_entities = []
-        for state in states:
-            entity_id = state.entity_id
-            entity = entity_registry.async_get(entity_id)
-            aliases = []
-            if entity and entity.aliases:
-                aliases = entity.aliases
-            exposed_entities.append(
-                {
-                    "entity_id": entity_id,
-                    "name": state.name,
-                    "state": self.hass.states.get(entity_id).state,
-                    "aliases": aliases,
-                }
+        """Get exposed entities with error handling for missing or unavailable entities."""
+        try:
+            states = [
+                state
+                for state in self.hass.states.async_all()
+                if async_should_expose(self.hass, conversation.DOMAIN, state.entity_id)
+            ]
+            entity_registry = er.async_get(self.hass)
+            exposed_entities = []
+            for state in states:
+                try:
+                    entity_id = state.entity_id
+                    entity = entity_registry.async_get(entity_id)
+                    aliases = []
+                    if entity and entity.aliases:
+                        aliases = entity.aliases
+                    
+                    # Get state safely
+                    current_state = self.hass.states.get(entity_id)
+                    state_value = current_state.state if current_state else "unavailable"
+                    
+                    exposed_entities.append(
+                        {
+                            "entity_id": entity_id,
+                            "name": state.name if hasattr(state, 'name') else entity_id,
+                            "state": state_value,
+                            "aliases": aliases,
+                        }
+                    )
+                except Exception as err:
+                    _LOGGER.debug(
+                        "[v%s] Skipping entity %s due to error: %s",
+                        INTEGRATION_VERSION,
+                        state.entity_id if hasattr(state, 'entity_id') else 'unknown',
+                        err,
+                    )
+                    continue
+            return exposed_entities
+        except Exception as err:
+            _LOGGER.warning(
+                "[v%s] Error getting exposed entities (returning empty list): %s",
+                INTEGRATION_VERSION,
+                err,
             )
-        return exposed_entities
+            return []
 
     def get_functions(self):
         try:

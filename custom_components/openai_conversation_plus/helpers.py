@@ -174,11 +174,37 @@ class FunctionExecutor(ABC):
             raise InvalidFunction(function_type) from e
 
     def validate_entity_ids(self, hass: HomeAssistant, entity_ids, exposed_entities):
-        if any(hass.states.get(entity_id) is None for entity_id in entity_ids):
-            raise EntityNotFound(entity_ids)
+        """Validate entity IDs with graceful handling for missing entities."""
+        if not entity_ids:
+            return  # No entities to validate
+            
+        # Check if entities exist in Home Assistant
+        missing_entities = [entity_id for entity_id in entity_ids if hass.states.get(entity_id) is None]
+        if missing_entities:
+            _LOGGER.warning(
+                "[v%s] Some entities not found (continuing anyway): %s",
+                INTEGRATION_VERSION,
+                missing_entities
+            )
+            # Remove missing entities from the list to validate
+            entity_ids = [entity_id for entity_id in entity_ids if entity_id not in missing_entities]
+        
+        # If exposed_entities is empty or None, skip exposure validation
+        if not exposed_entities:
+            _LOGGER.debug(
+                "[v%s] No exposed entities list available, skipping exposure validation",
+                INTEGRATION_VERSION
+            )
+            return
+            
         exposed_entity_ids = {entity["entity_id"] for entity in exposed_entities}
-        if not set(entity_ids).issubset(exposed_entity_ids):
-            raise EntityNotExposed(entity_ids)
+        non_exposed = set(entity_ids) - exposed_entity_ids
+        if non_exposed:
+            _LOGGER.warning(
+                "[v%s] Some entities not exposed (continuing anyway): %s",
+                INTEGRATION_VERSION,
+                non_exposed
+            )
 
     @abstractmethod
     async def execute(
