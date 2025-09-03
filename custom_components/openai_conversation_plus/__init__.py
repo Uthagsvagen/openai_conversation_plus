@@ -568,16 +568,19 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
         if use_tools and functions:
             _LOGGER.debug("[v%s] Building tools from %d functions", INTEGRATION_VERSION, len(functions))
             for func in functions:
-                # Responses API expects top-level name/description/parameters
+                # Try the Chat Completions-style structure with nested function object
+                # This is the format that Chat Completions uses, and Responses API might expect the same
                 tool = {
                     "type": "function",
-                    "name": func.get("name"),
-                    "description": func.get("description", ""),
-                    "parameters": func.get(
-                        "parameters", {"type": "object", "properties": {}}
-                    ),
+                    "function": {
+                        "name": func.get("name"),
+                        "description": func.get("description", ""),
+                        "parameters": func.get(
+                            "parameters", {"type": "object", "properties": {}}
+                        ),
+                    }
                 }
-                _LOGGER.debug("[v%s] Built function tool: %s", INTEGRATION_VERSION, json.dumps(tool))
+                _LOGGER.debug("[v%s] Built function tool with nested structure: %s", INTEGRATION_VERSION, json.dumps(tool))
                 responses_function_tools.append(tool)
 
         reasoning_level = self.entry.options.get(
@@ -658,12 +661,24 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
             for tool in api_tools:
                 tool_type = tool.get("type")
                 if tool_type == "function":
-                    # Must have top-level name for Responses API
-                    if tool.get("name"):
+                    # Check for nested function structure (Chat Completions style)
+                    if "function" in tool and tool["function"].get("name"):
                         validated_tools.append(tool)
+                    # Also support flat structure for backward compatibility
+                    elif tool.get("name"):
+                        # Convert flat structure to nested for consistency
+                        nested_tool = {
+                            "type": "function",
+                            "function": {
+                                "name": tool.get("name"),
+                                "description": tool.get("description", ""),
+                                "parameters": tool.get("parameters", {"type": "object", "properties": {}})
+                            }
+                        }
+                        validated_tools.append(nested_tool)
                     else:
                         _LOGGER.warning(
-                            "[v%s] Skipping function tool without top-level name: %s",
+                            "[v%s] Skipping function tool without name: %s",
                             INTEGRATION_VERSION,
                             tool,
                         )
@@ -769,6 +784,7 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
                 matched_function = None
                 matched_function_name = None
                 
+                # Check if the JSON contains any of our function names as keys
                 for func_name in function_names:
                     if func_name in parsed_json:
                         matched_function_name = func_name

@@ -73,12 +73,15 @@ class OpenAIConversationEntity(
         if chat_log.llm_api:
             tools = []
             for t in chat_log.llm_api.tools:
+                # Use nested structure (Chat Completions style) which Responses API also accepts
                 tools.append(
                     {
                         "type": "function",
-                        "name": t.name,
-                        "description": getattr(t, "description", ""),
-                        "parameters": getattr(t, "parameters", {}),
+                        "function": {
+                            "name": t.name,
+                            "description": getattr(t, "description", ""),
+                            "parameters": getattr(t, "parameters", {}),
+                        }
                     }
                 )
         
