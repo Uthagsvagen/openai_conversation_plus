@@ -147,7 +147,7 @@ DEFAULT_CONF_FUNCTIONS = [
 CONF_ATTACH_USERNAME = "attach_username"
 DEFAULT_ATTACH_USERNAME = False
 CONF_USE_TOOLS = "use_tools"
-DEFAULT_USE_TOOLS = False
+DEFAULT_USE_TOOLS = True
 # Truncation-related constants removed; ChatLog is source of truth for history
 
 SERVICE_QUERY_IMAGE = "query_image"

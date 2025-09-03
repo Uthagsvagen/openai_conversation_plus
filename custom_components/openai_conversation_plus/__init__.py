@@ -566,11 +566,13 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
                 responses_function_tools.append(
                     {
                         "type": "function",
-                        "name": func.get("name"),
-                        "description": func.get("description", ""),
-                        "parameters": func.get(
-                            "parameters", {"type": "object", "properties": {}}
-                        ),
+                        "function": {
+                            "name": func.get("name"),
+                            "description": func.get("description", ""),
+                            "parameters": func.get(
+                                "parameters", {"type": "object", "properties": {}}
+                            ),
+                        },
                     }
                 )
 
@@ -651,12 +653,13 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
             for tool in api_tools:
                 tool_type = tool.get("type")
                 if tool_type == "function":
-                    # Must have top-level name for Responses API
-                    if tool.get("name"):
+                    # Must have nested function with name for Responses API
+                    fn = tool.get("function") or {}
+                    if isinstance(fn, dict) and fn.get("name"):
                         validated_tools.append(tool)
                     else:
                         _LOGGER.warning(
-                            "[v%s] Skipping function tool without top-level name: %s",
+                            "[v%s] Skipping function tool without required function.name: %s",
                             INTEGRATION_VERSION,
                             tool,
                         )
