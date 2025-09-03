@@ -76,9 +76,11 @@ class OpenAIConversationEntity(
                 tools.append(
                     {
                         "type": "function",
-                        "name": t.name,
-                        "description": getattr(t, "description", ""),
-                        "parameters": getattr(t, "parameters", {}),
+                        "function": {
+                            "name": t.name,
+                            "description": getattr(t, "description", ""),
+                            "parameters": getattr(t, "parameters", {}),
+                        },
                     }
                 )
         
