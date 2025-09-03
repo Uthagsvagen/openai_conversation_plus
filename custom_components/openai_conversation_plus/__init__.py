@@ -745,44 +745,95 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
 
         message = SimpleNamespace(role="assistant", content=text or "")
         
-        # Check if the response looks like raw JSON (function result)
-        # This can happen when the API returns function results directly
+        # Check if the response looks like a function call request in JSON format
+        # The Responses API sometimes returns function calls as JSON in output_text
         if text and text.strip().startswith('{') and text.strip().endswith('}'):
             try:
-                # Try to parse as JSON to confirm it's a function result
+                # Try to parse as JSON to confirm it's a function call
                 parsed_json = json.loads(text)
-                # Check if it looks like a function execution result
-                if isinstance(parsed_json, dict) and any(
-                    key in parsed_json for key in ["execute_services", "execute_service", "result", "status"]
-                ):
+                # Check if it looks like a function call request (not a result)
+                # Try to match against any of our known functions
+                functions = self.get_functions()
+                function_names = [f["spec"]["name"] for f in functions]
+                matched_function = None
+                matched_function_name = None
+                
+                for func_name in function_names:
+                    if func_name in parsed_json:
+                        matched_function_name = func_name
+                        matched_function = next(
+                            (f for f in functions if f["spec"]["name"] == func_name),
+                            None
+                        )
+                        break
+                
+                if matched_function:
                     _LOGGER.warning(
-                        "[v%s] Detected function result as response, requesting natural language summary",
-                        INTEGRATION_VERSION
+                        "[v%s] Detected %s function call in response, executing it",
+                        INTEGRATION_VERSION,
+                        matched_function_name
                     )
-                    # Check we haven't exceeded max function calls to prevent infinite loops
-                    max_calls = self.entry.options.get(
+                    
+                    if n_requests < self.entry.options.get(
                         CONF_MAX_FUNCTION_CALLS_PER_CONVERSATION,
                         DEFAULT_MAX_FUNCTION_CALLS_PER_CONVERSATION,
-                    )
-                    if n_requests < max_calls + 1:  # Allow one extra call for natural response
-                        # Add a system message to force natural language response
-                        messages.append({
-                            "role": "system", 
-                            "content": "The function was executed successfully. Please provide a brief natural language confirmation of what was done, not the raw JSON result."
-                        })
-                        # Make another API call to get a proper response
-                        return await self.query(user_input, messages, exposed_entities, n_requests + 1)
+                    ):
+                        # Execute the function
+                        from .helpers import get_function_executor
+                        function_executor = get_function_executor(matched_function["function"]["type"])
+                        try:
+                            # Extract the arguments for the function
+                            # The JSON should have the function name as a key with the arguments as value
+                            function_args = parsed_json.get(matched_function_name, parsed_json)
+                            
+                            result = await function_executor.execute(
+                                self.hass, 
+                                matched_function["function"], 
+                                function_args,  # The function arguments
+                                user_input, 
+                                exposed_entities
+                            )
+                            _LOGGER.info(
+                                "[v%s] Executed %s function from JSON response: %s",
+                                INTEGRATION_VERSION,
+                                matched_function_name,
+                                result
+                            )
+                            # Add function result to messages
+                            messages.append({
+                                "role": "function",
+                                "name": matched_function_name,
+                                "content": str(result)
+                            })
+                            # Request a natural language response about what was done
+                            messages.append({
+                                "role": "system",
+                                "content": "The function was executed successfully. Provide a natural language confirmation."
+                            })
+                            # Get natural language response
+                            return await self.query(user_input, messages, exposed_entities, n_requests + 1)
+                        except Exception as e:
+                            _LOGGER.error(
+                                "[v%s] Failed to execute function from JSON: %s",
+                                INTEGRATION_VERSION,
+                                e
+                            )
+                            text = f"I encountered an error executing that action: {str(e)}"
+                            message.content = text
                     else:
-                        # Fallback: Convert JSON to simple text response
-                        _LOGGER.debug("[v%s] Max requests reached, converting JSON to text", INTEGRATION_VERSION)
-                        if "execute_services" in parsed_json or "execute_service" in parsed_json:
-                            text = "I've executed the requested action."
-                        else:
-                            text = "Action completed successfully."
+                        # Can't execute, provide generic response
+                        text = "I understand what you want me to do, but I'm unable to execute that action right now."
                         message.content = text
+                elif isinstance(parsed_json, dict) and any(
+                    key in parsed_json for key in ["result", "status", "error"]
+                ):
+                    # This looks like a function result, not a call - just convert to text
+                    _LOGGER.debug("[v%s] JSON appears to be a result, not a function call", INTEGRATION_VERSION)
+                    text = "Action completed."
+                    message.content = text
             except (json.JSONDecodeError, Exception) as e:
                 # Not JSON or error parsing, proceed normally
-                _LOGGER.debug("[v%s] Not a JSON function result: %s", INTEGRATION_VERSION, e)
+                _LOGGER.debug("[v%s] Not a JSON function call: %s", INTEGRATION_VERSION, e)
                 pass
 
         # Store last response id for this conversation without mutating ConversationInput
