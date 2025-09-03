@@ -560,19 +560,25 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
 
         # Build Responses API-native tools list
         responses_function_tools = []
+        if not use_tools:
+            _LOGGER.info("[v%s] Tools/functions are disabled in configuration (use_tools=%s)", INTEGRATION_VERSION, use_tools)
+        elif not functions:
+            _LOGGER.debug("[v%s] No functions configured", INTEGRATION_VERSION)
+        
         if use_tools and functions:
+            _LOGGER.debug("[v%s] Building tools from %d functions", INTEGRATION_VERSION, len(functions))
             for func in functions:
                 # Responses API expects top-level name/description/parameters
-                responses_function_tools.append(
-                    {
-                        "type": "function",
-                        "name": func.get("name"),
-                        "description": func.get("description", ""),
-                        "parameters": func.get(
-                            "parameters", {"type": "object", "properties": {}}
-                        ),
-                    }
-                )
+                tool = {
+                    "type": "function",
+                    "name": func.get("name"),
+                    "description": func.get("description", ""),
+                    "parameters": func.get(
+                        "parameters", {"type": "object", "properties": {}}
+                    ),
+                }
+                _LOGGER.debug("[v%s] Built function tool: %s", INTEGRATION_VERSION, json.dumps(tool))
+                responses_function_tools.append(tool)
 
         reasoning_level = self.entry.options.get(
             CONF_REASONING_LEVEL, DEFAULT_REASONING_LEVEL
@@ -581,6 +587,7 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
 
         api_tools = []
         if responses_function_tools:
+            _LOGGER.debug("[v%s] Adding %d function tools to api_tools", INTEGRATION_VERSION, len(responses_function_tools))
             # Ensure list type
             if isinstance(responses_function_tools, list):
                 api_tools.extend(responses_function_tools)
@@ -704,6 +711,10 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
             response_kwargs.pop("response_format", None)
             response = await self.client.responses.create(**response_kwargs)
         except OpenAIError as e:
+            # Log the full error for debugging
+            _LOGGER.error("[v%s] OpenAI API error with full details: %s", INTEGRATION_VERSION, str(e))
+            _LOGGER.debug("[v%s] Request that failed: %s", INTEGRATION_VERSION, json.dumps(response_kwargs))
+            
             # Check if it's a tools error
             if "tools[0].name" in str(e) or "tools" in str(e):
                 _LOGGER.warning("[v%s] Tools error detected, retrying without tools: %s", INTEGRATION_VERSION, e)
