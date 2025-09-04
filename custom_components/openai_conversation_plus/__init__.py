@@ -457,10 +457,13 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
     def get_exposed_entities(self):
         """Get exposed entities with error handling for missing or unavailable entities."""
         try:
+            # Use this agent's entry_id when checking exposure; using conversation.DOMAIN would
+            # mark everything as not exposed for this specific agent instance.
+            entry_id = getattr(self.entry, "entry_id", None)
             states = [
                 state
                 for state in self.hass.states.async_all()
-                if async_should_expose(self.hass, conversation.DOMAIN, state.entity_id)
+                if async_should_expose(self.hass, entry_id, state.entity_id)
             ]
             entity_registry = er.async_get(self.hass)
             exposed_entities = []
