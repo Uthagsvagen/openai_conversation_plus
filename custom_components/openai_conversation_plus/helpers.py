@@ -273,16 +273,31 @@ class NativeFunctionExecutor(FunctionExecutor):
     ):
         domain = service_argument["domain"]
         service = service_argument["service"]
-        service_data = service_argument.get(
-            "service_data", service_argument.get("data", {})
-        )
-        entity_id = service_data.get("entity_id", service_argument.get("entity_id"))
-        area_id = service_data.get("area_id")
-        device_id = service_data.get("device_id")
+        # Tolerant handling: accept either service_data or data; copy if only data provided
+        service_data = service_argument.get("service_data") or service_argument.get("data") or {}
+        if "data" in service_argument and "service_data" not in service_argument:
+            service_argument["service_data"] = service_data
+
+        # Support target object with area_name/area/entity_id/device_id
+        target = service_argument.get("target") or {}
+        # Allow legacy top-level ids as well
+        entity_id = service_data.get("entity_id") or target.get("entity_id") or service_argument.get("entity_id")
+        area_id = service_data.get("area_id") or target.get("area_id") or target.get("area")
+        device_id = service_data.get("device_id") or target.get("device_id")
+
+        # Normalize area alias
+        if area_id and not isinstance(area_id, list):
+            # Allow a single area or list of areas
+            area_id = [area_id]
 
         if isinstance(entity_id, str):
             entity_id = [e.strip() for e in entity_id.split(",")]
-        service_data["entity_id"] = entity_id
+        if entity_id:
+            service_data["entity_id"] = entity_id
+        if area_id:
+            service_data["area_id"] = area_id
+        if device_id:
+            service_data["device_id"] = device_id
 
         if entity_id is None and area_id is None and device_id is None:
             raise CallServiceError(domain, service, service_data)

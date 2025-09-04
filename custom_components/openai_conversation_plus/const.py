@@ -123,6 +123,16 @@ DEFAULT_CONF_FUNCTIONS = [
                                     "type": "string",
                                     "description": "The service to be called",
                                 },
+                                "target": {
+                                    "type": "object",
+                                    "description": "Target selection: entity_id, area_name/area, or device_id",
+                                    "properties": {
+                                        "entity_id": {"type": ["string", "array"]},
+                                        "area_name": {"type": ["string", "array"]},
+                                        "area": {"type": ["string", "array"]},
+                                        "device_id": {"type": ["string", "array"]},
+                                    },
+                                },
                                 "service_data": {
                                     "type": "object",
                                     "description": "The service data object to indicate what to control.",
@@ -132,10 +142,10 @@ DEFAULT_CONF_FUNCTIONS = [
                                             "description": "The entity_id retrieved from available devices. It must start with domain, followed by dot character.",
                                         }
                                     },
-                                    "required": ["entity_id"],
                                 },
+                                "data": {"type": "object", "description": "Alias for service_data"},
                             },
-                            "required": ["domain", "service", "service_data"],
+                            "required": ["domain", "service"],
                         },
                     }
                 },

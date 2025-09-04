@@ -779,7 +779,32 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
         if text and text.strip().startswith('{') and text.strip().endswith('}'):
             try:
                 # Try to parse as JSON to confirm it's a function call
-                parsed_json = json.loads(text)
+                payload = json.loads(text)
+                # Normalize alternative shapes (type/calls with target variations) to our spec
+                parsed_json = None
+                if isinstance(payload, dict) and payload.get("type") == "execute_services" and isinstance(payload.get("calls"), list):
+                    norm = {"execute_services": {"list": []}}
+                    for c in payload["calls"]:
+                        item = {
+                            "domain": c.get("domain"),
+                            "service": c.get("service"),
+                        }
+                        tgt = c.get("target") or {}
+                        if "entity_id" in tgt:
+                            item["target"] = {"entity_id": tgt["entity_id"]}
+                        elif "area_name" in tgt:
+                            item["target"] = {"area_name": tgt["area_name"]}
+                        elif "area" in tgt:
+                            item["target"] = {"area_name": tgt["area"]}
+                        elif "device_id" in tgt:
+                            item["target"] = {"device_id": tgt["device_id"]}
+                        data = c.get("service_data") or c.get("data") or {}
+                        if data:
+                            item["service_data"] = data
+                        norm["execute_services"]["list"].append(item)
+                    parsed_json = norm
+                else:
+                    parsed_json = payload
                 # Check if it looks like a function call request (not a result)
                 # Try to match against any of our known functions
                 functions = self.get_functions()
