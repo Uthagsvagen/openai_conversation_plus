@@ -421,21 +421,31 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
         self, exposed_entities, user_input: conversation.ConversationInput
     ):
         raw_prompt = self.entry.options.get(CONF_PROMPT, DEFAULT_PROMPT)
-        prompt = self._async_generate_prompt(raw_prompt, exposed_entities, user_input)
+        prompt = self._async_generate_prompt(raw_prompt, user_input)
+        
+        # Append entities directly to the system message (not via template)
+        if exposed_entities:
+            import json
+            entities_json = json.dumps(exposed_entities, ensure_ascii=False)
+            prompt = f"{prompt}\n\nAvailable entities:\n{entities_json}"
+            _LOGGER.debug(
+                "[v%s] Appended %d entities to system prompt",
+                INTEGRATION_VERSION,
+                len(exposed_entities)
+            )
+        
         return {"role": "system", "content": prompt}
 
     def _async_generate_prompt(
         self,
         raw_prompt: str,
-        exposed_entities,
         user_input: conversation.ConversationInput,
     ) -> str:
         """Generate prompt with error handling for missing template variables."""
         try:
-            # Provide safe defaults for all template variables
+            # Provide safe defaults for template variables (entities now handled separately)
             template_vars = {
                 "ha_name": self.hass.config.location_name or "Home",
-                "exposed_entities": exposed_entities if exposed_entities else [],
                 "current_device_id": user_input.device_id if user_input and user_input.device_id else None,
             }
             
@@ -460,11 +470,19 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
             # Use this agent's entry_id when checking exposure; using conversation.DOMAIN would
             # mark everything as not exposed for this specific agent instance.
             entry_id = getattr(self.entry, "entry_id", None)
+            all_states = self.hass.states.async_all()
             states = [
                 state
-                for state in self.hass.states.async_all()
+                for state in all_states
                 if async_should_expose(self.hass, entry_id, state.entity_id)
             ]
+            if not states:
+                _LOGGER.info(
+                    "[v%s] No entities exposed for this agent; falling back to all states (%d)",
+                    INTEGRATION_VERSION,
+                    len(all_states),
+                )
+                states = all_states
             entity_registry = er.async_get(self.hass)
             exposed_entities = []
             for state in states:
