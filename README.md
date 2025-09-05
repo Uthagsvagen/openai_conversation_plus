@@ -55,8 +55,9 @@ This project is a fork of Extended OpenAI Conversation. Big thanks to the origin
 
 OpenAI Conversation Plus registers as a Home Assistant Conversation agent and follows the official Conversation API flow. It:
 
-- Builds a system prompt with knowledge of your exposed entities
-- Sends messages to OpenAI (Response API or Chat Completions)
+- Builds a system prompt with your custom instructions
+- **Automatically includes all exposed entities** in the system context (sent only once per conversation to save tokens)
+- Sends messages to OpenAI using the Responses API exclusively
 - Streams or returns the final response
 - Executes custom tools (functions) to call Home Assistant services when appropriate
 
@@ -76,6 +77,17 @@ Typical options:
 - Reasoning level and verbosity (for GPT‑5 variants)
 - Custom functions (YAML) and max function calls per conversation
 - MCP servers configuration (connect to external tools and services)
+
+### System Prompt & Entity Context
+
+**Important:** You no longer need to include `exposed_entities` in your prompt template. The integration automatically:
+
+- **Includes all exposed entities** in the system context behind the scenes
+- **Sends entities only once per conversation** (saves context tokens on subsequent messages)
+- **Bypasses Home Assistant's template size limits** by appending entities directly in code
+- **Uses exposure filter** with fallback to all entities if none are specifically exposed
+
+Your prompt template should focus on instructions and personality - entity information is handled automatically.
 
 ## MCP (Model Context Protocol) Servers
 

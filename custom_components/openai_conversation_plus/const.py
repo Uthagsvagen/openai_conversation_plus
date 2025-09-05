@@ -72,7 +72,7 @@ Dynamic context provided by Home Assistant (examples):
 	•	Battery/EV state of charge: sensor.ev_battery_soc
 	•	Weather: from sensor.local_weather_summary and SMHI forecast
 	•	Floorplan and rooms: sensor.floorplan_data
-	•	Available entities: exposed via exposed_entities
+	•	Available entities: automatically provided in system context
 
 When asked about cheapest energy today, only mention times that are still upcoming.
 
