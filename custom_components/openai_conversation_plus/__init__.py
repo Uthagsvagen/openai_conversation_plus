@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 import logging
 import time
-from typing import Literal
+from typing import Literal, Any
 from types import SimpleNamespace
 
 import yaml
@@ -25,13 +25,8 @@ from homeassistant.helpers import intent, template
 from homeassistant.helpers.httpx_client import get_async_client
 from homeassistant.helpers.typing import ConfigType
 from homeassistant.util import ulid
-from openai import AsyncAzureOpenAI, AsyncOpenAI
+from openai import AsyncOpenAI
 from openai._exceptions import AuthenticationError, OpenAIError
-from openai.types.chat.chat_completion import (
-    ChatCompletion,
-    ChatCompletionMessage,
-    Choice,
-)
 
 from .const import (
     CONF_API_VERSION,
@@ -86,7 +81,7 @@ from .exceptions import (
     ParseArgumentsFailed,
     TokenLengthExceededError,
 )
-from .helpers import get_function_executor, is_azure
+from .helpers import get_function_executor
 from . import helpers
 from .services import async_setup_services
 
@@ -246,6 +241,25 @@ def build_mcp_tools_from_options(options):
     return tools
 
 
+def get_functions_from_options(options: dict) -> list[dict]:
+    """Get function definitions from integration options."""
+    try:
+        function = options.get(CONF_FUNCTIONS)
+        result = yaml.safe_load(function) if function else DEFAULT_CONF_FUNCTIONS
+        if result:
+            for setting in result:
+                function_executor = get_function_executor(
+                    setting["function"]["type"]
+                )
+                setting["function"] = function_executor.to_arguments(
+                    setting["function"]
+                )
+        return result or []
+    except Exception as err:
+        _LOGGER.warning("[v%s] Failed to load functions: %s", INTEGRATION_VERSION, err)
+        return []
+
+
 class OpenAIAgent(conversation.AbstractConversationAgent):
     def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
         self.hass = hass
@@ -254,16 +268,7 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
         # Track last response id per conversation to enable previous_response_id without mutating ConversationInput
         self._last_response_ids: dict[str, str] = {}
         base_url = entry.data.get(CONF_BASE_URL)
-        if is_azure(base_url):
-            self.client = AsyncAzureOpenAI(
-                api_key=entry.data[CONF_API_KEY],
-                azure_endpoint=base_url,
-                api_version=entry.data.get(CONF_API_VERSION),
-                organization=entry.data.get(CONF_ORGANIZATION),
-                http_client=get_async_client(hass),
-            )
-        else:
-            self.client = AsyncOpenAI(
+        self.client = AsyncOpenAI(
                 api_key=entry.data[CONF_API_KEY],
                 base_url=base_url,
                 organization=entry.data.get(CONF_ORGANIZATION),
@@ -425,7 +430,6 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
         
         # Append entities directly to the system message (not via template)
         if exposed_entities:
-            import json
             entities_json = json.dumps(exposed_entities, ensure_ascii=False)
             prompt = f"{prompt}\n\nAvailable entities:\n{entities_json}"
             _LOGGER.debug(
@@ -448,7 +452,6 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
                 "ha_name": self.hass.config.location_name or "Home",
                 "current_device_id": user_input.device_id if user_input and user_input.device_id else None,
             }
-            
             # Render template with error handling
             return template.Template(raw_prompt, self.hass).async_render(
                 template_vars,
@@ -492,11 +495,9 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
                     aliases = []
                     if entity and entity.aliases:
                         aliases = entity.aliases
-                    
                     # Get state safely
                     current_state = self.hass.states.get(entity_id)
                     state_value = current_state.state if current_state else "unavailable"
-                    
                     exposed_entities.append(
                         {
                             "entity_id": entity_id,
@@ -737,7 +738,7 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
 
         # Log the complete request for debugging
         _LOGGER.debug("[v%s] Full response_kwargs being sent to API: %s", INTEGRATION_VERSION, json.dumps(response_kwargs))
-        
+
         try:
             response = await self.client.responses.create(**response_kwargs)
         except TypeError as e:
@@ -791,122 +792,224 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
                 pass
 
         message = SimpleNamespace(role="assistant", content=text or "")
-        
-        # Check if the response looks like a function call request in JSON format
-        # The Responses API sometimes returns function calls as JSON in output_text
-        if text and text.strip().startswith('{') and text.strip().endswith('}'):
-            try:
-                # Try to parse as JSON to confirm it's a function call
-                payload = json.loads(text)
-                # Normalize alternative shapes (type/calls with target variations) to our spec
-                parsed_json = None
-                if isinstance(payload, dict) and payload.get("type") == "execute_services" and isinstance(payload.get("calls"), list):
-                    norm = {"execute_services": {"list": []}}
-                    for c in payload["calls"]:
-                        item = {
-                            "domain": c.get("domain"),
-                            "service": c.get("service"),
-                        }
-                        tgt = c.get("target") or {}
-                        if "entity_id" in tgt:
-                            item["target"] = {"entity_id": tgt["entity_id"]}
-                        elif "area_name" in tgt:
-                            item["target"] = {"area_name": tgt["area_name"]}
-                        elif "area" in tgt:
-                            item["target"] = {"area_name": tgt["area"]}
-                        elif "device_id" in tgt:
-                            item["target"] = {"device_id": tgt["device_id"]}
-                        data = c.get("service_data") or c.get("data") or {}
-                        if data:
-                            item["service_data"] = data
-                        norm["execute_services"]["list"].append(item)
-                    parsed_json = norm
-                else:
-                    parsed_json = payload
-                # Check if it looks like a function call request (not a result)
-                # Try to match against any of our known functions
-                functions = self.get_functions()
-                function_names = [f["spec"]["name"] for f in functions]
-                matched_function = None
-                matched_function_name = None
-                
-                # Check if the JSON contains any of our function names as keys
-                for func_name in function_names:
-                    if func_name in parsed_json:
-                        matched_function_name = func_name
-                        matched_function = next(
-                            (f for f in functions if f["spec"]["name"] == func_name),
-                            None
-                        )
-                        break
-                
-                if matched_function:
-                    _LOGGER.warning(
-                        "[v%s] Detected %s function call in response, executing it",
-                        INTEGRATION_VERSION,
-                        matched_function_name
-                    )
-                    
-                    if n_requests < self.entry.options.get(
-                        CONF_MAX_FUNCTION_CALLS_PER_CONVERSATION,
-                        DEFAULT_MAX_FUNCTION_CALLS_PER_CONVERSATION,
-                    ):
-                        # Execute the function
-                        from .helpers import get_function_executor
-                        function_executor = get_function_executor(matched_function["function"]["type"])
-                        try:
-                            # Extract the arguments for the function
-                            # The JSON should have the function name as a key with the arguments as value
-                            function_args = parsed_json.get(matched_function_name, parsed_json)
-                            
-                            result = await function_executor.execute(
-                                self.hass, 
-                                matched_function["function"], 
-                                function_args,  # The function arguments
-                                user_input, 
-                                exposed_entities
+
+        # Check if the response contains tool calls (proper Responses API format)
+        tool_calls = getattr(response, "tool_calls", None) or []
+        if tool_calls:
+            _LOGGER.info("[v%s] Processing %d tool calls from Responses API", INTEGRATION_VERSION, len(tool_calls))
+            for tool_call in tool_calls:
+                try:
+                    if hasattr(tool_call, 'function'):
+                        func_name = tool_call.function.name
+                        arguments = json.loads(tool_call.function.arguments)
+                        
+                        _LOGGER.debug("[v%s] Executing tool call: %s with args: %s", INTEGRATION_VERSION, func_name, arguments)
+                        
+                        # Find the matching function from configured tools
+                        functions = self.get_functions()
+                        matching_func = next((f for f in functions if f["spec"]["name"] == func_name), None)
+                        
+                        if matching_func:
+                            from .helpers import get_function_executor
+                            executor = get_function_executor(matching_func["function"]["type"])
+                            result = await executor.execute(
+                                self.hass,
+                                matching_func["function"],
+                                arguments,
+                                user_input,
+                                exposed_entities,
                             )
-                            _LOGGER.info(
-                                "[v%s] Executed %s function from JSON response: %s",
-                                INTEGRATION_VERSION,
-                                matched_function_name,
-                                result
-                            )
-                            # Add function result to messages
+                            # Add function result to messages and get natural language response
                             messages.append({
                                 "role": "function",
-                                "name": matched_function_name,
+                                "name": func_name,
                                 "content": str(result)
                             })
-                            # Request a natural language response about what was done
                             messages.append({
                                 "role": "system",
                                 "content": "The function was executed successfully. Provide a natural language confirmation."
                             })
-                            # Get natural language response
                             return await self.query(user_input, messages, exposed_entities, n_requests + 1)
-                        except Exception as e:
-                            _LOGGER.error(
-                                "[v%s] Failed to execute function from JSON: %s",
-                                INTEGRATION_VERSION,
-                                e
-                            )
-                            text = f"I encountered an error executing that action: {str(e)}"
+                        else:
+                            _LOGGER.warning("[v%s] No matching function found for: %s", INTEGRATION_VERSION, func_name)
+                            text = f"Unknown function: {func_name}"
                             message.content = text
-                    else:
-                        # Can't execute, provide generic response
-                        text = "I understand what you want me to do, but I'm unable to execute that action right now."
-                        message.content = text
-                elif isinstance(parsed_json, dict) and any(
-                    key in parsed_json for key in ["result", "status", "error"]
-                ):
-                    # This looks like a function result, not a call - just convert to text
-                    _LOGGER.debug("[v%s] JSON appears to be a result, not a function call", INTEGRATION_VERSION)
-                    text = "Action completed."
+                except Exception as e:
+                    _LOGGER.error("[v%s] Failed to execute tool call: %s", INTEGRATION_VERSION, e)
+                    text = f"Error executing tool: {e}"
                     message.content = text
-            except (json.JSONDecodeError, Exception) as e:
-                # Not JSON or error parsing, proceed normally
-                _LOGGER.debug("[v%s] Not a JSON function call: %s", INTEGRATION_VERSION, e)
+        
+        # Fallback: If the model returned JSON in output_text, try to parse and execute
+        elif text and (text.strip().startswith('[') or text.strip().startswith('{')):
+            try:
+                payload = json.loads(text)
+                _LOGGER.info("[v%s] Detected JSON in output_text, attempting to parse as tool call", INTEGRATION_VERSION)
+                
+                # Handle array format: [{"domain":"light","service":"turn_on",...}]
+                if isinstance(payload, list):
+                    _LOGGER.debug("[v%s] Processing array format with %d items", INTEGRATION_VERSION, len(payload))
+                    for item in payload:
+                        if isinstance(item, dict) and "domain" in item and "service" in item:
+                            # This is a direct service call format
+                            from .helpers import get_function_executor
+                            executor = get_function_executor("native")
+                            fn_config = {"type": "native", "name": "execute_service"}
+                            
+                            # Normalize the service call format
+                            service_call = {
+                                "list": [{
+                                    "domain": item.get("domain"),
+                                    "service": item.get("service"),
+                                    "target": item.get("target", {}),
+                                    "service_data": item.get("data") or item.get("service_data", {})
+                                }]
+                            }
+                            
+                            try:
+                                result = await executor.execute(
+                                    self.hass,
+                                    fn_config,
+                                    service_call,
+                                    user_input,
+                                    exposed_entities,
+                                )
+                                _LOGGER.info("[v%s] Successfully executed service: %s.%s", INTEGRATION_VERSION, item['domain'], item['service'])
+                                # Add confirmation message
+                                messages.append({
+                                    "role": "system",
+                                    "content": f"Successfully executed {item['domain']}.{item['service']}. Provide a natural language confirmation."
+                                })
+                                return await self.query(user_input, messages, exposed_entities, n_requests + 1)
+                            except Exception as e:
+                                _LOGGER.error("[v%s] Failed to execute service: %s", INTEGRATION_VERSION, e)
+                                text = f"Error: {e}"
+                                message.content = text
+                
+                # Handle object format for backward compatibility
+                elif isinstance(payload, dict):
+                    parsed_json = None
+                    # Check for both "actions" and "calls" keys (different formats from OpenAI)
+                    actions_list = payload.get("actions") or payload.get("calls", [])
+                    if payload.get("type") == "execute_services" and isinstance(actions_list, list):
+                        _LOGGER.info("[v%s] Processing execute_services format with %d actions", INTEGRATION_VERSION, len(actions_list))
+                        # Old format compatibility
+                        norm = {"execute_services": {"list": []}}
+                        for c in actions_list:
+                            item = {
+                                "domain": c.get("domain"),
+                                "service": c.get("service"),
+                            }
+                            tgt = c.get("target") or {}
+                            if "entity_id" in tgt:
+                                item["target"] = {"entity_id": tgt["entity_id"]}
+                            elif "area_name" in tgt:
+                                item["target"] = {"area_name": tgt["area_name"]}
+                            elif "area_id" in tgt:
+                                # Handle both single area_id and list of area_ids
+                                area_ids = tgt["area_id"]
+                                if isinstance(area_ids, list):
+                                    item["target"] = {"area_name": area_ids[0] if area_ids else ""}
+                                else:
+                                    item["target"] = {"area_name": area_ids}
+                            elif "area" in tgt:
+                                item["target"] = {"area_name": tgt["area"]}
+                            elif "device_id" in tgt:
+                                item["target"] = {"device_id": tgt["device_id"]}
+                            data = c.get("service_data") or c.get("data") or {}
+                            if data:
+                                item["service_data"] = data
+                            norm["execute_services"]["list"].append(item)
+                        parsed_json = norm
+                    else:
+                        parsed_json = payload
+                    # Check if it looks like a function call request (not a result)
+                    # Try to match against any of our known functions
+                    functions = self.get_functions()
+                    function_names = [f["spec"]["name"] for f in functions]
+                    matched_function = None
+                    matched_function_name = None
+                    
+                    # Check if the JSON contains any of our function names as keys
+                    for func_name in function_names:
+                        if func_name in parsed_json:
+                            matched_function_name = func_name
+                            matched_function = next(
+                                (f for f in functions if f["spec"]["name"] == func_name),
+                                None
+                            )
+                            break
+                    
+                    if matched_function:
+                        _LOGGER.warning(
+                            "[v%s] Detected %s function call in response, executing it",
+                            INTEGRATION_VERSION,
+                            matched_function_name
+                        )
+                        
+                        if n_requests < self.entry.options.get(
+                            CONF_MAX_FUNCTION_CALLS_PER_CONVERSATION,
+                            DEFAULT_MAX_FUNCTION_CALLS_PER_CONVERSATION,
+                        ):
+                            # Execute the function
+                            from .helpers import get_function_executor
+                            function_executor = get_function_executor(matched_function["function"]["type"])
+                            try:
+                                # Extract the arguments for the function
+                                # The JSON should have the function name as a key with the arguments as value
+                                function_args = parsed_json.get(matched_function_name, parsed_json)
+                                
+                                result = await function_executor.execute(
+                                    self.hass, 
+                                    matched_function["function"], 
+                                    function_args,  # The function arguments
+                                    user_input, 
+                                    exposed_entities
+                                )
+                                _LOGGER.info(
+                                    "[v%s] Executed %s function from JSON response: %s",
+                                    INTEGRATION_VERSION,
+                                    matched_function_name,
+                                    result
+                                )
+                                # Add function result to messages
+                                messages.append({
+                                    "role": "function",
+                                    "name": matched_function_name,
+                                    "content": str(result)
+                                })
+                                # Request a natural language response about what was done
+                                messages.append({
+                                    "role": "system",
+                                    "content": "The function was executed successfully. Provide a natural language confirmation."
+                                })
+                                # Get natural language response
+                                return await self.query(user_input, messages, exposed_entities, n_requests + 1)
+                            except Exception as e:
+                                _LOGGER.error(
+                                    "[v%s] Failed to execute function from JSON: %s",
+                                    INTEGRATION_VERSION,
+                                    e
+                                )
+                                text = f"I encountered an error executing that action: {str(e)}"
+                                message.content = text
+                        else:
+                            # Can't execute, provide generic response
+                            text = "I understand what you want me to do, but I'm unable to execute that action right now."
+                            message.content = text
+                    elif isinstance(parsed_json, dict) and any(
+                        key in parsed_json for key in ["result", "status", "error"]
+                    ):
+                        # This looks like a function result, not a call - just convert to text
+                        _LOGGER.debug("[v%s] JSON appears to be a result, not a function call", INTEGRATION_VERSION)
+                        text = "Action completed."
+                        message.content = text
+            except json.JSONDecodeError as e:
+                _LOGGER.debug("[v%s] Failed to parse JSON from output_text: %s", INTEGRATION_VERSION, e)
+                # Keep original output if not JSON
+                pass
+            except Exception as e:
+                _LOGGER.error("[v%s] Error processing JSON tool call: %s", INTEGRATION_VERSION, e)
+                # Keep original output on error
                 pass
 
         # Store last response id for this conversation without mutating ConversationInput
@@ -925,7 +1028,7 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
         self,
         user_input: conversation.ConversationInput,
         messages,
-        message: ChatCompletionMessage,
+        message,
         exposed_entities,
         n_requests,
     ) -> "OpenAIQueryResponse":
@@ -949,7 +1052,7 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
         self,
         user_input: conversation.ConversationInput,
         messages,
-        message: ChatCompletionMessage,
+        message,
         exposed_entities,
         n_requests,
         function,
@@ -975,7 +1078,7 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
         self,
         user_input: conversation.ConversationInput,
         messages,
-        message: ChatCompletionMessage,
+        message,
         exposed_entities,
         n_requests,
     ) -> "OpenAIQueryResponse":
@@ -1043,7 +1146,7 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
 
 class OpenAIQueryResponse:
     def __init__(
-        self, response: ChatCompletion, message: ChatCompletionMessage
+        self, response, message
     ) -> None:
         self.response = response
         self.message = message
