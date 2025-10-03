@@ -825,7 +825,10 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
                         # Ensure require_approval is set (default to "never" if missing)
                         if "require_approval" not in tool:
                             tool["require_approval"] = "never"
-                        validated_tools.append(tool)
+                        # Remove server_api_key before sending to OpenAI (not supported by Responses API)
+                        # The API key should be stored separately for use when calling the MCP server
+                        mcp_tool = {k: v for k, v in tool.items() if k != "server_api_key"}
+                        validated_tools.append(mcp_tool)
                     else:
                         _LOGGER.warning(
                             "[v%s] Skipping MCP tool without required fields (server_label, server_url): %s",
