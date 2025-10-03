@@ -26,7 +26,7 @@ setup(
     ],
     python_requires=">=3.11",
     install_requires=[
-        "openai>=1.101.0",
+        "openai>=2.1.0",
     ],
     extras_require={
         "test": [

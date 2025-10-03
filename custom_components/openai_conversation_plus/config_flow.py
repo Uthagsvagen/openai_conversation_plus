@@ -240,12 +240,18 @@ class OptionsFlow(config_entries.OptionsFlow):
         )] = int
         schema[vol.Optional(
             CONF_TOP_P,
-            description={"suggested_value": options.get(CONF_TOP_P, DEFAULT_TOP_P)},
+            description={
+                "suggested_value": options.get(CONF_TOP_P, DEFAULT_TOP_P),
+                "suffix": "⚠️ Not used with Responses API - use verbosity/reasoning_level instead"
+            },
             default=DEFAULT_TOP_P,
         )] = NumberSelector(NumberSelectorConfig(min=0, max=1, step=0.05))
         schema[vol.Optional(
             CONF_TEMPERATURE,
-            description={"suggested_value": options.get(CONF_TEMPERATURE, DEFAULT_TEMPERATURE)},
+            description={
+                "suggested_value": options.get(CONF_TEMPERATURE, DEFAULT_TEMPERATURE),
+                "suffix": "⚠️ Not used with Responses API - use verbosity/reasoning_level instead"
+            },
             default=DEFAULT_TEMPERATURE,
         )] = NumberSelector(NumberSelectorConfig(min=0, max=2, step=0.1))
 

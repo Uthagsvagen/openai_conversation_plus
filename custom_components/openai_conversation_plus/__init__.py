@@ -204,12 +204,22 @@ def _normalize_mcp_items(data):
         for label, cfg in data["mcpServers"].items():
             url = None
             key = None
+            allowed_tools = None
+            require_approval = None
             if isinstance(cfg, dict):
                 url = cfg.get("server_url") or cfg.get("url")
                 if not url and isinstance(cfg.get("args"), list) and cfg["args"]:
                     url = cfg["args"][0]
                 key = cfg.get("server_api_key") or cfg.get("api_key") or cfg.get("env", {}).get("API_ACCESS_TOKEN")
-            items.append({"server_label": label, "server_url": url, "server_api_key": key})
+                allowed_tools = cfg.get("allowed_tools")
+                require_approval = cfg.get("require_approval")
+            items.append({
+                "server_label": label,
+                "server_url": url,
+                "server_api_key": key,
+                "allowed_tools": allowed_tools,
+                "require_approval": require_approval,
+            })
         return items
     if isinstance(data, list):
         return [
@@ -217,6 +227,8 @@ def _normalize_mcp_items(data):
                 "server_label": it.get("server_label") or it.get("label"),
                 "server_url": it.get("server_url") or it.get("url"),
                 "server_api_key": it.get("server_api_key") or it.get("api_key"),
+                "allowed_tools": it.get("allowed_tools"),
+                "require_approval": it.get("require_approval"),
             }
             for it in data if isinstance(it, dict)
         ]
@@ -234,9 +246,22 @@ def build_mcp_tools_from_options(options):
     tools = []
     for it in items:
         if it.get("server_label") and it.get("server_url"):
-            tool = {"type": "mcp", "server_label": it["server_label"], "server_url": it["server_url"]}
+            tool = {
+                "type": "mcp",
+                "server_label": it["server_label"],
+                "server_url": it["server_url"],
+                "require_approval": it.get("require_approval", "never"),
+            }
             if it.get("server_api_key"):
                 tool["server_api_key"] = it["server_api_key"]
+            # Add allowed_tools if specified
+            if it.get("allowed_tools"):
+                # Support both list and comma-separated string
+                allowed = it["allowed_tools"]
+                if isinstance(allowed, str):
+                    tool["allowed_tools"] = [t.strip() for t in allowed.split(",")]
+                elif isinstance(allowed, list):
+                    tool["allowed_tools"] = allowed
             tools.append(tool)
     return tools
 
@@ -662,12 +687,21 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
             "model": model,
             "input": messages,
             "max_output_tokens": max_tokens,
-            "temperature": temperature,
-            "top_p": top_p,
+            "parallel_tool_calls": True,  # Enable parallel tool execution
+            "stream": True,  # Enable streaming responses
             "store": self.entry.options.get(
                 CONF_STORE_CONVERSATIONS, DEFAULT_STORE_CONVERSATIONS
             ),
         }
+        
+        # Note: temperature and top_p are NOT supported by the Responses API
+        # The API only supports reasoning.effort and text.verbosity for GPT-5
+        if temperature != DEFAULT_TEMPERATURE or top_p != DEFAULT_TOP_P:
+            _LOGGER.info(
+                "[v%s] Note: temperature and top_p are not used with Responses API. "
+                "Use reasoning_level and verbosity instead for GPT-5 models.",
+                INTEGRATION_VERSION
+            )
 
         if model in GPT5_MODELS:
             response_kwargs["reasoning"] = {"effort": reasoning_level}
@@ -675,7 +709,10 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
                 # Map legacy verbosity values to supported ones
                 from .const import VERBOSITY_COMPAT_MAP
                 mapped_verbosity = VERBOSITY_COMPAT_MAP.get(verbosity, verbosity)
-                response_kwargs["text"] = {"verbosity": mapped_verbosity}
+                response_kwargs["text"] = {
+                    "verbosity": mapped_verbosity,
+                    "format": {"type": "text"}
+                }
 
         if api_tools:
             # Validate tools structure for Responses API
@@ -708,12 +745,15 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
                     # Keep as-is; supported by Responses API
                     validated_tools.append(tool)
                 elif tool_type == "mcp":
-                    # MCP tool must have server_label and server_url
+                    # MCP tool must have server_label, server_url, and require_approval
                     if tool.get("server_label") and tool.get("server_url"):
+                        # Ensure require_approval is set (default to "never" if missing)
+                        if "require_approval" not in tool:
+                            tool["require_approval"] = "never"
                         validated_tools.append(tool)
                     else:
                         _LOGGER.warning(
-                            "[v%s] Skipping MCP tool without required fields: %s",
+                            "[v%s] Skipping MCP tool without required fields (server_label, server_url): %s",
                             INTEGRATION_VERSION,
                             tool,
                         )

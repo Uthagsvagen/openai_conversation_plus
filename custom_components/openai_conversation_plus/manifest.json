@@ -19,7 +19,7 @@
 	"iot_class": "cloud_polling",
 	"issue_tracker": "https://github.com/Uthagsvagen/openai_conversation_plus/issues",
 	"requirements": [
-		"openai>=1.101.0"
+		"openai>=2.1.0"
 	],
 	  "version": "2025.9.3.4"
 }

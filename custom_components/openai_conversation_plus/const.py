@@ -199,5 +199,11 @@ DEFAULT_ENABLE_CONVERSATION_EVENTS = False
 CONF_MCP_SERVERS = "mcp_servers"
 DEFAULT_MCP_SERVERS = ""
 
+# Entity exposure limits
+EXPOSED_ENTITIES_PROMPT_MAX = 500  # Maximum number of entities to include in prompt
+
+# Note: temperature and top_p are kept in config for backward compatibility
+# but are NOT sent to the Responses API (which only supports reasoning.effort and text.verbosity)
+
 # hass.data key for agent, used by tests
 DATA_AGENT = "agent"

@@ -70,13 +70,29 @@ Go to Settings → Devices & Services → Add Integration → OpenAI Conversatio
 
 Typical options:
 - Model (e.g., GPT‑4o, GPT‑5 variants if available)
-- Temperature, top_p, and max tokens
+- Max tokens (max_output_tokens for Responses API)
+- **Reasoning level** and **verbosity** (for GPT‑5 variants - replaces temperature/top_p)
+- ~~Temperature, top_p~~ (not used with Responses API; kept for backward compatibility only)
 - Use Response API (enable advanced features)
 - Enable Web Search (and configure search depth and user location)
 - Conversation storage (persist conversation state server‑side)
-- Reasoning level and verbosity (for GPT‑5 variants)
 - Custom functions (YAML) and max function calls per conversation
 - MCP servers configuration (connect to external tools and services)
+
+### Important: Responses API Parameters
+
+This integration uses the **Responses API exclusively**. The following parameters are supported:
+
+✅ **Supported:**
+- `reasoning.effort` (minimal, low, medium, high) - Control reasoning depth
+- `text.verbosity` (low, medium, high) - Control response length
+- `max_output_tokens` - Maximum tokens in response
+- `store` - Conversation storage
+- `tools` - Function calls, web search, MCP servers
+
+❌ **Not Supported (ignored):**
+- `temperature` - Use `reasoning.effort` and `text.verbosity` instead
+- `top_p` - Use `reasoning.effort` and `text.verbosity` instead
 
 ### System Prompt & Entity Context
 
@@ -100,9 +116,12 @@ Configure MCP servers in the integration options using YAML format:
 - server_label: "Home Assistant"
   server_url: "https://ha.domain.com/mcp_server/sse"
   server_api_key: "your-api-key"
+  allowed_tools: ["get_entity_state", "call_service"]  # Optional: limit which tools the model can use
+  require_approval: "never"  # Optional: "never" (default), "always", or "once"
 - server_label: "Google Sheets"
   server_url: "https://sheets.example.com/sse"
   server_api_key: "another-key"
+  allowed_tools: "read_sheet,write_sheet"  # Can also be comma-separated string
 ```
 
 ### Compatible with mcpServers Format:
@@ -114,10 +133,20 @@ mcpServers:
       - https://ha.domain.com/mcp_server/sse
     env:
       API_ACCESS_TOKEN: your-api-key
+    allowed_tools:
+      - get_entity_state
+      - call_service
+    require_approval: never
   Sheets:
     url: https://sheets.example.com/sse
     api_key: another-key
+    allowed_tools: ["read_sheet", "write_sheet"]
 ```
+
+**MCP Configuration Notes:**
+- `allowed_tools`: Optional list of tool names that the model can invoke from this server
+- `require_approval`: Optional approval level ("never", "always", "once") - defaults to "never"
+- If `allowed_tools` is not specified, all tools from the server are available
 
 MCP servers allow your assistant to:
 - Access external databases and APIs
