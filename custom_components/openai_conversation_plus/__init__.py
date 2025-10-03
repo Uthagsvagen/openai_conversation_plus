@@ -986,61 +986,58 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
                 elif isinstance(payload, dict):
                     parsed_json = None
                     
-                    # NEW: Handle format like {"execute_services": [...]}
-                    if "execute_services" in payload and isinstance(payload["execute_services"], list):
-                        _LOGGER.info("[v%s] Processing execute_services key format with %d actions", INTEGRATION_VERSION, len(payload["execute_services"]))
-                        from .helpers import get_function_executor
-                        executor = get_function_executor("native")
-                        fn_config = {"type": "native", "name": "execute_service"}
+                    # Check if payload contains a function name as key
+                    # Format: {"function_name": <arguments>} where arguments can be list or object
+                    functions = self.get_functions()
+                    function_names = [f["spec"]["name"] for f in functions]
+                    
+                    # Try to match any configured function
+                    matched_function_name = None
+                    for func_name in function_names:
+                        if func_name in payload:
+                            matched_function_name = func_name
+                            break
+                    
+                    if matched_function_name:
+                        _LOGGER.info("[v%s] Detected function call in JSON: %s", INTEGRATION_VERSION, matched_function_name)
+                        matching_func = next((f for f in functions if f["spec"]["name"] == matched_function_name), None)
                         
-                        # Build the normalized service call
-                        service_call = {"list": []}
-                        for action in payload["execute_services"]:
-                            item = {
-                                "domain": action.get("domain"),
-                                "service": action.get("service"),
-                            }
-                            # Handle target
-                            tgt = action.get("target", {})
-                            if tgt:
-                                if "entity_id" in tgt:
-                                    item["target"] = {"entity_id": tgt["entity_id"]}
-                                elif "area_id" in tgt:
-                                    area_ids = tgt["area_id"]
-                                    # Convert area_id to area_name for execution
-                                    if isinstance(area_ids, list):
-                                        item["target"] = {"area_id": area_ids}
-                                    else:
-                                        item["target"] = {"area_id": [area_ids] if not isinstance(area_ids, list) else area_ids}
-                                elif "area_name" in tgt or "area" in tgt:
-                                    item["target"] = {"area_name": tgt.get("area_name") or tgt.get("area")}
-                                elif "device_id" in tgt:
-                                    item["target"] = {"device_id": tgt["device_id"]}
-                            # Handle service_data
-                            service_data = action.get("service_data") or action.get("data", {})
-                            if service_data:
-                                item["service_data"] = service_data
-                            service_call["list"].append(item)
-                        
-                        try:
-                            _LOGGER.info("[v%s] Executing service call: %s", INTEGRATION_VERSION, json.dumps(service_call))
-                            result = await executor.execute(
-                                self.hass,
-                                fn_config,
-                                service_call,
-                                user_input,
-                                exposed_entities,
-                            )
-                            _LOGGER.info("[v%s] Successfully executed execute_services from JSON", INTEGRATION_VERSION)
-                            # Get natural language confirmation
-                            messages.append({
-                                "role": "system",
-                                "content": "The services were executed successfully. Provide a brief natural language confirmation."
-                            })
-                            return await self.query(user_input, messages, exposed_entities, n_requests + 1)
-                        except Exception as e:
-                            _LOGGER.error("[v%s] Failed to execute services from JSON: %s", INTEGRATION_VERSION, e, exc_info=True)
-                            text = f"Error executing services: {e}"
+                        if matching_func:
+                            from .helpers import get_function_executor
+                            executor = get_function_executor(matching_func["function"]["type"])
+                            
+                            # Get the function arguments
+                            func_args_raw = payload[matched_function_name]
+                            
+                            # Special handling for execute_services which expects {"list": [...]}
+                            if matched_function_name == "execute_services" and isinstance(func_args_raw, list):
+                                # Convert list to proper parameter format
+                                normalized_args = {"list": func_args_raw}
+                                _LOGGER.debug("[v%s] Normalized execute_services args: list with %d items", INTEGRATION_VERSION, len(func_args_raw))
+                            else:
+                                # For other functions, use arguments as-is
+                                normalized_args = func_args_raw if isinstance(func_args_raw, dict) else {}
+                            
+                            try:
+                                _LOGGER.info("[v%s] Executing %s with args: %s", INTEGRATION_VERSION, matched_function_name, json.dumps(normalized_args))
+                                result = await executor.execute(
+                                    self.hass,
+                                    matching_func["function"],
+                                    normalized_args,
+                                    user_input,
+                                    exposed_entities,
+                                )
+                                _LOGGER.info("[v%s] Successfully executed %s from JSON", INTEGRATION_VERSION, matched_function_name)
+                                # Return success message
+                                text = "Klart!"
+                                message.content = text
+                            except Exception as e:
+                                _LOGGER.error("[v%s] Failed to execute %s from JSON: %s", INTEGRATION_VERSION, matched_function_name, e, exc_info=True)
+                                text = f"Fel vid körning av {matched_function_name}: {e}"
+                                message.content = text
+                        else:
+                            _LOGGER.warning("[v%s] Function %s not found in configuration", INTEGRATION_VERSION, matched_function_name)
+                            text = f"Funktionen {matched_function_name} finns inte konfigurerad"
                             message.content = text
                     
                     # Check for both "actions" and "calls" keys (different formats from OpenAI)
