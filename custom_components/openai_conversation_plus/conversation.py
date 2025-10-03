@@ -16,6 +16,7 @@ from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from homeassistant.helpers import entity_registry as er, template
 
 from openai import AsyncOpenAI
+from openai._exceptions import OpenAIError
 
 from .const import (
     DOMAIN,
@@ -169,6 +170,13 @@ class OpenAIConversationEntity(
             "store": opts.get(CONF_STORE_CONVERSATIONS, DEFAULT_STORE_CONVERSATIONS),
         }
         if tools:
+            # Sanitize tool definitions for the Responses API (strip unsupported fields like server_api_key)
+            try:
+                from . import sanitize_tools_for_responses
+                tools = sanitize_tools_for_responses(tools)
+            except Exception:  # noqa: BLE001
+                # If sanitize is not available for any reason, fall back to original tools
+                pass
             kwargs["tools"] = tools
             kwargs["tool_choice"] = "auto"
 
@@ -250,8 +258,23 @@ class OpenAIConversationEntity(
             else:
                 raise RuntimeError("ChatLog delta stream not available")
         except Exception:
-            # Non-streaming fallback
-            final = await client.responses.create(**kwargs)
+            # Non-streaming fallback with defensive retries for tool/schema issues
+            try:
+                final = await client.responses.create(**kwargs)
+            except TypeError:
+                # Remove potentially unsupported fields just in case
+                kwargs.pop("response_format", None)
+                kwargs.pop("text", None)
+                kwargs.pop("reasoning", None)
+                final = await client.responses.create(**kwargs)
+            except OpenAIError as e:
+                if "tools" in str(e):
+                    # Retry without tools if the provider rejects tool schema
+                    kwargs.pop("tools", None)
+                    kwargs.pop("tool_choice", None)
+                    final = await client.responses.create(**kwargs)
+                else:
+                    raise
             out = getattr(final, "output_text", "") or ""
 
         # Check if the response contains tool calls (proper Responses API format)

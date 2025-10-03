@@ -334,6 +334,66 @@ def build_mcp_tools_from_options(options):
     return tools
 
 
+def sanitize_tools_for_responses(tools: list[dict]) -> list[dict]:
+    """Sanitize tools for the Responses API by removing unsupported fields.
+
+    - Removes secret-bearing or non-spec fields (e.g., server_api_key) from MCP tools
+    - Ensures function tools use the nested structure {type:function, function:{...}}
+    - Keeps only known fields for web_search and mcp tool types
+    """
+    sanitized: list[dict] = []
+    for original in tools or []:
+        try:
+            tool_type = original.get("type")
+            if tool_type == "function":
+                if "function" in original and isinstance(original["function"], dict):
+                    sanitized.append({
+                        "type": "function",
+                        "function": {
+                            "name": original["function"].get("name"),
+                            "description": original["function"].get("description", ""),
+                            "parameters": original["function"].get("parameters", {"type": "object", "properties": {}}),
+                        },
+                    })
+                elif original.get("name"):
+                    sanitized.append({
+                        "type": "function",
+                        "function": {
+                            "name": original.get("name"),
+                            "description": original.get("description", ""),
+                            "parameters": original.get("parameters", {"type": "object", "properties": {}}),
+                        },
+                    })
+            elif tool_type == "web_search":
+                ws: dict[str, Any] = {"type": "web_search"}
+                if "search_context_size" in original:
+                    ws["search_context_size"] = original["search_context_size"]
+                if "user_location" in original and isinstance(original["user_location"], dict):
+                    loc = original["user_location"]
+                    ws["user_location"] = {
+                        "type": loc.get("type", "approximate"),
+                        "country": loc.get("country", ""),
+                        "city": loc.get("city", ""),
+                        "region": loc.get("region", ""),
+                    }
+                sanitized.append(ws)
+            elif tool_type == "mcp":
+                # Only keep known MCP fields; drop unknowns like server_api_key, allowed_tools
+                mcp: dict[str, Any] = {"type": "mcp"}
+                if original.get("server_label"):
+                    mcp["server_label"] = original["server_label"]
+                if original.get("server_url"):
+                    mcp["server_url"] = original["server_url"]
+                if original.get("require_approval") in {"never", "always", "auto"}:
+                    mcp["require_approval"] = original["require_approval"]
+                sanitized.append(mcp)
+            else:
+                _LOGGER.debug("[v%s] Dropping unknown tool type during sanitize: %s", INTEGRATION_VERSION, tool_type)
+        except Exception as e:
+            _LOGGER.debug("[v%s] Failed to sanitize tool %s: %s", INTEGRATION_VERSION, original, e)
+            continue
+    return sanitized
+
 def get_functions_from_options(options: dict) -> list[dict]:
     """Get function definitions from integration options."""
     try:
@@ -845,7 +905,14 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
                     INTEGRATION_VERSION,
                     json.dumps(validated_tools),
                 )
-                response_kwargs["tools"] = validated_tools
+                sanitized_tools = sanitize_tools_for_responses(validated_tools)
+                # Log only the schema, not secrets
+                _LOGGER.debug(
+                    "[v%s] Sanitized tools for Responses API: %s",
+                    INTEGRATION_VERSION,
+                    json.dumps(sanitized_tools),
+                )
+                response_kwargs["tools"] = sanitized_tools
                 # Keep tool_choice as "auto" - let the model decide when to use tools
                 # The prompt instructions should be enough to guide tool usage
                 response_kwargs["tool_choice"] = function_call
