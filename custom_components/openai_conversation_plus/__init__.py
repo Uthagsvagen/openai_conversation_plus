@@ -585,17 +585,23 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
         temperature = self.entry.options.get(CONF_TEMPERATURE, DEFAULT_TEMPERATURE)
         use_tools = self.entry.options.get(CONF_USE_TOOLS, DEFAULT_USE_TOOLS)
         # Truncation threshold removed (ChatLog controls history)
+        
+        _LOGGER.info("[v%s] Loading functions... use_tools=%s", INTEGRATION_VERSION, use_tools)
         functions = [setting["spec"] for setting in (self.get_functions() or [])]
+        _LOGGER.info("[v%s] Loaded %d functions from configuration", INTEGRATION_VERSION, len(functions))
+        
         # Validate that all functions have required fields
         valid_functions = []
         for func in functions:
             if func and "name" in func:
                 valid_functions.append(func)
+                _LOGGER.debug("[v%s] Valid function: %s", INTEGRATION_VERSION, func.get("name"))
             else:
                 _LOGGER.warning("[v%s] Skipping function without name: %s", INTEGRATION_VERSION, func)
         functions = valid_functions
         
         # Debug log the functions structure
+        _LOGGER.info("[v%s] Final function count: %d valid functions ready for tool execution", INTEGRATION_VERSION, len(functions))
         _LOGGER.debug("[v%s] Functions to be used: %s", INTEGRATION_VERSION, json.dumps(functions))
         
         function_call = "auto"
@@ -608,12 +614,13 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
         # Build Responses API-native tools list
         responses_function_tools = []
         if not use_tools:
-            _LOGGER.info("[v%s] Tools/functions are disabled in configuration (use_tools=%s)", INTEGRATION_VERSION, use_tools)
+            _LOGGER.warning("[v%s] Tools/functions are DISABLED in configuration (use_tools=%s) - Model will not be able to control devices!", INTEGRATION_VERSION, use_tools)
         elif not functions:
-            _LOGGER.debug("[v%s] No functions configured", INTEGRATION_VERSION)
+            _LOGGER.warning("[v%s] No functions configured - Model will not be able to control devices!", INTEGRATION_VERSION)
+        else:
+            _LOGGER.info("[v%s] Building tools from %d functions for tool execution", INTEGRATION_VERSION, len(functions))
         
         if use_tools and functions:
-            _LOGGER.debug("[v%s] Building tools from %d functions", INTEGRATION_VERSION, len(functions))
             for func in functions:
                 # Try the Chat Completions-style structure with nested function object
                 # This is the format that Chat Completions uses, and Responses API might expect the same
@@ -771,12 +778,37 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
                     json.dumps(validated_tools),
                 )
                 response_kwargs["tools"] = validated_tools
-                response_kwargs["tool_choice"] = function_call
+                # Use "required" instead of "auto" to force tool usage
+                # This ensures the model will call a tool instead of just responding with text
+                if function_call == "auto":
+                    response_kwargs["tool_choice"] = "required"
+                    _LOGGER.info("[v%s] Setting tool_choice to 'required' to force tool execution", INTEGRATION_VERSION)
+                else:
+                    response_kwargs["tool_choice"] = function_call
+                
+                # IMPORTANT: Disable streaming when tools are present
+                # Responses API may not support streaming with tool calls
+                response_kwargs["stream"] = False
+                _LOGGER.info(
+                    "[v%s] Disabled streaming for tool call request (tools: %d, tool_choice: %s)",
+                    INTEGRATION_VERSION,
+                    len(validated_tools),
+                    function_call
+                )
 
         if previous_response_id:
             response_kwargs["previous_response_id"] = previous_response_id
 
-        # Log the complete request for debugging
+        # Enhanced logging before API call
+        _LOGGER.info(
+            "[v%s] Sending to Responses API - Model: %s, Tools: %d, tool_choice: %s, stream: %s, use_tools: %s",
+            INTEGRATION_VERSION,
+            model,
+            len(response_kwargs.get("tools", [])),
+            response_kwargs.get("tool_choice", "none"),
+            response_kwargs.get("stream", False),
+            use_tools
+        )
         _LOGGER.debug("[v%s] Full response_kwargs being sent to API: %s", INTEGRATION_VERSION, json.dumps(response_kwargs))
 
         try:
