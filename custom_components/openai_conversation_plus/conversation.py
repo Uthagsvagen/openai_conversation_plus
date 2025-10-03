@@ -139,7 +139,11 @@ class OpenAIConversationEntity(
         if mcp_tools:
             if tools is None:
                 tools = []
-            tools.extend(mcp_tools)
+            # Filter out server_api_key before sending to OpenAI (not supported by Responses API)
+            for mcp_tool in mcp_tools:
+                # Remove server_api_key from MCP tools before adding
+                clean_tool = {k: v for k, v in mcp_tool.items() if k != "server_api_key"}
+                tools.append(clean_tool)
 
         # Build Responses API input from chat log
         msgs: list[dict[str, Any]] = []
