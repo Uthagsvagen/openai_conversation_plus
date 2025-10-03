@@ -247,8 +247,18 @@ def build_mcp_tools_from_options(options):
     try:
         data = yaml.safe_load(raw)
         _LOGGER.debug("[v%s] Parsed MCP YAML data: %s", INTEGRATION_VERSION, data)
+    except yaml.YAMLError as e:
+        _LOGGER.error(
+            "[v%s] Failed to parse MCP YAML configuration: %s\n"
+            "YAML content preview:\n%s\n"
+            "Tips: Remove quotes around API keys, check indentation, ensure no line breaks in values",
+            INTEGRATION_VERSION, 
+            e,
+            raw[:500] if len(raw) > 500 else raw
+        )
+        return []
     except Exception as e:
-        _LOGGER.error("[v%s] Failed to parse MCP YAML configuration: %s", INTEGRATION_VERSION, e)
+        _LOGGER.error("[v%s] Unexpected error parsing MCP configuration: %s", INTEGRATION_VERSION, e)
         return []
     
     items = _normalize_mcp_items(data) if data else []
