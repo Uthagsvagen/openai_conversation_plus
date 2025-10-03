@@ -238,22 +238,56 @@ def _normalize_mcp_items(data):
 def build_mcp_tools_from_options(options):
     """Build MCP tools from integration options."""
     raw = options.get(CONF_MCP_SERVERS) or ""
-    try:
-        data = yaml.safe_load(raw) if raw.strip() else None
-    except Exception:
+    _LOGGER.info("[v%s] Building MCP tools from configuration...", INTEGRATION_VERSION)
+    
+    if not raw or not raw.strip():
+        _LOGGER.info("[v%s] No MCP servers configured", INTEGRATION_VERSION)
         return []
+    
+    try:
+        data = yaml.safe_load(raw)
+        _LOGGER.debug("[v%s] Parsed MCP YAML data: %s", INTEGRATION_VERSION, data)
+    except Exception as e:
+        _LOGGER.error("[v%s] Failed to parse MCP YAML configuration: %s", INTEGRATION_VERSION, e)
+        return []
+    
     items = _normalize_mcp_items(data) if data else []
+    _LOGGER.info("[v%s] Normalized %d MCP server configurations", INTEGRATION_VERSION, len(items))
+    
     tools = []
-    for it in items:
-        if it.get("server_label") and it.get("server_url"):
+    for idx, it in enumerate(items):
+        server_label = it.get("server_label")
+        server_url = it.get("server_url")
+        
+        if server_label and server_url:
             tool = {
                 "type": "mcp",
-                "server_label": it["server_label"],
-                "server_url": it["server_url"],
+                "server_label": server_label,
+                "server_url": server_url,
                 "require_approval": it.get("require_approval", "never"),
             }
+            
+            # Add API key if present (don't log the full key for security)
             if it.get("server_api_key"):
                 tool["server_api_key"] = it["server_api_key"]
+                api_key_preview = it["server_api_key"][:10] + "..." if len(it["server_api_key"]) > 10 else "***"
+                _LOGGER.info(
+                    "[v%s] MCP Server #%d: '%s' at %s (API key: %s)",
+                    INTEGRATION_VERSION,
+                    idx + 1,
+                    server_label,
+                    server_url,
+                    api_key_preview
+                )
+            else:
+                _LOGGER.info(
+                    "[v%s] MCP Server #%d: '%s' at %s (no API key)",
+                    INTEGRATION_VERSION,
+                    idx + 1,
+                    server_label,
+                    server_url
+                )
+            
             # Add allowed_tools if specified
             if it.get("allowed_tools"):
                 # Support both list and comma-separated string
@@ -262,7 +296,31 @@ def build_mcp_tools_from_options(options):
                     tool["allowed_tools"] = [t.strip() for t in allowed.split(",")]
                 elif isinstance(allowed, list):
                     tool["allowed_tools"] = allowed
+                _LOGGER.info(
+                    "[v%s]   - Allowed tools: %s",
+                    INTEGRATION_VERSION,
+                    ", ".join(tool["allowed_tools"])
+                )
+            else:
+                _LOGGER.info("[v%s]   - All tools allowed (no restriction)", INTEGRATION_VERSION)
+            
+            _LOGGER.debug(
+                "[v%s]   - Require approval: %s",
+                INTEGRATION_VERSION,
+                tool["require_approval"]
+            )
+            
             tools.append(tool)
+        else:
+            _LOGGER.warning(
+                "[v%s] Skipping MCP server #%d: missing server_label or server_url (label=%s, url=%s)",
+                INTEGRATION_VERSION,
+                idx + 1,
+                server_label,
+                server_url
+            )
+    
+    _LOGGER.info("[v%s] Successfully built %d MCP tools", INTEGRATION_VERSION, len(tools))
     return tools
 
 
