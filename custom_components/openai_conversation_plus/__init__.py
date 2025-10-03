@@ -778,13 +778,10 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
                     json.dumps(validated_tools),
                 )
                 response_kwargs["tools"] = validated_tools
-                # Use "required" instead of "auto" to force tool usage
-                # This ensures the model will call a tool instead of just responding with text
-                if function_call == "auto":
-                    response_kwargs["tool_choice"] = "required"
-                    _LOGGER.info("[v%s] Setting tool_choice to 'required' to force tool execution", INTEGRATION_VERSION)
-                else:
-                    response_kwargs["tool_choice"] = function_call
+                # Keep tool_choice as "auto" - let the model decide when to use tools
+                # The prompt instructions should be enough to guide tool usage
+                response_kwargs["tool_choice"] = function_call
+                _LOGGER.info("[v%s] Setting tool_choice to '%s' for tool execution", INTEGRATION_VERSION, function_call)
                 
                 # IMPORTANT: Disable streaming when tools are present
                 # Responses API may not support streaming with tool calls
@@ -914,8 +911,36 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
         # Fallback: If the model returned JSON in output_text, try to parse and execute
         elif text and (text.strip().startswith('[') or text.strip().startswith('{')):
             try:
-                payload = json.loads(text)
+                # Extract JSON from text that might have additional text after it
+                json_text = text.strip()
+                # Try to find just the JSON part if there's text after
+                if '{' in json_text or '[' in json_text:
+                    # Find the first complete JSON object or array
+                    start_idx = 0
+                    if json_text[0] == '{':
+                        bracket_count = 0
+                        for i, char in enumerate(json_text):
+                            if char == '{':
+                                bracket_count += 1
+                            elif char == '}':
+                                bracket_count -= 1
+                                if bracket_count == 0:
+                                    json_text = json_text[:i+1]
+                                    break
+                    elif json_text[0] == '[':
+                        bracket_count = 0
+                        for i, char in enumerate(json_text):
+                            if char == '[':
+                                bracket_count += 1
+                            elif char == ']':
+                                bracket_count -= 1
+                                if bracket_count == 0:
+                                    json_text = json_text[:i+1]
+                                    break
+                
+                payload = json.loads(json_text)
                 _LOGGER.info("[v%s] Detected JSON in output_text, attempting to parse as tool call", INTEGRATION_VERSION)
+                _LOGGER.debug("[v%s] Extracted JSON: %s", INTEGRATION_VERSION, json_text)
                 
                 # Handle array format: [{"domain":"light","service":"turn_on",...}]
                 if isinstance(payload, list):
@@ -960,6 +985,64 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
                 # Handle object format for backward compatibility
                 elif isinstance(payload, dict):
                     parsed_json = None
+                    
+                    # NEW: Handle format like {"execute_services": [...]}
+                    if "execute_services" in payload and isinstance(payload["execute_services"], list):
+                        _LOGGER.info("[v%s] Processing execute_services key format with %d actions", INTEGRATION_VERSION, len(payload["execute_services"]))
+                        from .helpers import get_function_executor
+                        executor = get_function_executor("native")
+                        fn_config = {"type": "native", "name": "execute_service"}
+                        
+                        # Build the normalized service call
+                        service_call = {"list": []}
+                        for action in payload["execute_services"]:
+                            item = {
+                                "domain": action.get("domain"),
+                                "service": action.get("service"),
+                            }
+                            # Handle target
+                            tgt = action.get("target", {})
+                            if tgt:
+                                if "entity_id" in tgt:
+                                    item["target"] = {"entity_id": tgt["entity_id"]}
+                                elif "area_id" in tgt:
+                                    area_ids = tgt["area_id"]
+                                    # Convert area_id to area_name for execution
+                                    if isinstance(area_ids, list):
+                                        item["target"] = {"area_id": area_ids}
+                                    else:
+                                        item["target"] = {"area_id": [area_ids] if not isinstance(area_ids, list) else area_ids}
+                                elif "area_name" in tgt or "area" in tgt:
+                                    item["target"] = {"area_name": tgt.get("area_name") or tgt.get("area")}
+                                elif "device_id" in tgt:
+                                    item["target"] = {"device_id": tgt["device_id"]}
+                            # Handle service_data
+                            service_data = action.get("service_data") or action.get("data", {})
+                            if service_data:
+                                item["service_data"] = service_data
+                            service_call["list"].append(item)
+                        
+                        try:
+                            _LOGGER.info("[v%s] Executing service call: %s", INTEGRATION_VERSION, json.dumps(service_call))
+                            result = await executor.execute(
+                                self.hass,
+                                fn_config,
+                                service_call,
+                                user_input,
+                                exposed_entities,
+                            )
+                            _LOGGER.info("[v%s] Successfully executed execute_services from JSON", INTEGRATION_VERSION)
+                            # Get natural language confirmation
+                            messages.append({
+                                "role": "system",
+                                "content": "The services were executed successfully. Provide a brief natural language confirmation."
+                            })
+                            return await self.query(user_input, messages, exposed_entities, n_requests + 1)
+                        except Exception as e:
+                            _LOGGER.error("[v%s] Failed to execute services from JSON: %s", INTEGRATION_VERSION, e, exc_info=True)
+                            text = f"Error executing services: {e}"
+                            message.content = text
+                    
                     # Check for both "actions" and "calls" keys (different formats from OpenAI)
                     actions_list = payload.get("actions") or payload.get("calls", [])
                     if payload.get("type") == "execute_services" and isinstance(actions_list, list):
