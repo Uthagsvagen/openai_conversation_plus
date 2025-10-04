@@ -134,6 +134,38 @@ class OpenAIConversationEntity(
                     }
                 )
         
+        # CRITICAL: Add custom functions from integration options
+        # This is where user-defined functions like execute_services are loaded!
+        from . import get_functions_from_options
+        user_functions = get_functions_from_options(opts)
+        
+        _LOGGER.info(
+            "[v%s] Loading user-defined functions from options: %d found",
+            INTEGRATION_VERSION,
+            len(user_functions) if user_functions else 0
+        )
+        
+        if user_functions:
+            if tools is None:
+                tools = []
+            for func_setting in user_functions:
+                func_spec = func_setting.get("spec", {})
+                if func_spec and "name" in func_spec:
+                    tool = {
+                        "type": "function",
+                        "function": {
+                            "name": func_spec.get("name"),
+                            "description": func_spec.get("description", ""),
+                            "parameters": func_spec.get("parameters", {"type": "object", "properties": {}})
+                        }
+                    }
+                    tools.append(tool)
+                    _LOGGER.info(
+                        "[v%s]   - Added function: %s",
+                        INTEGRATION_VERSION,
+                        func_spec.get("name")
+                    )
+        
         # Add MCP servers as tools
         from . import build_mcp_tools_from_options
         mcp_tools = build_mcp_tools_from_options(opts)
@@ -141,6 +173,11 @@ class OpenAIConversationEntity(
             if tools is None:
                 tools = []
             tools.extend(mcp_tools)
+            _LOGGER.info(
+                "[v%s] Added %d MCP tools to conversation",
+                INTEGRATION_VERSION,
+                len(mcp_tools)
+            )
 
         # Build Responses API input from chat log
         msgs: list[dict[str, Any]] = []
@@ -164,11 +201,36 @@ class OpenAIConversationEntity(
             )
 
         model = opts.get(CONF_CHAT_MODEL, DEFAULT_CHAT_MODEL)
+        max_tokens = opts.get("max_tokens", 150)
+        
         kwargs: dict[str, Any] = {
             "model": model,
             "input": msgs,
+            "max_output_tokens": max_tokens,
+            "parallel_tool_calls": True,
             "store": opts.get(CONF_STORE_CONVERSATIONS, DEFAULT_STORE_CONVERSATIONS),
         }
+        
+        # Add reasoning and verbosity for GPT-5 models
+        from .const import GPT5_MODELS, VERBOSITY_COMPAT_MAP
+        if model in GPT5_MODELS:
+            reasoning_level = opts.get("reasoning_level", "medium")
+            verbosity = opts.get("verbosity", "medium")
+            # Map legacy verbosity values
+            mapped_verbosity = VERBOSITY_COMPAT_MAP.get(verbosity, verbosity)
+            
+            kwargs["reasoning"] = {"effort": reasoning_level}
+            kwargs["text"] = {
+                "verbosity": mapped_verbosity,
+                "format": {"type": "text"}
+            }
+            _LOGGER.info(
+                "[v%s] GPT-5 settings: reasoning=%s, verbosity=%s",
+                INTEGRATION_VERSION,
+                reasoning_level,
+                mapped_verbosity
+            )
+        
         if tools:
             # Sanitize tool definitions for the Responses API (strip unsupported fields like server_api_key)
             try:
@@ -179,12 +241,27 @@ class OpenAIConversationEntity(
                 pass
             kwargs["tools"] = tools
             kwargs["tool_choice"] = "auto"
+            # Disable streaming when tools are present (Responses API limitation)
+            kwargs["stream"] = False
+            _LOGGER.info(
+                "[v%s] Sending %d tools to OpenAI (stream disabled for tool calls)",
+                INTEGRATION_VERSION,
+                len(tools)
+            )
+        else:
+            kwargs["stream"] = True
+            _LOGGER.warning(
+                "[v%s] No tools configured - model cannot control devices!",
+                INTEGRATION_VERSION
+            )
 
-        # Prefer streaming; fall back to non-streaming on error
+        # Use streaming only if enabled (disabled when tools are present)
+        use_streaming = kwargs.get("stream", True)
+        
         try:
             # Create a delta stream in the chat log
             stream_obj = getattr(chat_log, "async_add_delta_content_stream", None)
-            if callable(stream_obj):
+            if use_streaming and callable(stream_obj):
                 delta_stream = chat_log.async_add_delta_content_stream(
                     AssistantContent(agent_id=user_input.agent_id, content="")
                 )
