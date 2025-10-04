@@ -57,6 +57,8 @@ from .const import (
     DEFAULT_CONF_BASE_URL,
     DEFAULT_CONF_FUNCTIONS,
     DEFAULT_ENABLE_CONVERSATION_EVENTS,
+    CONF_STREAM_ENABLED,
+    DEFAULT_STREAM_ENABLED,
     DEFAULT_ENABLE_WEB_SEARCH,
     DEFAULT_MAX_FUNCTION_CALLS_PER_CONVERSATION,
     DEFAULT_MAX_TOKENS,
@@ -101,6 +103,7 @@ DEFAULT_OPTIONS = types.MappingProxyType(
         CONF_STORE_CONVERSATIONS: DEFAULT_STORE_CONVERSATIONS,
         CONF_REASONING_LEVEL: DEFAULT_REASONING_LEVEL,
         CONF_VERBOSITY: DEFAULT_VERBOSITY,
+        CONF_STREAM_ENABLED: DEFAULT_STREAM_ENABLED,
     }
 )
 
@@ -280,6 +283,11 @@ class OptionsFlow(config_entries.OptionsFlow):
             CONF_ENABLE_CONVERSATION_EVENTS,
             description={"suggested_value": options.get(CONF_ENABLE_CONVERSATION_EVENTS, DEFAULT_ENABLE_CONVERSATION_EVENTS)},
             default=DEFAULT_ENABLE_CONVERSATION_EVENTS,
+        )] = BooleanSelector()
+        schema[vol.Optional(
+            CONF_STREAM_ENABLED,
+            description={"suggested_value": options.get(CONF_STREAM_ENABLED, DEFAULT_STREAM_ENABLED)},
+            default=DEFAULT_STREAM_ENABLED,
         )] = BooleanSelector()
 
         # Select lists

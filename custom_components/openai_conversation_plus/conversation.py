@@ -241,15 +241,19 @@ class OpenAIConversationEntity(
                 pass
             kwargs["tools"] = tools
             kwargs["tool_choice"] = "auto"
-            # Disable streaming when tools are present (Responses API limitation)
-            kwargs["stream"] = False
+            # Respect user stream setting; disable when tools are present regardless if False
+            from .const import CONF_STREAM_ENABLED, DEFAULT_STREAM_ENABLED
+            stream_enabled = opts.get(CONF_STREAM_ENABLED, DEFAULT_STREAM_ENABLED)
+            kwargs["stream"] = bool(stream_enabled) and False
             _LOGGER.info(
-                "[v%s] Sending %d tools to OpenAI (stream disabled for tool calls)",
+                "[v%s] Sending %d tools to OpenAI (stream=%s for tool calls)",
                 INTEGRATION_VERSION,
-                len(tools)
+                len(tools),
+                kwargs.get("stream")
             )
         else:
-            kwargs["stream"] = True
+            from .const import CONF_STREAM_ENABLED, DEFAULT_STREAM_ENABLED
+            kwargs["stream"] = opts.get(CONF_STREAM_ENABLED, DEFAULT_STREAM_ENABLED)
             _LOGGER.warning(
                 "[v%s] No tools configured - model cannot control devices!",
                 INTEGRATION_VERSION

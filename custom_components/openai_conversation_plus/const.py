@@ -203,6 +203,10 @@ VERBOSITY_COMPAT_MAP: Dict[str, str] = {
 CONF_ENABLE_CONVERSATION_EVENTS = "enable_conversation_events"
 DEFAULT_ENABLE_CONVERSATION_EVENTS = False
 
+# Streaming configuration (user-controlled)
+CONF_STREAM_ENABLED = "stream_enabled"
+DEFAULT_STREAM_ENABLED = True
+
 # MCP Server Configuration
 CONF_MCP_SERVERS = "mcp_servers"
 DEFAULT_MCP_SERVERS = ""
