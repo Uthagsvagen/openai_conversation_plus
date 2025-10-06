@@ -241,15 +241,16 @@ class OpenAIConversationEntity(
                 pass
             kwargs["tools"] = tools
             kwargs["tool_choice"] = "auto"
-            # Respect user stream setting; disable when tools are present regardless if False
+            # Streaming IS supported with tools according to official docs!
             from .const import CONF_STREAM_ENABLED, DEFAULT_STREAM_ENABLED
             stream_enabled = opts.get(CONF_STREAM_ENABLED, DEFAULT_STREAM_ENABLED)
-            kwargs["stream"] = bool(stream_enabled) and False
+            kwargs["stream"] = bool(stream_enabled)
             _LOGGER.info(
-                "[v%s] Sending %d tools to OpenAI (stream=%s for tool calls)",
+                "[v%s] Sending %d tools to OpenAI (stream=%s, tool_choice=%s)",
                 INTEGRATION_VERSION,
                 len(tools),
-                kwargs.get("stream")
+                kwargs.get("stream"),
+                kwargs.get("tool_choice")
             )
         else:
             from .const import CONF_STREAM_ENABLED, DEFAULT_STREAM_ENABLED
@@ -259,7 +260,19 @@ class OpenAIConversationEntity(
                 INTEGRATION_VERSION
             )
 
-        # Use streaming only if enabled (disabled when tools are present)
+        # Enhanced final logging before sending to OpenAI
+        _LOGGER.info(
+            "[v%s] Final kwargs summary - model=%s, stream=%s, parallel_tool_calls=%s, tools=%d, tool_choice=%s",
+            INTEGRATION_VERSION,
+            kwargs.get("model"),
+            kwargs.get("stream"),
+            kwargs.get("parallel_tool_calls"),
+            len(kwargs.get("tools", [])),
+            kwargs.get("tool_choice", "none")
+        )
+        _LOGGER.debug("[v%s] Complete kwargs being sent to Responses API: %s", INTEGRATION_VERSION, json.dumps(kwargs, default=str))
+        
+        # Use streaming only if enabled
         use_streaming = kwargs.get("stream", True)
         
         try:
@@ -279,15 +292,60 @@ class OpenAIConversationEntity(
                         pending_tool_calls: list[dict[str, Any]] = []
                         async for event in resp_stream:
                             etype = getattr(event, "type", "")
-                            # Stream text deltas
-                            if etype.endswith("output_text.delta"):
+                            _LOGGER.debug("[v%s] Streaming event: %s", INTEGRATION_VERSION, etype)
+                            
+                            # Stream text deltas - Use correct event names per official docs
+                            if etype == "response.output_text.delta":
+                                delta_text = getattr(event, "delta", None)
+                                if delta_text:
+                                    push = getattr(delta_stream, "async_push_delta", None)
+                                    if callable(push):
+                                        await delta_stream.async_push_delta(delta_text)
+                            
+                            # Function call events per official docs
+                            elif etype == "response.function_call.arguments.delta":
+                                fn_args = getattr(event, "delta", None)
+                                if fn_args and pending_tool_calls:
+                                    pending_tool_calls[-1]["arguments"] += fn_args
+                                    
+                            elif etype == "response.function_call.arguments.done":
+                                # Function call completed - execute it
+                                fn = getattr(event, "function_call", None)
+                                if fn:
+                                    func_name = getattr(fn, "name", None)
+                                    arguments = getattr(fn, "arguments", "{}")
+                                    
+                                    if func_name:
+                                        _LOGGER.info("[v%s] Streaming function call: %s", INTEGRATION_VERSION, func_name)
+                                        try:
+                                            args = json.loads(arguments)
+                                        except Exception:
+                                            args = {}
+                                        
+                                        from . import get_functions_from_options
+                                        functions = get_functions_from_options(opts)
+                                        fn_def = next((f for f in functions if f["spec"]["name"] == func_name), None)
+                                        if fn_def:
+                                            from .helpers import get_function_executor
+                                            executor = get_function_executor(fn_def["function"]["type"])
+                                            result = await executor.execute(
+                                                self.hass,
+                                                fn_def["function"],
+                                                args,
+                                                user_input,
+                                                self._get_exposed_entities(),
+                                            )
+                                            _LOGGER.info("[v%s] Executed streaming function call: %s", INTEGRATION_VERSION, func_name)
+                                            
+                            # Also handle legacy event names as fallback (for compatibility)
+                            elif etype.endswith("output_text.delta"):
                                 delta = getattr(event, "delta", None)
                                 if delta:
                                     push = getattr(delta_stream, "async_push_delta", None)
                                     if callable(push):
                                         await delta_stream.async_push_delta(delta)
-                            # Collect tool call deltas (names vary by SDK; catch common patterns)
-                            if etype.endswith("tool_call.created") or etype.endswith("function_call.created"):
+                            elif etype.endswith("function_call.created") or "tool_call" in etype:
+                                # Legacy handling - keep for backward compatibility
                                 fn = getattr(event, "function", None)
                                 if fn and getattr(fn, "name", None):
                                     pending_tool_calls.append({
@@ -295,42 +353,27 @@ class OpenAIConversationEntity(
                                         "name": fn.name,
                                         "arguments": getattr(fn, "arguments", "{}"),
                                     })
-                            if etype.endswith("tool_call.delta") or etype.endswith("function_call.delta"):
-                                # If arguments stream in chunks, append
-                                fn = getattr(event, "function", None)
-                                if fn and getattr(fn, "arguments", None) and pending_tool_calls:
-                                    pending_tool_calls[-1]["arguments"] += fn.arguments
-                            if etype.endswith("tool_call.completed") or etype.endswith("function_call.completed"):
-                                # Execute completed tool call
-                                if pending_tool_calls:
-                                    call = pending_tool_calls.pop()
-                                    try:
-                                        args = json.loads(call.get("arguments") or "{}")
-                                    except Exception:
-                                        args = {}
-                                    from . import get_functions_from_options
-                                    functions = get_functions_from_options(opts)
-                                    fn_def = next((f for f in functions if f["spec"]["name"] == call.get("name")), None)
-                                    if fn_def:
-                                        from .helpers import get_function_executor
-                                        executor = get_function_executor(fn_def["function"]["type"])
-                                        result = await executor.execute(
-                                            self.hass,
-                                            fn_def["function"],
-                                            args,
-                                            user_input,
-                                            self._get_exposed_entities(),
-                                        )
-                                        # Send tool_outputs back to responses to continue
-                                        await resp_stream.send(
-                                            tool_outputs=[{
-                                                "tool_call_id": call.get("id"),
-                                                "output": json.dumps(result, ensure_ascii=False),
-                                            }]
-                                        )
                         # Final response
                         final = await resp_stream.get_final_response()
-                        out = getattr(final, "output_text", "") or ""
+                        # Parse streaming final response using same logic as non-streaming
+                        out = ""
+                        try:
+                            out = getattr(final, "output_text", None)
+                            if not out:
+                                # Parse manual structure: response.output[].content[].text
+                                if hasattr(final, "output") and final.output:
+                                    for output_item in final.output:
+                                        if getattr(output_item, "type", "") == "message":
+                                            content_items = getattr(output_item, "content", [])
+                                            for content_item in content_items:
+                                                if getattr(content_item, "type", "") == "output_text":
+                                                    text = getattr(content_item, "text", "")
+                                                    if text:
+                                                        out += text + "\n"
+                            out = out.strip() if out else ""
+                        except Exception as e:
+                            _LOGGER.error("[v%s] Error parsing streaming final response: %s", INTEGRATION_VERSION, e)
+                            out = ""
                 finally:
                     # Ensure stream is closed
                     close = getattr(delta_stream, "async_end", None)
@@ -356,10 +399,47 @@ class OpenAIConversationEntity(
                     final = await client.responses.create(**kwargs)
                 else:
                     raise
-            out = getattr(final, "output_text", "") or ""
+            
+            # Parse response according to official Responses API structure
+            out = ""
+            try:
+                # Try SDK convenience property first
+                out = getattr(final, "output_text", None)
+                if not out:
+                    # Parse manual structure: response.output[].content[].text
+                    if hasattr(final, "output") and final.output:
+                        for output_item in final.output:
+                            if getattr(output_item, "type", "") == "message":
+                                content_items = getattr(output_item, "content", [])
+                                for content_item in content_items:
+                                    if getattr(content_item, "type", "") == "output_text":
+                                        text = getattr(content_item, "text", "")
+                                        if text:
+                                            out += text + "\n"
+                out = out.strip() if out else ""
+                _LOGGER.debug("[v%s] Parsed response text: %s", INTEGRATION_VERSION, out[:100] + "..." if len(out) > 100 else out)
+            except Exception as e:
+                _LOGGER.error("[v%s] Error parsing response structure: %s", INTEGRATION_VERSION, e)
+                out = ""
 
-        # Check if the response contains tool calls (proper Responses API format)
-        tool_calls = getattr(final, "tool_calls", None) or []
+        # Check if the response contains tool calls according to Responses API structure
+        # Tool calls are found in the response.output[].content[] items
+        tool_calls = []
+        try:
+            # First try SDK convenience property
+            tool_calls = getattr(final, "tool_calls", None) or []
+            
+            # If no tool calls via SDK property, parse from output structure
+            if not tool_calls and hasattr(final, "output") and final.output:
+                for output_item in final.output:
+                    if getattr(output_item, "type", "") == "message":
+                        # Check if this message has tool calls
+                        if hasattr(output_item, "tool_calls"):
+                            tool_calls.extend(output_item.tool_calls)
+        except Exception as e:
+            _LOGGER.error("[v%s] Error parsing tool calls from response: %s", INTEGRATION_VERSION, e)
+            tool_calls = []
+            
         if tool_calls:
             _LOGGER.info("[v%s] Processing %d tool calls from Responses API", INTEGRATION_VERSION, len(tool_calls))
             results = []
