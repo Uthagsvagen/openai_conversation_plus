@@ -7,7 +7,7 @@ from typing import Dict
 DOMAIN = "openai_conversation_plus"
 
 # Integration version used for logging. Keep in sync with manifest if you bump versions.
-INTEGRATION_VERSION = "2025.9.2.8"
+INTEGRATION_VERSION = "2025.9.3.5"
 DEFAULT_NAME = "OpenAI Conversation Plus"
 CONF_ORGANIZATION = "organization"
 CONF_BASE_URL = "base_url"

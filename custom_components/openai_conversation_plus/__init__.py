@@ -331,8 +331,8 @@ def build_mcp_tools_from_options(options):
 def sanitize_tools_for_responses(tools: list[dict]) -> list[dict]:
     """Sanitize tools for the Responses API by removing unsupported fields.
 
-    - Removes secret-bearing or non-spec fields (e.g., server_api_key) from MCP tools
-    - Ensures function tools use the nested structure {type:function, function:{...}}
+    - Removes secret-bearing or non-spec fields from tools where not supported
+    - Ensures function tools use the flat structure {type:function, name:..., description:..., parameters:...}
     - Keeps only known fields for web_search and mcp tool types
     """
     sanitized: list[dict] = []
@@ -340,23 +340,22 @@ def sanitize_tools_for_responses(tools: list[dict]) -> list[dict]:
         try:
             tool_type = original.get("type")
             if tool_type == "function":
+                # Responses API requires flat structure
                 if "function" in original and isinstance(original["function"], dict):
+                    # Convert nested format to flat format
                     sanitized.append({
                         "type": "function",
-                        "function": {
-                            "name": original["function"].get("name"),
-                            "description": original["function"].get("description", ""),
-                            "parameters": original["function"].get("parameters", {"type": "object", "properties": {}}),
-                        },
+                        "name": original["function"].get("name"),
+                        "description": original["function"].get("description", ""),
+                        "parameters": original["function"].get("parameters", {"type": "object", "properties": {}}),
                     })
                 elif original.get("name"):
+                    # Already flat format
                     sanitized.append({
                         "type": "function",
-                        "function": {
-                            "name": original.get("name"),
-                            "description": original.get("description", ""),
-                            "parameters": original.get("parameters", {"type": "object", "properties": {}}),
-                        },
+                        "name": original.get("name"),
+                        "description": original.get("description", ""),
+                        "parameters": original.get("parameters", {"type": "object", "properties": {}}),
                     })
             elif tool_type == "web_search":
                 ws: dict[str, Any] = {"type": "web_search"}

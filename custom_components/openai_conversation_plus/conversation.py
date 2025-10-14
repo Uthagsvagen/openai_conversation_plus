@@ -122,15 +122,13 @@ class OpenAIConversationEntity(
         if chat_log.llm_api:
             tools = []
             for t in chat_log.llm_api.tools:
-                # Use nested structure (Chat Completions style) which Responses API also accepts
+                # Use flat structure required by Responses API
                 tools.append(
                     {
                         "type": "function",
-                        "function": {
-                            "name": t.name,
-                            "description": getattr(t, "description", ""),
-                            "parameters": getattr(t, "parameters", {}),
-                        }
+                        "name": t.name,
+                        "description": getattr(t, "description", ""),
+                        "parameters": getattr(t, "parameters", {}),
                     }
                 )
         
@@ -151,13 +149,12 @@ class OpenAIConversationEntity(
             for func_setting in user_functions:
                 func_spec = func_setting.get("spec", {})
                 if func_spec and "name" in func_spec:
+                    # Use flat structure required by Responses API
                     tool = {
                         "type": "function",
-                        "function": {
-                            "name": func_spec.get("name"),
-                            "description": func_spec.get("description", ""),
-                            "parameters": func_spec.get("parameters", {"type": "object", "properties": {}})
-                        }
+                        "name": func_spec.get("name"),
+                        "description": func_spec.get("description", ""),
+                        "parameters": func_spec.get("parameters", {"type": "object", "properties": {}})
                     }
                     tools.append(tool)
                     _LOGGER.info(
@@ -289,7 +286,8 @@ class OpenAIConversationEntity(
                         raise RuntimeError("Responses streaming not available")
 
                     async with client.responses.stream(**kwargs) as resp_stream:
-                        pending_tool_calls: list[dict[str, Any]] = []
+                        pending_tool_calls: dict[str, dict[str, Any]] = {}  # Track by item_id
+                        
                         async for event in resp_stream:
                             etype = getattr(event, "type", "")
                             _LOGGER.debug("[v%s] Streaming event: %s", INTEGRATION_VERSION, etype)
@@ -302,57 +300,88 @@ class OpenAIConversationEntity(
                                     if callable(push):
                                         await delta_stream.async_push_delta(delta_text)
                             
-                            # Function call events per official docs
-                            elif etype == "response.function_call.arguments.delta":
-                                fn_args = getattr(event, "delta", None)
-                                if fn_args and pending_tool_calls:
-                                    pending_tool_calls[-1]["arguments"] += fn_args
+                            # Function call start event
+                            elif etype == "response.output_item.added":
+                                item = getattr(event, "item", None)
+                                if item and getattr(item, "type", "") == "function_call":
+                                    item_id = getattr(item, "id", None)
+                                    if item_id:
+                                        pending_tool_calls[item_id] = {
+                                            "id": item_id,
+                                            "call_id": getattr(item, "call_id", None),
+                                            "name": getattr(item, "name", None),
+                                            "arguments": ""
+                                        }
+                                        _LOGGER.debug("[v%s] Function call started: %s", INTEGRATION_VERSION, getattr(item, "name", "unknown"))
+                            
+                            # Function call arguments delta
+                            elif etype == "response.function_call_arguments.delta":
+                                item_id = getattr(event, "item_id", None)
+                                delta = getattr(event, "delta", None)
+                                if item_id in pending_tool_calls and delta:
+                                    pending_tool_calls[item_id]["arguments"] += delta
+                            
+                            # Function call arguments completed
+                            elif etype == "response.function_call_arguments.done":
+                                item_id = getattr(event, "item_id", None)
+                                arguments_str = getattr(event, "arguments", None)
+                                
+                                if item_id in pending_tool_calls:
+                                    tool_call = pending_tool_calls[item_id]
+                                    if arguments_str:
+                                        tool_call["arguments"] = arguments_str
                                     
-                            elif etype == "response.function_call.arguments.done":
-                                # Function call completed - execute it
-                                fn = getattr(event, "function_call", None)
-                                if fn:
-                                    func_name = getattr(fn, "name", None)
-                                    arguments = getattr(fn, "arguments", "{}")
+                                    func_name = tool_call["name"]
+                                    call_id = tool_call["call_id"]
                                     
-                                    if func_name:
-                                        _LOGGER.info("[v%s] Streaming function call: %s", INTEGRATION_VERSION, func_name)
+                                    if func_name and call_id:
+                                        _LOGGER.info("[v%s] Executing streaming function call: %s", INTEGRATION_VERSION, func_name)
+                                        
                                         try:
-                                            args = json.loads(arguments)
-                                        except Exception:
+                                            args = json.loads(tool_call["arguments"])
+                                        except json.JSONDecodeError:
                                             args = {}
                                         
+                                        # Find and execute the function
                                         from . import get_functions_from_options
                                         functions = get_functions_from_options(opts)
                                         fn_def = next((f for f in functions if f["spec"]["name"] == func_name), None)
+                                        
                                         if fn_def:
-                                            from .helpers import get_function_executor
-                                            executor = get_function_executor(fn_def["function"]["type"])
-                                            result = await executor.execute(
-                                                self.hass,
-                                                fn_def["function"],
-                                                args,
-                                                user_input,
-                                                self._get_exposed_entities(),
-                                            )
-                                            _LOGGER.info("[v%s] Executed streaming function call: %s", INTEGRATION_VERSION, func_name)
-                                            
-                            # Also handle legacy event names as fallback (for compatibility)
-                            elif etype.endswith("output_text.delta"):
-                                delta = getattr(event, "delta", None)
-                                if delta:
-                                    push = getattr(delta_stream, "async_push_delta", None)
-                                    if callable(push):
-                                        await delta_stream.async_push_delta(delta)
-                            elif etype.endswith("function_call.created") or "tool_call" in etype:
-                                # Legacy handling - keep for backward compatibility
-                                fn = getattr(event, "function", None)
-                                if fn and getattr(fn, "name", None):
-                                    pending_tool_calls.append({
-                                        "id": getattr(event, "id", None),
-                                        "name": fn.name,
-                                        "arguments": getattr(fn, "arguments", "{}"),
-                                    })
+                                            try:
+                                                from .helpers import get_function_executor
+                                                executor = get_function_executor(fn_def["function"]["type"])
+                                                result = await executor.execute(
+                                                    self.hass,
+                                                    fn_def["function"],
+                                                    args,
+                                                    user_input,
+                                                    self._get_exposed_entities(),
+                                                )
+                                                _LOGGER.info("[v%s] Executed streaming function: %s - result: %s", INTEGRATION_VERSION, func_name, str(result)[:100])
+                                            except Exception as e:
+                                                _LOGGER.error("[v%s] Failed to execute streaming function %s: %s", INTEGRATION_VERSION, func_name, e)
+                                        else:
+                                            # Check if it's a Home Assistant LLM API tool
+                                            if chat_log.llm_api:
+                                                try:
+                                                    from homeassistant.helpers import llm
+                                                    tool_input = llm.ToolInput(
+                                                        tool_name=func_name,
+                                                        tool_args=args,
+                                                        platform=DOMAIN,
+                                                        context=user_input.context,
+                                                        user_prompt=user_input.text,
+                                                        language=user_input.language,
+                                                        assistant=conversation.DOMAIN,
+                                                        device_id=user_input.device_id,
+                                                    )
+                                                    result = await chat_log.llm_api.async_call_tool(tool_input)
+                                                    _LOGGER.info("[v%s] Executed streaming HA LLM API tool: %s", INTEGRATION_VERSION, func_name)
+                                                except Exception as e:
+                                                    _LOGGER.error("[v%s] Failed to execute streaming HA LLM API tool %s: %s", INTEGRATION_VERSION, func_name, e)
+                                            else:
+                                                _LOGGER.warning("[v%s] No matching function found for streaming call: %s", INTEGRATION_VERSION, func_name)
                         # Final response
                         final = await resp_stream.get_final_response()
                         # Parse streaming final response using same logic as non-streaming
@@ -381,26 +410,137 @@ class OpenAIConversationEntity(
                         await delta_stream.async_end()
             else:
                 raise RuntimeError("ChatLog delta stream not available")
-        except Exception:
-            # Non-streaming fallback with defensive retries for tool/schema issues
-            try:
-                final = await client.responses.create(**kwargs)
-            except TypeError:
-                # Remove potentially unsupported fields just in case
-                kwargs.pop("response_format", None)
-                kwargs.pop("text", None)
-                kwargs.pop("reasoning", None)
-                final = await client.responses.create(**kwargs)
-            except OpenAIError as e:
-                if "tools" in str(e):
-                    # Retry without tools if the provider rejects tool schema
-                    kwargs.pop("tools", None)
-                    kwargs.pop("tool_choice", None)
-                    final = await client.responses.create(**kwargs)
-                else:
-                    raise
+        except Exception as stream_error:
+            _LOGGER.warning("[v%s] Streaming failed: %s, falling back to non-streaming", INTEGRATION_VERSION, stream_error)
+            # Non-streaming fallback with function execution loop
+            max_iterations = 10
+            conversation_items = msgs.copy()
             
-            # Parse response according to official Responses API structure
+            for iteration in range(max_iterations):
+                _LOGGER.debug("[v%s] Non-streaming iteration %d/%d", INTEGRATION_VERSION, iteration + 1, max_iterations)
+                
+                try:
+                    final = await client.responses.create(**kwargs)
+                except TypeError:
+                    # Remove potentially unsupported fields just in case
+                    kwargs.pop("response_format", None)
+                    kwargs.pop("text", None)
+                    kwargs.pop("reasoning", None)
+                    final = await client.responses.create(**kwargs)
+                except OpenAIError as e:
+                    if "tools" in str(e):
+                        # Retry without tools if the provider rejects tool schema
+                        kwargs.pop("tools", None)
+                        kwargs.pop("tool_choice", None)
+                        final = await client.responses.create(**kwargs)
+                    else:
+                        raise
+                
+                # Extract function calls from response.output
+                function_calls = []
+                if hasattr(final, "output") and final.output:
+                    for output_item in final.output:
+                        if getattr(output_item, "type", "") == "function_call":
+                            function_calls.append(output_item)
+                
+                if not function_calls:
+                    # No more function calls, we're done
+                    _LOGGER.debug("[v%s] No function calls in iteration %d, finishing", INTEGRATION_VERSION, iteration + 1)
+                    break
+                
+                # Execute all function calls and collect outputs
+                _LOGGER.info("[v%s] Executing %d function calls in iteration %d", INTEGRATION_VERSION, len(function_calls), iteration + 1)
+                function_outputs = []
+                
+                for func_call in function_calls:
+                    try:
+                        func_name = getattr(func_call, "name", None)
+                        arguments_str = getattr(func_call, "arguments", "{}")
+                        call_id = getattr(func_call, "call_id", None)
+                        
+                        if not func_name or not call_id:
+                            _LOGGER.warning("[v%s] Invalid function call: missing name or call_id", INTEGRATION_VERSION)
+                            continue
+                        
+                        _LOGGER.info("[v%s] Executing function: %s", INTEGRATION_VERSION, func_name)
+                        
+                        try:
+                            arguments = json.loads(arguments_str)
+                        except json.JSONDecodeError:
+                            arguments = {}
+                        
+                        # Find and execute the matching function
+                        from . import get_functions_from_options
+                        functions = get_functions_from_options(opts)
+                        matching_func = next((f for f in functions if f["spec"]["name"] == func_name), None)
+                        
+                        if matching_func:
+                            from .helpers import get_function_executor
+                            executor = get_function_executor(matching_func["function"]["type"])
+                            result = await executor.execute(
+                                self.hass,
+                                matching_func["function"],
+                                arguments,
+                                user_input,
+                                self._get_exposed_entities(),
+                            )
+                            output_str = json.dumps({"result": result}) if not isinstance(result, str) else result
+                            _LOGGER.info("[v%s] Function %s executed successfully", INTEGRATION_VERSION, func_name)
+                        else:
+                            # Check if it's a Home Assistant LLM API tool
+                            if chat_log.llm_api:
+                                try:
+                                    from homeassistant.helpers import llm
+                                    tool_input = llm.ToolInput(
+                                        tool_name=func_name,
+                                        tool_args=arguments,
+                                        platform=DOMAIN,
+                                        context=user_input.context,
+                                        user_prompt=user_input.text,
+                                        language=user_input.language,
+                                        assistant=conversation.DOMAIN,
+                                        device_id=user_input.device_id,
+                                    )
+                                    result = await chat_log.llm_api.async_call_tool(tool_input)
+                                    output_str = json.dumps(result)
+                                    _LOGGER.info("[v%s] HA LLM API tool %s executed successfully", INTEGRATION_VERSION, func_name)
+                                except Exception as e:
+                                    _LOGGER.error("[v%s] Failed to execute HA LLM API tool %s: %s", INTEGRATION_VERSION, func_name, e)
+                                    output_str = json.dumps({"error": str(e)})
+                            else:
+                                _LOGGER.warning("[v%s] No matching function found for: %s", INTEGRATION_VERSION, func_name)
+                                output_str = json.dumps({"error": f"Unknown function: {func_name}"})
+                        
+                        # Add function output in correct format
+                        function_outputs.append({
+                            "type": "function_call_output",
+                            "call_id": call_id,
+                            "output": output_str
+                        })
+                        
+                    except Exception as e:
+                        _LOGGER.error("[v%s] Failed to execute function call: %s", INTEGRATION_VERSION, e)
+                        if call_id:
+                            function_outputs.append({
+                                "type": "function_call_output",
+                                "call_id": call_id,
+                                "output": json.dumps({"error": str(e)})
+                            })
+                
+                if not function_outputs:
+                    # No outputs to send back, break to avoid infinite loop
+                    break
+                
+                # Append response outputs and function outputs to conversation
+                conversation_items.extend(final.output)
+                conversation_items.extend(function_outputs)
+                
+                # Update kwargs for next iteration
+                kwargs["input"] = conversation_items
+                
+                _LOGGER.debug("[v%s] Continuing loop with %d function outputs", INTEGRATION_VERSION, len(function_outputs))
+            
+            # Parse final response text
             out = ""
             try:
                 # Try SDK convenience property first
@@ -417,68 +557,13 @@ class OpenAIConversationEntity(
                                         if text:
                                             out += text + "\n"
                 out = out.strip() if out else ""
-                _LOGGER.debug("[v%s] Parsed response text: %s", INTEGRATION_VERSION, out[:100] + "..." if len(out) > 100 else out)
+                _LOGGER.debug("[v%s] Parsed final response text: %s", INTEGRATION_VERSION, out[:100] + "..." if len(out) > 100 else out)
             except Exception as e:
                 _LOGGER.error("[v%s] Error parsing response structure: %s", INTEGRATION_VERSION, e)
                 out = ""
-
-        # Check if the response contains tool calls according to Responses API structure
-        # Tool calls are found in the response.output[].content[] items
-        tool_calls = []
-        try:
-            # First try SDK convenience property
-            tool_calls = getattr(final, "tool_calls", None) or []
-            
-            # If no tool calls via SDK property, parse from output structure
-            if not tool_calls and hasattr(final, "output") and final.output:
-                for output_item in final.output:
-                    if getattr(output_item, "type", "") == "message":
-                        # Check if this message has tool calls
-                        if hasattr(output_item, "tool_calls"):
-                            tool_calls.extend(output_item.tool_calls)
-        except Exception as e:
-            _LOGGER.error("[v%s] Error parsing tool calls from response: %s", INTEGRATION_VERSION, e)
-            tool_calls = []
-            
-        if tool_calls:
-            _LOGGER.info("[v%s] Processing %d tool calls from Responses API", INTEGRATION_VERSION, len(tool_calls))
-            results = []
-            for tool_call in tool_calls:
-                try:
-                    if hasattr(tool_call, 'function'):
-                        func_name = tool_call.function.name
-                        arguments = json.loads(tool_call.function.arguments)
-                        
-                        _LOGGER.debug("[v%s] Executing tool call: %s with args: %s", INTEGRATION_VERSION, func_name, arguments)
-                        
-                        # Find the matching function from configured tools
-                        from . import get_functions_from_options
-                        functions = get_functions_from_options(opts)
-                        matching_func = next((f for f in functions if f["spec"]["name"] == func_name), None)
-                        
-                        if matching_func:
-                            from .helpers import get_function_executor
-                            executor = get_function_executor(matching_func["function"]["type"])
-                            result = await executor.execute(
-                                self.hass,
-                                matching_func["function"],
-                                arguments,
-                                user_input,
-                                self._get_exposed_entities(),
-                            )
-                            results.append(f"Executed {func_name}: {result}")
-                        else:
-                            _LOGGER.warning("[v%s] No matching function found for: %s", INTEGRATION_VERSION, func_name)
-                            results.append(f"Unknown function: {func_name}")
-                except Exception as e:
-                    _LOGGER.error("[v%s] Failed to execute tool call: %s", INTEGRATION_VERSION, e)
-                    results.append(f"Error executing {getattr(tool_call, 'function', {}).get('name', 'unknown')}: {e}")
-            
-            if results:
-                out = ". ".join(results) if len(results) > 1 else results[0]
         
         # Fallback: If the model returned JSON in output_text, try to parse and execute
-        elif out and (out.strip().startswith("[") or out.strip().startswith("{")):
+        if out and (out.strip().startswith("[") or out.strip().startswith("{")):
             try:
                 payload = json.loads(out)
                 _LOGGER.info("[v%s] Detected JSON in output_text, attempting to parse as tool call", INTEGRATION_VERSION)
