@@ -201,8 +201,7 @@ class OpenAIConversationEntity(
             )
 
         # Build Responses API input from chat log
-        # Extract instructions (system prompt) and user/assistant messages separately
-        instructions_text = None
+        # Use the flat message format per Responses API spec
         msgs: list[dict[str, Any]] = []
         
         for idx, c in enumerate(chat_log.content):
@@ -213,41 +212,38 @@ class OpenAIConversationEntity(
             _LOGGER.debug("[v%s] Chat log item %d: role=%s, is_user=%s, text_len=%d", 
                          INTEGRATION_VERSION, idx, role, is_user, len(text))
             
-            # First message might be system/developer instructions
+            # Determine correct role for Responses API
+            # First message is typically system prompt
             if idx == 0 and role in ("system", "developer", None) and not is_user:
-                # This is the system prompt - use as instructions
-                instructions_text = text
-                _LOGGER.debug("[v%s] Extracted system prompt as instructions (%d chars)", INTEGRATION_VERSION, len(text))
-                continue
-            
-            # Determine correct role
-            # The last message in a conversation is typically the user's input
-            is_last_message = (idx == len(chat_log.content) - 1)
-            
-            if is_user or role == "user" or (is_last_message and not role):
+                msg_role = "system"
+                _LOGGER.debug("[v%s] First message treated as system", INTEGRATION_VERSION)
+            elif is_user or role == "user":
                 msg_role = "user"
-                content_type = "input_text"
+                _LOGGER.debug("[v%s] Message is user", INTEGRATION_VERSION)
+            elif idx == len(chat_log.content) - 1 and not role:
+                # Last message without explicit role defaults to user
+                msg_role = "user"
+                _LOGGER.debug("[v%s] Last message without role treated as user", INTEGRATION_VERSION)
             else:
                 msg_role = "assistant"
-                content_type = "output_text"
+                _LOGGER.debug("[v%s] Message is assistant", INTEGRATION_VERSION)
             
+            # Use output_text for all content per Responses API examples
             msgs.append(
                 {
                     "type": "message",
                     "role": msg_role,
                     "content": [
                         {
-                            "type": content_type,
+                            "type": "output_text",
                             "text": text,
                         }
                     ],
                 }
             )
-            _LOGGER.debug("[v%s] Added message with role=%s, type=%s", 
-                         INTEGRATION_VERSION, msg_role, content_type)
+            _LOGGER.debug("[v%s] Added message with role=%s", INTEGRATION_VERSION, msg_role)
             
-        _LOGGER.info("[v%s] Built %d messages from chat log (instructions: %s)", 
-                    INTEGRATION_VERSION, len(msgs), "yes" if instructions_text else "no")
+        _LOGGER.info("[v%s] Built %d messages from chat log", INTEGRATION_VERSION, len(msgs))
 
         model = opts.get(CONF_CHAT_MODEL, DEFAULT_CHAT_MODEL)
         max_tokens = opts.get("max_tokens", 150)
@@ -259,10 +255,6 @@ class OpenAIConversationEntity(
             "parallel_tool_calls": True,
             "store": opts.get(CONF_STORE_CONVERSATIONS, DEFAULT_STORE_CONVERSATIONS),
         }
-        
-        # Add instructions if we extracted a system prompt
-        if instructions_text:
-            kwargs["instructions"] = instructions_text
         
         # Add reasoning and verbosity for GPT-5 models
         from .const import GPT5_MODELS, VERBOSITY_COMPAT_MAP
