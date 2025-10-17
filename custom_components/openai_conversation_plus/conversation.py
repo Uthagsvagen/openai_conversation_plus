@@ -147,12 +147,23 @@ class OpenAIConversationEntity(
             tools = []
             for t in chat_log.llm_api.tools:
                 # Use flat structure required by Responses API
+                params = getattr(t, "parameters", {}) or {}
+                try:
+                    # Sanitize: remove unsupported/duplicative 'data' if present
+                    if isinstance(params, dict) and isinstance(params.get("properties"), dict):
+                        if "data" in params["properties"]:
+                            params = dict(params)
+                            props = dict(params.get("properties", {}))
+                            props.pop("data", None)
+                            params["properties"] = props
+                except Exception:
+                    pass
                 tools.append(
                     {
                         "type": "function",
                         "name": t.name,
                         "description": getattr(t, "description", ""),
-                        "parameters": getattr(t, "parameters", {}),
+                        "parameters": params,
                     }
                 )
         
@@ -174,11 +185,22 @@ class OpenAIConversationEntity(
                 func_spec = func_setting.get("spec", {})
                 if func_spec and "name" in func_spec:
                     # Use flat structure required by Responses API
+                    params = func_spec.get("parameters", {"type": "object", "properties": {}}) or {"type": "object", "properties": {}}
+                    try:
+                        # Sanitize: remove unsupported/duplicative 'data' if present
+                        if isinstance(params, dict) and isinstance(params.get("properties"), dict):
+                            props = dict(params.get("properties", {}))
+                            if "data" in props:
+                                props.pop("data", None)
+                                params = dict(params)
+                                params["properties"] = props
+                    except Exception:
+                        pass
                     tool = {
                         "type": "function",
                         "name": func_spec.get("name"),
                         "description": func_spec.get("description", ""),
-                        "parameters": func_spec.get("parameters", {"type": "object", "properties": {}})
+                        "parameters": params
                     }
                     tools.append(tool)
                     _LOGGER.info(
@@ -203,6 +225,7 @@ class OpenAIConversationEntity(
         # Build Responses API input from chat log
         # Use the flat message format per Responses API spec
         msgs: list[dict[str, Any]] = []
+        last_user_text: str = ""
         
         for idx, c in enumerate(chat_log.content):
             role = getattr(c, "role", None)
@@ -242,6 +265,8 @@ class OpenAIConversationEntity(
                 }
             )
             _LOGGER.debug("[v%s] Added message with role=%s", INTEGRATION_VERSION, msg_role)
+            if msg_role == "user":
+                last_user_text = text or last_user_text
             
         _LOGGER.info("[v%s] Built %d messages from chat log", INTEGRATION_VERSION, len(msgs))
 
@@ -491,6 +516,25 @@ class OpenAIConversationEntity(
             _LOGGER.warning("[v%s] Streaming failed: %s, falling back to non-streaming", INTEGRATION_VERSION, stream_error)
             # Non-streaming fallback with function execution loop
             max_iterations = 10
+            # Simple heuristic: force execute_services if the user clearly asked for an action and model did not emit a tool call
+            def _should_force_execute_services(text: str) -> bool:
+                try:
+                    t = (text or "").strip().lower()
+                    if not t:
+                        return False
+                    keywords = [
+                        "släck", "tänd", "stäng av", "sätt på", "turn off", "turn on", "starta", "stoppa",
+                        "dimma", "höj", "sänk", "aktivera", "deaktivera"
+                    ]
+                    return any(k in t for k in keywords)
+                except Exception:
+                    return False
+
+            has_execute_services = any((
+                isinstance(tool, dict) and tool.get("type") == "function" and tool.get("name") == "execute_services"
+            ) for tool in (tools or []))
+            want_force = has_execute_services and _should_force_execute_services(last_user_text)
+            forced_once = False
             conversation_items = msgs.copy()
             
             for iteration in range(max_iterations):
@@ -542,6 +586,18 @@ class OpenAIConversationEntity(
                             tool_calls.append(output_item)
                 
                 if not tool_calls:
+                    # Optional fallback: force the execute_services tool once for imperative requests
+                    if want_force and not forced_once:
+                        _LOGGER.info("[v%s] No tool calls returned; forcing tool_choice to execute_services and retrying", INTEGRATION_VERSION)
+                        kwargs.pop("tools", None)
+                        # Reconstruct tools into kwargs in case they were removed earlier on retry
+                        if tools is not None:
+                            kwargs["tools"] = tools
+                        kwargs["tool_choice"] = {"type": "function", "function": {"name": "execute_services"}}
+                        # Ensure we send the original conversation again
+                        kwargs["input"] = conversation_items
+                        forced_once = True
+                        continue
                     # No more tool calls, we're done
                     _LOGGER.debug("[v%s] No tool calls in iteration %d, finishing", INTEGRATION_VERSION, iteration + 1)
                     break
