@@ -357,19 +357,18 @@ class OpenAIConversationEntity(
                                     if callable(push):
                                         await delta_stream.async_push_delta(delta_text)
                             
-                            # Function call start event
+                            # Tool call start event
                             elif etype == "response.output_item.added":
                                 item = getattr(event, "item", None)
-                                if item and getattr(item, "type", "") == "function_call":
+                                if item and getattr(item, "type", "") == "tool":
                                     item_id = getattr(item, "id", None)
                                     if item_id:
                                         pending_tool_calls[item_id] = {
                                             "id": item_id,
-                                            "call_id": getattr(item, "call_id", None),
                                             "name": getattr(item, "name", None),
                                             "arguments": ""
                                         }
-                                        _LOGGER.debug("[v%s] Function call started: %s", INTEGRATION_VERSION, getattr(item, "name", "unknown"))
+                                        _LOGGER.debug("[v%s] Tool call started: %s", INTEGRATION_VERSION, getattr(item, "name", "unknown"))
                             
                             # Function call arguments delta
                             elif etype == "response.function_call_arguments.delta":
@@ -388,21 +387,20 @@ class OpenAIConversationEntity(
                                     if arguments_str:
                                         tool_call["arguments"] = arguments_str
                                     
-                                    func_name = tool_call["name"]
-                                    call_id = tool_call["call_id"]
+                                    tool_name = tool_call["name"]
                                     
-                                    if func_name and call_id:
-                                        _LOGGER.info("[v%s] Executing streaming function call: %s", INTEGRATION_VERSION, func_name)
+                                    if tool_name:
+                                        _LOGGER.info("[v%s] Executing streaming tool call: %s", INTEGRATION_VERSION, tool_name)
                                         
                                         try:
                                             args = json.loads(tool_call["arguments"])
                                         except json.JSONDecodeError:
                                             args = {}
                                         
-                                        # Find and execute the function
+                                        # Find and execute the tool
                                         from . import get_functions_from_options
                                         functions = get_functions_from_options(opts)
-                                        fn_def = next((f for f in functions if f["spec"]["name"] == func_name), None)
+                                        fn_def = next((f for f in functions if f["spec"]["name"] == tool_name), None)
                                         
                                         if fn_def:
                                             try:
@@ -415,16 +413,16 @@ class OpenAIConversationEntity(
                                                     user_input,
                                                     self._get_exposed_entities(),
                                                 )
-                                                _LOGGER.info("[v%s] Executed streaming function: %s - result: %s", INTEGRATION_VERSION, func_name, str(result)[:100])
+                                                _LOGGER.info("[v%s] Executed streaming tool: %s - result: %s", INTEGRATION_VERSION, tool_name, str(result)[:100])
                                             except Exception as e:
-                                                _LOGGER.error("[v%s] Failed to execute streaming function %s: %s", INTEGRATION_VERSION, func_name, e)
+                                                _LOGGER.error("[v%s] Failed to execute streaming tool %s: %s", INTEGRATION_VERSION, tool_name, e)
                                         else:
                                             # Check if it's a Home Assistant LLM API tool
                                             if chat_log.llm_api:
                                                 try:
                                                     from homeassistant.helpers import llm
                                                     tool_input = llm.ToolInput(
-                                                        tool_name=func_name,
+                                                        tool_name=tool_name,
                                                         tool_args=args,
                                                         platform=DOMAIN,
                                                         context=user_input.context,
@@ -434,11 +432,11 @@ class OpenAIConversationEntity(
                                                         device_id=user_input.device_id,
                                                     )
                                                     result = await chat_log.llm_api.async_call_tool(tool_input)
-                                                    _LOGGER.info("[v%s] Executed streaming HA LLM API tool: %s", INTEGRATION_VERSION, func_name)
+                                                    _LOGGER.info("[v%s] Executed streaming HA LLM API tool: %s", INTEGRATION_VERSION, tool_name)
                                                 except Exception as e:
-                                                    _LOGGER.error("[v%s] Failed to execute streaming HA LLM API tool %s: %s", INTEGRATION_VERSION, func_name, e)
+                                                    _LOGGER.error("[v%s] Failed to execute streaming HA LLM API tool %s: %s", INTEGRATION_VERSION, tool_name, e)
                                             else:
-                                                _LOGGER.warning("[v%s] No matching function found for streaming call: %s", INTEGRATION_VERSION, func_name)
+                                                _LOGGER.warning("[v%s] No matching tool found for streaming call: %s", INTEGRATION_VERSION, tool_name)
                         # Final response
                         final = await resp_stream.get_final_response()
                         
@@ -448,16 +446,16 @@ class OpenAIConversationEntity(
                             "response": {
                                 "id": getattr(final, "id", None),
                                 "model": getattr(final, "model", None),
-                                "output": [
-                                    {
-                                        "type": getattr(item, "type", None),
-                                        "id": getattr(item, "id", None),
-                                        "content": getattr(item, "content", None) if getattr(item, "type", "") == "message" else None,
-                                        "name": getattr(item, "name", None) if getattr(item, "type", "") == "function_call" else None,
-                                        "arguments": getattr(item, "arguments", None) if getattr(item, "type", "") == "function_call" else None,
-                                    }
-                                    for item in (final.output if hasattr(final, "output") else [])
-                                ],
+                        "output": [
+                            {
+                                "type": getattr(item, "type", None),
+                                "id": getattr(item, "id", None),
+                                "content": getattr(item, "content", None) if getattr(item, "type", "") == "message" else None,
+                                "name": getattr(item, "name", None) if getattr(item, "type", "") == "tool" else None,
+                                "arguments": getattr(item, "arguments", None) if getattr(item, "type", "") == "tool" else None,
+                            }
+                            for item in (final.output if hasattr(final, "output") else [])
+                        ],
                                 "usage": getattr(final, "usage", None),
                             },
                             "pending_tool_calls": pending_tool_calls,
@@ -527,9 +525,8 @@ class OpenAIConversationEntity(
                                 "type": getattr(item, "type", None),
                                 "id": getattr(item, "id", None),
                                 "content": getattr(item, "content", None) if getattr(item, "type", "") == "message" else None,
-                                "name": getattr(item, "name", None) if getattr(item, "type", "") == "function_call" else None,
-                                "arguments": getattr(item, "arguments", None) if getattr(item, "type", "") == "function_call" else None,
-                                "call_id": getattr(item, "call_id", None) if getattr(item, "type", "") == "function_call" else None,
+                                "name": getattr(item, "name", None) if getattr(item, "type", "") == "tool" else None,
+                                "arguments": getattr(item, "arguments", None) if getattr(item, "type", "") == "tool" else None,
                             }
                             for item in (final.output if hasattr(final, "output") else [])
                         ],
@@ -537,48 +534,46 @@ class OpenAIConversationEntity(
                     },
                 })
                 
-                # Extract function calls from response.output
-                function_calls = []
+                # Extract tool calls from response.output
+                tool_calls = []
                 if hasattr(final, "output") and final.output:
                     for output_item in final.output:
-                        if getattr(output_item, "type", "") == "function_call":
-                            function_calls.append(output_item)
+                        if getattr(output_item, "type", "") == "tool":
+                            tool_calls.append(output_item)
                 
-                if not function_calls:
-                    # No more function calls, we're done
-                    _LOGGER.debug("[v%s] No function calls in iteration %d, finishing", INTEGRATION_VERSION, iteration + 1)
+                if not tool_calls:
+                    # No more tool calls, we're done
+                    _LOGGER.debug("[v%s] No tool calls in iteration %d, finishing", INTEGRATION_VERSION, iteration + 1)
                     break
                 
-                # Execute all function calls and collect outputs
-                _LOGGER.info("[v%s] Executing %d function calls in iteration %d", INTEGRATION_VERSION, len(function_calls), iteration + 1)
+                # Execute all tool calls and collect outputs
+                _LOGGER.info("[v%s] Executing %d tool calls in iteration %d", INTEGRATION_VERSION, len(tool_calls), iteration + 1)
                 
-                # Save function calls to log
-                _save_api_log(self.hass, f"function_calls_iter_{iteration + 1}", {
+                # Save tool calls to log
+                _save_api_log(self.hass, f"tool_calls_iter_{iteration + 1}", {
                     "timestamp": datetime.now().isoformat(),
                     "iteration": iteration + 1,
-                    "function_calls": [
+                    "tool_calls": [
                         {
-                            "name": getattr(fc, "name", None),
-                            "call_id": getattr(fc, "call_id", None),
-                            "arguments": getattr(fc, "arguments", None),
+                            "name": getattr(tc, "name", None),
+                            "arguments": getattr(tc, "arguments", None),
                         }
-                        for fc in function_calls
+                        for tc in tool_calls
                     ],
                 })
                 
-                function_outputs = []
+                tool_results = []
                 
-                for func_call in function_calls:
+                for tool_call in tool_calls:
                     try:
-                        func_name = getattr(func_call, "name", None)
-                        arguments_str = getattr(func_call, "arguments", "{}")
-                        call_id = getattr(func_call, "call_id", None)
+                        tool_name = getattr(tool_call, "name", None)
+                        arguments_str = getattr(tool_call, "arguments", "{}")
                         
-                        if not func_name or not call_id:
-                            _LOGGER.warning("[v%s] Invalid function call: missing name or call_id", INTEGRATION_VERSION)
+                        if not tool_name:
+                            _LOGGER.warning("[v%s] Invalid tool call: missing name", INTEGRATION_VERSION)
                             continue
                         
-                        _LOGGER.info("[v%s] Executing function: %s", INTEGRATION_VERSION, func_name)
+                        _LOGGER.info("[v%s] Executing tool: %s", INTEGRATION_VERSION, tool_name)
                         
                         try:
                             arguments = json.loads(arguments_str)
@@ -588,7 +583,7 @@ class OpenAIConversationEntity(
                         # Find and execute the matching function
                         from . import get_functions_from_options
                         functions = get_functions_from_options(opts)
-                        matching_func = next((f for f in functions if f["spec"]["name"] == func_name), None)
+                        matching_func = next((f for f in functions if f["spec"]["name"] == tool_name), None)
                         
                         if matching_func:
                             from .helpers import get_function_executor
@@ -600,15 +595,16 @@ class OpenAIConversationEntity(
                                 user_input,
                                 self._get_exposed_entities(),
                             )
-                            output_str = json.dumps({"result": result}) if not isinstance(result, str) else result
-                            _LOGGER.info("[v%s] Function %s executed successfully", INTEGRATION_VERSION, func_name)
+                            # Wrap result in proper structure
+                            result_data = {"ok": True, "result": result} if not isinstance(result, dict) else result
+                            _LOGGER.info("[v%s] Tool %s executed successfully", INTEGRATION_VERSION, tool_name)
                         else:
                             # Check if it's a Home Assistant LLM API tool
                             if chat_log.llm_api:
                                 try:
                                     from homeassistant.helpers import llm
                                     tool_input = llm.ToolInput(
-                                        tool_name=func_name,
+                                        tool_name=tool_name,
                                         tool_args=arguments,
                                         platform=DOMAIN,
                                         context=user_input.context,
@@ -618,50 +614,47 @@ class OpenAIConversationEntity(
                                         device_id=user_input.device_id,
                                     )
                                     result = await chat_log.llm_api.async_call_tool(tool_input)
-                                    output_str = json.dumps(result)
-                                    _LOGGER.info("[v%s] HA LLM API tool %s executed successfully", INTEGRATION_VERSION, func_name)
+                                    result_data = {"ok": True, "result": result}
+                                    _LOGGER.info("[v%s] HA LLM API tool %s executed successfully", INTEGRATION_VERSION, tool_name)
                                 except Exception as e:
-                                    _LOGGER.error("[v%s] Failed to execute HA LLM API tool %s: %s", INTEGRATION_VERSION, func_name, e)
-                                    output_str = json.dumps({"error": str(e)})
+                                    _LOGGER.error("[v%s] Failed to execute HA LLM API tool %s: %s", INTEGRATION_VERSION, tool_name, e)
+                                    result_data = {"ok": False, "error": str(e)}
                             else:
-                                _LOGGER.warning("[v%s] No matching function found for: %s", INTEGRATION_VERSION, func_name)
-                                output_str = json.dumps({"error": f"Unknown function: {func_name}"})
+                                _LOGGER.warning("[v%s] No matching tool found for: %s", INTEGRATION_VERSION, tool_name)
+                                result_data = {"ok": False, "error": f"Unknown tool: {tool_name}"}
                         
-                        # Add function output in correct format
-                        function_outputs.append({
-                            "type": "function_call_output",
-                            "call_id": call_id,
-                            "output": output_str
+                        # Add tool result in Responses API format
+                        tool_results.append({
+                            "type": "tool_result",
+                            "tool_name": tool_name,
+                            "result": result_data
                         })
                         
                     except Exception as e:
-                        _LOGGER.error("[v%s] Failed to execute function call: %s", INTEGRATION_VERSION, e)
-                        if call_id:
-                            function_outputs.append({
-                                "type": "function_call_output",
-                                "call_id": call_id,
-                                "output": json.dumps({"error": str(e)})
+                        _LOGGER.error("[v%s] Failed to execute tool call: %s", INTEGRATION_VERSION, e)
+                        if tool_name:
+                            tool_results.append({
+                                "type": "tool_result",
+                                "tool_name": tool_name,
+                                "result": {"ok": False, "error": str(e)}
                             })
                 
-                if not function_outputs:
-                    # No outputs to send back, break to avoid infinite loop
+                if not tool_results:
+                    # No results to send back, break to avoid infinite loop
                     break
                 
-                # Save function outputs to log
-                _save_api_log(self.hass, f"function_outputs_iter_{iteration + 1}", {
+                # Save tool results to log
+                _save_api_log(self.hass, f"tool_results_iter_{iteration + 1}", {
                     "timestamp": datetime.now().isoformat(),
                     "iteration": iteration + 1,
-                    "function_outputs": function_outputs,
+                    "tool_results": tool_results,
                 })
                 
-                # Append response outputs and function outputs to conversation
-                conversation_items.extend(final.output)
-                conversation_items.extend(function_outputs)
+                # Per Responses API spec: send ONLY tool results as next input
+                # The API maintains conversation state internally
+                kwargs["input"] = tool_results
                 
-                # Update kwargs for next iteration
-                kwargs["input"] = conversation_items
-                
-                _LOGGER.debug("[v%s] Continuing loop with %d function outputs", INTEGRATION_VERSION, len(function_outputs))
+                _LOGGER.debug("[v%s] Continuing loop with %d tool results", INTEGRATION_VERSION, len(tool_results))
             
             # Parse final response text
             out = ""
