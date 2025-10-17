@@ -201,17 +201,40 @@ class OpenAIConversationEntity(
             )
 
         # Build Responses API input from chat log
+        # Extract instructions (system prompt) and user/assistant messages separately
+        instructions_text = None
         msgs: list[dict[str, Any]] = []
-        for c in chat_log.content:
+        
+        for idx, c in enumerate(chat_log.content):
+            role = getattr(c, "role", None)
             is_user = getattr(c, "is_user", False)
-            role = "user" if is_user else "assistant"
             text = getattr(c, "content", "") or ""
-            # Use input_text for user messages, output_text for assistant messages
-            content_type = "input_text" if is_user else "output_text"
+            
+            _LOGGER.debug("[v%s] Chat log item %d: role=%s, is_user=%s, text_len=%d", 
+                         INTEGRATION_VERSION, idx, role, is_user, len(text))
+            
+            # First message might be system/developer instructions
+            if idx == 0 and role in ("system", "developer", None) and not is_user:
+                # This is the system prompt - use as instructions
+                instructions_text = text
+                _LOGGER.debug("[v%s] Extracted system prompt as instructions (%d chars)", INTEGRATION_VERSION, len(text))
+                continue
+            
+            # Determine correct role
+            # The last message in a conversation is typically the user's input
+            is_last_message = (idx == len(chat_log.content) - 1)
+            
+            if is_user or role == "user" or (is_last_message and not role):
+                msg_role = "user"
+                content_type = "input_text"
+            else:
+                msg_role = "assistant"
+                content_type = "output_text"
+            
             msgs.append(
                 {
                     "type": "message",
-                    "role": role,
+                    "role": msg_role,
                     "content": [
                         {
                             "type": content_type,
@@ -220,6 +243,11 @@ class OpenAIConversationEntity(
                     ],
                 }
             )
+            _LOGGER.debug("[v%s] Added message with role=%s, type=%s", 
+                         INTEGRATION_VERSION, msg_role, content_type)
+            
+        _LOGGER.info("[v%s] Built %d messages from chat log (instructions: %s)", 
+                    INTEGRATION_VERSION, len(msgs), "yes" if instructions_text else "no")
 
         model = opts.get(CONF_CHAT_MODEL, DEFAULT_CHAT_MODEL)
         max_tokens = opts.get("max_tokens", 150)
@@ -231,6 +259,10 @@ class OpenAIConversationEntity(
             "parallel_tool_calls": True,
             "store": opts.get(CONF_STORE_CONVERSATIONS, DEFAULT_STORE_CONVERSATIONS),
         }
+        
+        # Add instructions if we extracted a system prompt
+        if instructions_text:
+            kwargs["instructions"] = instructions_text
         
         # Add reasoning and verbosity for GPT-5 models
         from .const import GPT5_MODELS, VERBOSITY_COMPAT_MAP
