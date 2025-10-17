@@ -3,6 +3,9 @@ from __future__ import annotations
 from typing import Any, Literal
 import json
 import logging
+import os
+from datetime import datetime
+from pathlib import Path
 
 from homeassistant.components import conversation
 from homeassistant.components.homeassistant.exposed_entities import (
@@ -28,6 +31,27 @@ from .const import (
 )
 
 _LOGGER = logging.getLogger(__name__)
+
+
+def _save_api_log(hass: HomeAssistant, log_type: str, data: dict) -> None:
+    """Save API request/response to log file for debugging."""
+    try:
+        # Create logs directory in Home Assistant config directory
+        logs_dir = Path(hass.config.path("custom_components", "openai_conversation_plus", "logs"))
+        logs_dir.mkdir(parents=True, exist_ok=True)
+        
+        # Create timestamped filename
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
+        filename = f"{timestamp}_{log_type}.json"
+        filepath = logs_dir / filename
+        
+        # Save the data
+        with open(filepath, "w", encoding="utf-8") as f:
+            json.dump(data, f, indent=2, ensure_ascii=False, default=str)
+        
+        _LOGGER.info("[v%s] Saved %s log to: %s", INTEGRATION_VERSION, log_type, filepath)
+    except Exception as e:
+        _LOGGER.error("[v%s] Failed to save API log: %s", INTEGRATION_VERSION, e)
 
 
 async def async_setup_entry(
@@ -269,6 +293,15 @@ class OpenAIConversationEntity(
         )
         _LOGGER.debug("[v%s] Complete kwargs being sent to Responses API: %s", INTEGRATION_VERSION, json.dumps(kwargs, default=str))
         
+        # Save API request to log file for debugging
+        _save_api_log(self.hass, "request", {
+            "timestamp": datetime.now().isoformat(),
+            "kwargs": kwargs,
+            "tools_details": kwargs.get("tools", []),
+            "messages_count": len(msgs),
+            "has_llm_api": chat_log.llm_api is not None,
+        })
+        
         # Use streaming only if enabled
         use_streaming = kwargs.get("stream", True)
         
@@ -384,6 +417,28 @@ class OpenAIConversationEntity(
                                                 _LOGGER.warning("[v%s] No matching function found for streaming call: %s", INTEGRATION_VERSION, func_name)
                         # Final response
                         final = await resp_stream.get_final_response()
+                        
+                        # Save streaming response to log file
+                        _save_api_log(self.hass, "streaming_response", {
+                            "timestamp": datetime.now().isoformat(),
+                            "response": {
+                                "id": getattr(final, "id", None),
+                                "model": getattr(final, "model", None),
+                                "output": [
+                                    {
+                                        "type": getattr(item, "type", None),
+                                        "id": getattr(item, "id", None),
+                                        "content": getattr(item, "content", None) if getattr(item, "type", "") == "message" else None,
+                                        "name": getattr(item, "name", None) if getattr(item, "type", "") == "function_call" else None,
+                                        "arguments": getattr(item, "arguments", None) if getattr(item, "type", "") == "function_call" else None,
+                                    }
+                                    for item in (final.output if hasattr(final, "output") else [])
+                                ],
+                                "usage": getattr(final, "usage", None),
+                            },
+                            "pending_tool_calls": pending_tool_calls,
+                        })
+                        
                         # Parse streaming final response using same logic as non-streaming
                         out = ""
                         try:
@@ -436,6 +491,28 @@ class OpenAIConversationEntity(
                     else:
                         raise
                 
+                # Save non-streaming response to log file
+                _save_api_log(self.hass, f"non_streaming_response_iter_{iteration + 1}", {
+                    "timestamp": datetime.now().isoformat(),
+                    "iteration": iteration + 1,
+                    "response": {
+                        "id": getattr(final, "id", None),
+                        "model": getattr(final, "model", None),
+                        "output": [
+                            {
+                                "type": getattr(item, "type", None),
+                                "id": getattr(item, "id", None),
+                                "content": getattr(item, "content", None) if getattr(item, "type", "") == "message" else None,
+                                "name": getattr(item, "name", None) if getattr(item, "type", "") == "function_call" else None,
+                                "arguments": getattr(item, "arguments", None) if getattr(item, "type", "") == "function_call" else None,
+                                "call_id": getattr(item, "call_id", None) if getattr(item, "type", "") == "function_call" else None,
+                            }
+                            for item in (final.output if hasattr(final, "output") else [])
+                        ],
+                        "usage": getattr(final, "usage", None),
+                    },
+                })
+                
                 # Extract function calls from response.output
                 function_calls = []
                 if hasattr(final, "output") and final.output:
@@ -450,6 +527,21 @@ class OpenAIConversationEntity(
                 
                 # Execute all function calls and collect outputs
                 _LOGGER.info("[v%s] Executing %d function calls in iteration %d", INTEGRATION_VERSION, len(function_calls), iteration + 1)
+                
+                # Save function calls to log
+                _save_api_log(self.hass, f"function_calls_iter_{iteration + 1}", {
+                    "timestamp": datetime.now().isoformat(),
+                    "iteration": iteration + 1,
+                    "function_calls": [
+                        {
+                            "name": getattr(fc, "name", None),
+                            "call_id": getattr(fc, "call_id", None),
+                            "arguments": getattr(fc, "arguments", None),
+                        }
+                        for fc in function_calls
+                    ],
+                })
+                
                 function_outputs = []
                 
                 for func_call in function_calls:
@@ -530,6 +622,13 @@ class OpenAIConversationEntity(
                 if not function_outputs:
                     # No outputs to send back, break to avoid infinite loop
                     break
+                
+                # Save function outputs to log
+                _save_api_log(self.hass, f"function_outputs_iter_{iteration + 1}", {
+                    "timestamp": datetime.now().isoformat(),
+                    "iteration": iteration + 1,
+                    "function_outputs": function_outputs,
+                })
                 
                 # Append response outputs and function outputs to conversation
                 conversation_items.extend(final.output)
