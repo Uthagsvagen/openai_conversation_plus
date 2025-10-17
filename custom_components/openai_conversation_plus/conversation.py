@@ -228,14 +228,14 @@ class OpenAIConversationEntity(
                 msg_role = "assistant"
                 _LOGGER.debug("[v%s] Message is assistant", INTEGRATION_VERSION)
             
-            # Use output_text for all content per Responses API examples
+            # Use input_text for messages sent TO the API
             msgs.append(
                 {
                     "type": "message",
                     "role": msg_role,
                     "content": [
                         {
-                            "type": "output_text",
+                            "type": "input_text",
                             "text": text,
                         }
                     ],
