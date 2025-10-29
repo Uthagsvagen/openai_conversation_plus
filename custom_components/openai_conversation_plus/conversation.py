@@ -251,17 +251,11 @@ class OpenAIConversationEntity(
                 msg_role = "assistant"
                 _LOGGER.debug("[v%s] Message is assistant", INTEGRATION_VERSION)
             
-            # Use input_text for messages sent TO the API
+            # Use flat structure for Responses API
             msgs.append(
                 {
-                    "type": "message",
                     "role": msg_role,
-                    "content": [
-                        {
-                            "type": "input_text",
-                            "text": text,
-                        }
-                    ],
+                    "content": text,
                 }
             )
             _LOGGER.debug("[v%s] Added message with role=%s", INTEGRATION_VERSION, msg_role)
@@ -346,7 +340,7 @@ class OpenAIConversationEntity(
         _save_api_log(self.hass, "request", {
             "timestamp": datetime.now().isoformat(),
             "kwargs": kwargs,
-            "tools_details": kwargs.get("tools", []),
+            "tools_count": len(kwargs.get("tools", [])),
             "messages_count": len(msgs),
             "has_llm_api": chat_log.llm_api is not None,
         })
