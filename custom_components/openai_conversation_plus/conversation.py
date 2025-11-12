@@ -33,6 +33,34 @@ from .const import (
 _LOGGER = logging.getLogger(__name__)
 
 
+def _should_force_execute_services(text: str) -> bool:
+    """Detect if user input contains action keywords that should trigger execute_services.
+    
+    Returns True if the user text contains command keywords like turn on/off, open, close, etc.
+    """
+    try:
+        t = (text or "").strip().lower()
+        if not t:
+            return False
+        
+        # Swedish and English action keywords
+        keywords = [
+            # Swedish
+            "släck", "tänd", "stäng av", "sätt på", "starta", "stoppa",
+            "dimma", "höj", "sänk", "aktivera", "deaktivera", "öppna", "stäng",
+            "sätt", "ställ in", "ändra", "justera", "pausa", "spela",
+            # English
+            "turn off", "turn on", "switch off", "switch on", "open", "close",
+            "start", "stop", "dim", "brighten", "raise", "lower", "activate",
+            "deactivate", "set", "adjust", "change", "pause", "play",
+        ]
+        
+        return any(k in t for k in keywords)
+    except Exception as e:
+        _LOGGER.debug("[v%s] Error detecting action keywords: %s", INTEGRATION_VERSION, e)
+        return False
+
+
 def _save_api_log(hass: HomeAssistant, log_type: str, data: dict) -> None:
     """Save API request/response to log file for debugging."""
     try:
@@ -196,10 +224,27 @@ class OpenAIConversationEntity(
                                 params["properties"] = props
                     except Exception:
                         pass
+                    
+                    # Enhanced description for execute_services
+                    description = func_spec.get("description", "")
+                    if func_spec.get("name") == "execute_services":
+                        description = (
+                            "Execute Home Assistant service calls to control devices. "
+                            "Accepts BOTH formats: "
+                            "1) List format: {\"list\": [{\"domain\": \"light\", \"service\": \"turn_on\", \"target\": {...}}]} "
+                            "2) Single service: {\"domain\": \"light\", \"service\": \"turn_on\", \"target\": {...}}. "
+                            "Target can use entity_id, area_id, area_name, or device_id. "
+                            "Use area_id for controlling all devices in a room/area."
+                        )
+                        _LOGGER.debug(
+                            "[v%s] Enhanced execute_services description for better model understanding",
+                            INTEGRATION_VERSION
+                        )
+                    
                     tool = {
                         "type": "function",
                         "name": func_spec.get("name"),
-                        "description": func_spec.get("description", ""),
+                        "description": description,
                         "parameters": params
                     }
                     tools.append(tool)
@@ -304,7 +349,32 @@ class OpenAIConversationEntity(
                 # If sanitize is not available for any reason, fall back to original tools
                 pass
             kwargs["tools"] = tools
-            kwargs["tool_choice"] = "auto"
+            
+            # Intelligent tool_choice: Force execute_services for action commands
+            has_execute_services = any(
+                (isinstance(tool, dict) and tool.get("type") == "function" and tool.get("name") == "execute_services")
+                for tool in tools
+            )
+            
+            # Get user input text from last message
+            user_input_text = ""
+            if msgs and len(msgs) > 0:
+                last_msg = msgs[-1]
+                if last_msg.get("role") == "user":
+                    user_input_text = last_msg.get("content", "")
+            
+            # Check if we should force execute_services tool
+            should_force = has_execute_services and _should_force_execute_services(user_input_text)
+            
+            if should_force:
+                kwargs["tool_choice"] = {"type": "function", "function": {"name": "execute_services"}}
+                _LOGGER.info(
+                    "[v%s] Detected action command in user input, forcing tool_choice to execute_services",
+                    INTEGRATION_VERSION
+                )
+            else:
+                kwargs["tool_choice"] = "auto"
+            
             # Streaming IS supported with tools according to official docs!
             from .const import CONF_STREAM_ENABLED, DEFAULT_STREAM_ENABLED
             stream_enabled = opts.get(CONF_STREAM_ENABLED, DEFAULT_STREAM_ENABLED)
@@ -510,20 +580,8 @@ class OpenAIConversationEntity(
             _LOGGER.warning("[v%s] Streaming failed: %s, falling back to non-streaming", INTEGRATION_VERSION, stream_error)
             # Non-streaming fallback with function execution loop
             max_iterations = 10
-            # Simple heuristic: force execute_services if the user clearly asked for an action and model did not emit a tool call
-            def _should_force_execute_services(text: str) -> bool:
-                try:
-                    t = (text or "").strip().lower()
-                    if not t:
-                        return False
-                    keywords = [
-                        "släck", "tänd", "stäng av", "sätt på", "turn off", "turn on", "starta", "stoppa",
-                        "dimma", "höj", "sänk", "aktivera", "deaktivera"
-                    ]
-                    return any(k in t for k in keywords)
-                except Exception:
-                    return False
-
+            
+            # Reuse the same logic for forcing execute_services
             has_execute_services = any((
                 isinstance(tool, dict) and tool.get("type") == "function" and tool.get("name") == "execute_services"
             ) for tool in (tools or []))
@@ -730,30 +788,60 @@ class OpenAIConversationEntity(
         
         # Fallback: If the model returned JSON in output_text, try to parse and execute
         if out and (out.strip().startswith("[") or out.strip().startswith("{")):
+            _LOGGER.warning(
+                "[v%s] Model returned JSON in text instead of tool call - activating fallback parsing",
+                INTEGRATION_VERSION
+            )
             try:
                 payload = json.loads(out)
-                _LOGGER.info("[v%s] Detected JSON in output_text, attempting to parse as tool call", INTEGRATION_VERSION)
+                _LOGGER.info(
+                    "[v%s] Successfully parsed JSON from output_text: type=%s",
+                    INTEGRATION_VERSION,
+                    type(payload).__name__
+                )
                 
                 # Handle array format: [{"domain":"light","service":"turn_on",...}]
                 if isinstance(payload, list):
-                    _LOGGER.debug("[v%s] Processing array format with %d items", INTEGRATION_VERSION, len(payload))
+                    _LOGGER.info(
+                        "[v%s] Fallback: Processing array format with %d service calls",
+                        INTEGRATION_VERSION,
+                        len(payload)
+                    )
                     results = []
-                    for item in payload:
+                    for idx, item in enumerate(payload):
                         if isinstance(item, dict) and "domain" in item and "service" in item:
                             # This is a direct service call format
                             from .helpers import get_function_executor
                             executor = get_function_executor("native")
                             fn_config = {"type": "native", "name": "execute_service"}
                             
+                            # Normalize target fields - handle both area_id and area_name
+                            target = item.get("target", {})
+                            if "area_id" in target:
+                                # Convert area_id to area_name for service call
+                                area_ids = target["area_id"]
+                                if isinstance(area_ids, list):
+                                    target = {"area_id": area_ids}
+                                else:
+                                    target = {"area_id": [area_ids] if area_ids else []}
+                            
                             # Normalize the service call format
                             service_call = {
                                 "list": [{
                                     "domain": item.get("domain"),
                                     "service": item.get("service"),
-                                    "target": item.get("target", {}),
+                                    "target": target,
                                     "service_data": item.get("data") or item.get("service_data", {})
                                 }]
                             }
+                            
+                            _LOGGER.debug(
+                                "[v%s] Fallback: Executing service call #%d: %s.%s",
+                                INTEGRATION_VERSION,
+                                idx + 1,
+                                item['domain'],
+                                item['service']
+                            )
                             
                             try:
                                 result = await executor.execute(
@@ -764,66 +852,155 @@ class OpenAIConversationEntity(
                                     self._get_exposed_entities(),
                                 )
                                 results.append(f"Executed {item['domain']}.{item['service']}")
-                                _LOGGER.info("[v%s] Successfully executed service: %s.%s", INTEGRATION_VERSION, item['domain'], item['service'])
+                                _LOGGER.info(
+                                    "[v%s] Fallback: Successfully executed service #%d: %s.%s",
+                                    INTEGRATION_VERSION,
+                                    idx + 1,
+                                    item['domain'],
+                                    item['service']
+                                )
                             except Exception as e:
-                                _LOGGER.error("[v%s] Failed to execute service: %s", INTEGRATION_VERSION, e)
+                                error_msg = f"Failed to execute {item['domain']}.{item['service']}: {str(e)}"
+                                _LOGGER.error(
+                                    "[v%s] Fallback: Error executing service #%d: %s",
+                                    INTEGRATION_VERSION,
+                                    idx + 1,
+                                    error_msg
+                                )
                                 results.append(f"Error: {e}")
+                        else:
+                            _LOGGER.warning(
+                                "[v%s] Fallback: Skipping invalid array item #%d (missing domain/service)",
+                                INTEGRATION_VERSION,
+                                idx + 1
+                            )
                     
-                    out = "Utfört." if results else out
+                    if results:
+                        out = "Utfört."
+                        _LOGGER.info(
+                            "[v%s] Fallback: Completed %d service calls with %d successes",
+                            INTEGRATION_VERSION,
+                            len(payload),
+                            len([r for r in results if not r.startswith("Error")])
+                        )
                 
                 # Handle object format for backward compatibility
                 elif isinstance(payload, dict):
                     # Check for both "actions" and "calls" keys (different formats from OpenAI)
                     actions_list = payload.get("actions") or payload.get("calls", [])
                     if payload.get("type") == "execute_services" and isinstance(actions_list, list):
-                        _LOGGER.info("[v%s] Processing execute_services format with %d actions", INTEGRATION_VERSION, len(actions_list))
+                        _LOGGER.info(
+                            "[v%s] Fallback: Processing execute_services object format with %d actions",
+                            INTEGRATION_VERSION,
+                            len(actions_list)
+                        )
                         norm = {"execute_services": {"list": []}}
-                        for c in actions_list:
+                        for idx, c in enumerate(actions_list):
+                            if not isinstance(c, dict) or "domain" not in c or "service" not in c:
+                                _LOGGER.warning(
+                                    "[v%s] Fallback: Skipping invalid action #%d (missing domain/service)",
+                                    INTEGRATION_VERSION,
+                                    idx + 1
+                                )
+                                continue
+                            
                             item = {
                                 "domain": c.get("domain"),
                                 "service": c.get("service"),
                             }
                             tgt = c.get("target") or {}
+                            
+                            # Normalize target - handle all variations
                             if "entity_id" in tgt:
                                 item["target"] = {"entity_id": tgt["entity_id"]}
                             elif "area_name" in tgt:
                                 item["target"] = {"area_name": tgt["area_name"]}
                             elif "area_id" in tgt:
-                                # Handle both single area_id and list of area_ids
+                                # Preserve area_id as is (can be list or single value)
                                 area_ids = tgt["area_id"]
                                 if isinstance(area_ids, list):
-                                    item["target"] = {"area_name": area_ids[0] if area_ids else ""}
+                                    item["target"] = {"area_id": area_ids}
                                 else:
-                                    item["target"] = {"area_name": area_ids}
+                                    item["target"] = {"area_id": [area_ids] if area_ids else []}
                             elif "area" in tgt:
+                                # Legacy area field
                                 item["target"] = {"area_name": tgt["area"]}
                             elif "device_id" in tgt:
                                 item["target"] = {"device_id": tgt["device_id"]}
+                            else:
+                                _LOGGER.debug(
+                                    "[v%s] Fallback: Action #%d has no target, using empty target",
+                                    INTEGRATION_VERSION,
+                                    idx + 1
+                                )
+                                item["target"] = {}
+                            
                             data = c.get("service_data") or c.get("data") or {}
                             if data:
                                 item["service_data"] = data
+                            
                             norm["execute_services"]["list"].append(item)
+                            _LOGGER.debug(
+                                "[v%s] Fallback: Normalized action #%d: %s.%s",
+                                INTEGRATION_VERSION,
+                                idx + 1,
+                                item["domain"],
+                                item["service"]
+                            )
                         
-                        from .helpers import get_function_executor
-                        function_executor = get_function_executor("native")
-                        fn_config = {"type": "native", "name": "execute_service"}
-                        await function_executor.execute(
-                            self.hass,
-                            fn_config,
-                            norm["execute_services"],
-                            user_input,
-                            self._get_exposed_entities(),
+                        if norm["execute_services"]["list"]:
+                            try:
+                                from .helpers import get_function_executor
+                                function_executor = get_function_executor("native")
+                                fn_config = {"type": "native", "name": "execute_service"}
+                                await function_executor.execute(
+                                    self.hass,
+                                    fn_config,
+                                    norm["execute_services"],
+                                    user_input,
+                                    self._get_exposed_entities(),
+                                )
+                                out = "Utfört."
+                                _LOGGER.info(
+                                    "[v%s] Fallback: Successfully executed %d services from object format",
+                                    INTEGRATION_VERSION,
+                                    len(norm["execute_services"]["list"])
+                                )
+                            except Exception as e:
+                                _LOGGER.error(
+                                    "[v%s] Fallback: Failed to execute services from object format: %s",
+                                    INTEGRATION_VERSION,
+                                    str(e)
+                                )
+                                out = f"Error executing services: {str(e)}"
+                        else:
+                            _LOGGER.warning(
+                                "[v%s] Fallback: No valid actions found in object format",
+                                INTEGRATION_VERSION
+                            )
+                    else:
+                        _LOGGER.debug(
+                            "[v%s] Fallback: Object format not recognized as execute_services (type=%s, has_actions=%s)",
+                            INTEGRATION_VERSION,
+                            payload.get("type"),
+                            bool(actions_list)
                         )
-                        out = "Utfört."
-                        _LOGGER.info("[v%s] Executed services from object format", INTEGRATION_VERSION)
             except json.JSONDecodeError as e:
-                _LOGGER.debug("[v%s] Failed to parse JSON from output_text: %s", INTEGRATION_VERSION, e)
-                # Keep original output if not JSON
-                pass
+                _LOGGER.debug(
+                    "[v%s] Fallback: Failed to parse JSON from output_text: %s (text preview: %s...)",
+                    INTEGRATION_VERSION,
+                    str(e),
+                    out[:50] if len(out) > 50 else out
+                )
+                # Keep original output if not valid JSON
             except Exception as e:
-                _LOGGER.error("[v%s] Error processing JSON tool call: %s", INTEGRATION_VERSION, e)
+                _LOGGER.error(
+                    "[v%s] Fallback: Unexpected error processing JSON tool call: %s",
+                    INTEGRATION_VERSION,
+                    str(e),
+                    exc_info=True
+                )
                 # Keep original output on error
-                pass
 
         # Append the assistant message (final text) and return
         chat_log.async_add_assistant_content_without_tools(

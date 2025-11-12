@@ -324,6 +324,17 @@ class NativeFunctionExecutor(FunctionExecutor):
         user_input: conversation.ConversationInput,
         exposed_entities,
     ):
+        # Auto-wrap single service call to list format if needed
+        # This handles cases where the model sends direct service call instead of wrapped in list
+        if "list" not in arguments and "domain" in arguments and "service" in arguments:
+            _LOGGER.info(
+                "[v%s] Auto-wrapping single service call to list format (domain=%s, service=%s)",
+                INTEGRATION_VERSION,
+                arguments.get("domain"),
+                arguments.get("service")
+            )
+            arguments = {"list": [arguments]}
+        
         result = []
         for service_argument in arguments.get("list", []):
             result.append(
