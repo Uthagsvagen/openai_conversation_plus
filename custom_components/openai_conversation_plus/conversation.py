@@ -311,7 +311,7 @@ class OpenAIConversationEntity(
         if system_prompt_text:
             base_messages.append({"role": "system", "content": system_prompt_text})
         if developer_prompt_text:
-            base_messages.append({"role": "developer", "content": developer_prompt_text})
+            base_messages.append({"role": "user", "content": developer_prompt_text})
 
         msgs: list[dict[str, Any]] = []
         last_user_text: str = ""
