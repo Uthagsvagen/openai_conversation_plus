@@ -7,11 +7,13 @@ The `execute_services` function allows you to execute Home Assistant services to
 - **Type**: Native function
 - **Name**: `execute_services`
 
-## Supported Formats
+## Required Format
 
-The function accepts **TWO** formats for maximum flexibility:
+The function schema always expects the **list format**. Each entry in the `list`
+array represents one Home Assistant service call. Use a single-item list when
+only one action is needed.
 
-### Format 1: List Format (Recommended for multiple services)
+### List Format (primary schema)
 ```json
 {
   "list": [
@@ -24,7 +26,10 @@ The function accepts **TWO** formats for maximum flexibility:
 }
 ```
 
-### Format 2: Single Service Format (Auto-wrapped)
+### Accepted fallback: Single service format
+The backend still auto-wraps a plain service object for compatibility, but the
+model spec will always describe the list format above. Only rely on this when
+absolutely necessary.
 ```json
 {
   "domain": "light",
@@ -40,12 +45,6 @@ The function accepts **TWO** formats for maximum flexibility:
 ### List Format Parameters
 - **list** (array): An array of service execution objects
 
-### Single Service Format Parameters
-- **domain** (string): The domain of the service (e.g., "light", "switch", "climate")
-- **service** (string): The specific service to call (e.g., "turn_on", "turn_off", "set_temperature")
-- **target** (object, optional): Target specification for the service
-- **service_data** (object, optional): Additional data for the service
-
 ### Service Object Properties
 Each service call (in list or single format) can contain:
 
@@ -54,10 +53,8 @@ Each service call (in list or single format) can contain:
 - **target** (object, optional): Target specification with one of:
   - **entity_id** (string or array): Specific entity ID(s)
   - **area_id** (string or array): Area ID(s) to control all devices in that area
-  - **area_name** (string or array): Area name(s) to control all devices in that area
   - **device_id** (string or array): Specific device ID(s)
 - **service_data** (object, optional): Additional configuration data for the service
-- **data** (object, optional): Alternative to service_data (both are supported)
 
 ## Example Usage
 

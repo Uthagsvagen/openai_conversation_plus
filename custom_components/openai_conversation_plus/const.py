@@ -117,46 +117,54 @@ DEFAULT_CONF_FUNCTIONS = [
             "description": "Use this function to execute service of devices in Home Assistant.",
             "parameters": {
                 "type": "object",
+                "additionalProperties": False,
                 "properties": {
                     "list": {
                         "type": "array",
+                        "description": "One or more Home Assistant service calls that will be executed in order. Always send at least one item. For a single action you can still provide the same structure with just one entry.",
+                        "minItems": 1,
                         "items": {
                             "type": "object",
+                            "additionalProperties": False,
                             "properties": {
                                 "domain": {
                                     "type": "string",
-                                    "description": "The domain of the service",
+                                    "description": "Home Assistant domain, e.g. light, switch, climate.",
                                 },
                                 "service": {
                                     "type": "string",
-                                    "description": "The service to be called",
+                                    "description": "Service name inside the domain, e.g. turn_on, turn_off, set_temperature.",
                                 },
                                 "target": {
                                     "type": "object",
-                                    "description": "Target selection: entity_id, area_name/area, or device_id",
+                                    "description": "How to select the devices that should be controlled.",
+                                    "additionalProperties": False,
                                     "properties": {
-                                        "entity_id": {"type": ["string", "array"]},
-                                        "area_name": {"type": ["string", "array"]},
-                                        "area": {"type": ["string", "array"]},
-                                        "device_id": {"type": ["string", "array"]},
+                                        "entity_id": {
+                                            "type": ["string", "array"],
+                                            "description": "Entity ID or list of IDs, e.g. light.kitchen."
+                                        },
+                                        "area_id": {
+                                            "type": ["string", "array"],
+                                            "description": "Area ID(s) from Home Assistant."
+                                        },
+                                        "device_id": {
+                                            "type": ["string", "array"],
+                                            "description": "Device ID(s) from Home Assistant."
+                                        },
                                     },
                                 },
                                 "service_data": {
                                     "type": "object",
-                                    "description": "The service data object to indicate what to control.",
-                                    "properties": {
-                                        "entity_id": {
-                                            "type": "string",
-                                            "description": "The entity_id retrieved from available devices. It must start with domain, followed by dot character.",
-                                        }
-                                    },
+                                    "description": "Optional service payload such as brightness, temperature, etc.",
+                                    "additionalProperties": True,
                                 },
-                                "data": {"type": "object", "description": "Alias for service_data"},
                             },
                             "required": ["domain", "service"],
                         },
                     }
                 },
+                "required": ["list"],
             },
         },
         "function": {"type": "native", "name": "execute_service"},

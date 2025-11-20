@@ -271,6 +271,7 @@ class OpenAIConversationEntity(
         # Use the flat message format per Responses API spec
         msgs: list[dict[str, Any]] = []
         last_user_text: str = ""
+        system_instruction_text: str = ""
         
         for idx, c in enumerate(chat_log.content):
             role = getattr(c, "role", None)
@@ -306,8 +307,19 @@ class OpenAIConversationEntity(
             _LOGGER.debug("[v%s] Added message with role=%s", INTEGRATION_VERSION, msg_role)
             if msg_role == "user":
                 last_user_text = text or last_user_text
+            elif msg_role == "system" and not system_instruction_text:
+                system_instruction_text = text or ""
             
         _LOGGER.info("[v%s] Built %d messages from chat log", INTEGRATION_VERSION, len(msgs))
+
+        # Prepare minimal retry payload (user text only) in case we must re-issue the request
+        conversation_items: list[dict[str, str]] = []
+        retry_text = last_user_text or getattr(user_input, "text", "") or ""
+        if retry_text:
+            conversation_items.append({"role": "user", "content": retry_text})
+        else:
+            _LOGGER.warning("[v%s] No user text available for retry payload; forcing empty input", INTEGRATION_VERSION)
+            conversation_items.append({"role": "user", "content": ""})
 
         model = opts.get(CONF_CHAT_MODEL, DEFAULT_CHAT_MODEL)
         max_tokens = opts.get("max_tokens", 150)
@@ -587,7 +599,6 @@ class OpenAIConversationEntity(
             ) for tool in (tools or []))
             want_force = has_execute_services and _should_force_execute_services(last_user_text)
             forced_once = False
-            conversation_items = msgs.copy()
             
             for iteration in range(max_iterations):
                 _LOGGER.debug("[v%s] Non-streaming iteration %d/%d", INTEGRATION_VERSION, iteration + 1, max_iterations)
@@ -652,7 +663,11 @@ class OpenAIConversationEntity(
                         if tools is not None:
                             kwargs["tools"] = tools
                         kwargs["tool_choice"] = {"type": "function", "function": {"name": "execute_services"}}
-                        # Ensure we send the original conversation again
+                        # Re-issue the latest user request with explicit instructions only
+                        if system_instruction_text:
+                            kwargs["instructions"] = system_instruction_text
+                        else:
+                            kwargs.pop("instructions", None)
                         kwargs["input"] = conversation_items
                         forced_once = True
                         continue
