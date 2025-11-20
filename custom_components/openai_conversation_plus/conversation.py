@@ -592,6 +592,12 @@ class OpenAIConversationEntity(
             for iteration in range(max_iterations):
                 _LOGGER.debug("[v%s] Non-streaming iteration %d/%d", INTEGRATION_VERSION, iteration + 1, max_iterations)
                 
+                kwargs.pop("stream", None)
+                kwargs["stream"] = False
+
+                if isinstance(kwargs.get("tool_choice"), dict):
+                    kwargs.pop("tool_choice", None)
+
                 try:
                     final = await client.responses.create(**kwargs)
                 except TypeError:
