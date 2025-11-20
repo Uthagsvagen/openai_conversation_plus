@@ -28,7 +28,7 @@ This project is a fork of Extended OpenAI Conversation. Big thanks to the origin
 - Home Assistant 2025.8.1 or newer
 - Python 3.11+
 - OpenAI API key 
-- **OpenAI Python Library 1.101.0 or newer** (required)
+- **OpenAI Python Library 2.8.1 or newer** (required)
 
 ## Installation
 

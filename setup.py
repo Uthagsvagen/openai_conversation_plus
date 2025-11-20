@@ -6,7 +6,7 @@ with open("README.md", encoding="utf-8") as fh:
 
 setup(
     name="openai-conversation-plus",
-    version="2025.10.29.0",
+    version="2025.11.20.2",
     author="aselling",
     description="OpenAI Conversation Plus integration for Home Assistant",
     long_description=long_description,
