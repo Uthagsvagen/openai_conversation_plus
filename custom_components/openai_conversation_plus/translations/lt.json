@@ -38,7 +38,9 @@
           "store_conversations": "Saugoti pokalbius (serverio pusėje)",
           "reasoning_level": "Mąstymo lygis (GPT-5)",
           "verbosity": "Atsakymo išsamumas",
-          "enable_conversation_events": "Įjungti pokalbio įvykius (atspindžio tikrinimui)"
+          "enable_conversation_events": "Įjungti pokalbio įvykius (atspindžio tikrinimui)",
+          "system_prompt": "System Prompt",
+          "house_context": "House Context Template"
         }
       }
     }

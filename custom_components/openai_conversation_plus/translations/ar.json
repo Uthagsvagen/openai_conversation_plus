@@ -38,7 +38,9 @@
           "store_conversations": "تخزين المحادثات (جانب الخادم)",
           "reasoning_level": "مستوى الاستدلال (GPT-5)",
           "verbosity": "تفصيل الاستجابة",
-          "enable_conversation_events": "تمكين أحداث المحادثة (للتشخيص)"
+          "enable_conversation_events": "تمكين أحداث المحادثة (للتشخيص)",
+          "system_prompt": "System Prompt",
+          "house_context": "House Context Template"
         }
       }
     }

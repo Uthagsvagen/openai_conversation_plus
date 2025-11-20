@@ -38,7 +38,9 @@
           "store_conversations": "Tallenna keskustelut (palvelinpuolella)",
           "reasoning_level": "Päättelytaso (GPT-5)",
           "verbosity": "Vastauksen yksityiskohtaisuus",
-          "enable_conversation_events": "Ota käyttöön keskustelutapahtumat (virheiden etsimiseen)"
+          "enable_conversation_events": "Ota käyttöön keskustelutapahtumat (virheiden etsimiseen)",
+          "system_prompt": "System Prompt",
+          "house_context": "House Context Template"
         }
       }
     }

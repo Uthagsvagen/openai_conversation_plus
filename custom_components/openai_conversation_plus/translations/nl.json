@@ -38,7 +38,9 @@
           "store_conversations": "Gesprekken opslaan (server-side)",
           "reasoning_level": "Redeneringsniveau (GPT-5)",
           "verbosity": "Antwoord uitvoerigheid",
-          "enable_conversation_events": "Conversatiegebeurtenissen inschakelen (voor foutopsporing)"
+          "enable_conversation_events": "Conversatiegebeurtenissen inschakelen (voor foutopsporing)",
+          "system_prompt": "System Prompt",
+          "house_context": "House Context Template"
         }
       }
     }

@@ -38,6 +38,7 @@ from .const import (
     CONF_ENABLE_CONVERSATION_EVENTS,
     CONF_ENABLE_WEB_SEARCH,
     CONF_FUNCTIONS,
+    CONF_HOUSE_CONTEXT,
     CONF_MAX_FUNCTION_CALLS_PER_CONVERSATION,
     CONF_MAX_TOKENS,
     CONF_MCP_SERVERS,
@@ -47,6 +48,7 @@ from .const import (
     CONF_SEARCH_CONTEXT_SIZE,
     CONF_SKIP_AUTHENTICATION,
     CONF_STORE_CONVERSATIONS,
+    CONF_SYSTEM_PROMPT,
     CONF_TEMPERATURE,
     CONF_TOP_P,
     CONF_USE_TOOLS,
@@ -60,6 +62,7 @@ from .const import (
     CONF_STREAM_ENABLED,
     DEFAULT_STREAM_ENABLED,
     DEFAULT_ENABLE_WEB_SEARCH,
+    DEFAULT_HOUSE_CONTEXT,
     DEFAULT_MAX_FUNCTION_CALLS_PER_CONVERSATION,
     DEFAULT_MAX_TOKENS,
     DEFAULT_MCP_SERVERS,
@@ -69,6 +72,7 @@ from .const import (
     DEFAULT_SEARCH_CONTEXT_SIZE,
     DEFAULT_SKIP_AUTHENTICATION,
     DEFAULT_STORE_CONVERSATIONS,
+    DEFAULT_SYSTEM_PROMPT,
     DEFAULT_TEMPERATURE,
     DEFAULT_TOP_P,
     DEFAULT_USE_TOOLS,
@@ -88,6 +92,8 @@ DEFAULT_CONF_FUNCTIONS_STR = yaml.dump(DEFAULT_CONF_FUNCTIONS, sort_keys=False)
 DEFAULT_OPTIONS = types.MappingProxyType(
     {
         CONF_PROMPT: DEFAULT_PROMPT,
+        CONF_SYSTEM_PROMPT: DEFAULT_SYSTEM_PROMPT,
+        CONF_HOUSE_CONTEXT: DEFAULT_HOUSE_CONTEXT,
         CONF_CHAT_MODEL: DEFAULT_CHAT_MODEL,
         CONF_MAX_TOKENS: DEFAULT_MAX_TOKENS,
         CONF_MAX_FUNCTION_CALLS_PER_CONVERSATION: DEFAULT_MAX_FUNCTION_CALLS_PER_CONVERSATION,
@@ -370,10 +376,21 @@ class OptionsFlow(config_entries.OptionsFlow):
             description={"suggested_value": options.get(CONF_MCP_SERVERS, DEFAULT_MCP_SERVERS)},
             default=DEFAULT_MCP_SERVERS,
         )] = TemplateSelector()
+        system_prompt_default = options.get(CONF_SYSTEM_PROMPT, DEFAULT_SYSTEM_PROMPT)
         schema[vol.Optional(
-            CONF_PROMPT,
-            description={"suggested_value": options.get(CONF_PROMPT, DEFAULT_PROMPT)},
-            default=DEFAULT_PROMPT,
+            CONF_SYSTEM_PROMPT,
+            description={"suggested_value": system_prompt_default},
+            default=DEFAULT_SYSTEM_PROMPT,
+        )] = TemplateSelector()
+        house_context_default = (
+            options.get(CONF_HOUSE_CONTEXT)
+            or options.get(CONF_PROMPT)
+            or DEFAULT_HOUSE_CONTEXT
+        )
+        schema[vol.Optional(
+            CONF_HOUSE_CONTEXT,
+            description={"suggested_value": house_context_default},
+            default=DEFAULT_HOUSE_CONTEXT,
         )] = TemplateSelector()
 
         return schema

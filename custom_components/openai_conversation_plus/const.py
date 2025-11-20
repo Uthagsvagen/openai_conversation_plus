@@ -20,6 +20,9 @@ EVENT_AUTOMATION_REGISTERED = "automation_registered_via_openai_conversation_plu
 EVENT_CONVERSATION_FINISHED = "openai_conversation_plus.conversation.finished"
 
 CONF_PROMPT = "prompt"
+CONF_SYSTEM_PROMPT = "system_prompt"
+CONF_HOUSE_CONTEXT = "house_context"
+DEFAULT_SYSTEM_PROMPT = "You are a smart assistant for Home Assistant."
 DEFAULT_PROMPT = """Standard Prompt (for Home Assistant integration)
 
 I want you to act as a smart home assistant for Home Assistant.
@@ -99,6 +102,7 @@ Important rules
 	•	NEVER respond with just text for device control - USE THE FUNCTION
 	•	Only respond with text when you genuinely cannot use a function (e.g., answering questions, providing information)
 """
+DEFAULT_HOUSE_CONTEXT = DEFAULT_PROMPT
 CONF_CHAT_MODEL = "chat_model"
 DEFAULT_CHAT_MODEL = "gpt-5"
 CONF_MAX_TOKENS = "max_tokens"

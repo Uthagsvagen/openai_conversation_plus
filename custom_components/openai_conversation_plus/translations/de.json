@@ -38,7 +38,9 @@
           "store_conversations": "Konversationen speichern (serverseitig)",
           "reasoning_level": "Argumentationsniveau (GPT-5)",
           "verbosity": "Antwort-Detaillierung",
-          "enable_conversation_events": "Konversationsereignisse aktivieren (für Fehlerbehebung)"
+          "enable_conversation_events": "Konversationsereignisse aktivieren (für Fehlerbehebung)",
+          "system_prompt": "System Prompt",
+          "house_context": "House Context Template"
         }
       }
     }

@@ -23,6 +23,8 @@
       "init": {
         "data": {
           "prompt": "Prompt Template",
+          "system_prompt": "System Prompt",
+          "house_context": "House Context Template",
           "model": "Completion Model",
           "max_tokens": "Maximum tokens to return in response",
           "temperature": "Temperature",

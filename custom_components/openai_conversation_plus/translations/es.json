@@ -38,7 +38,9 @@
           "store_conversations": "Almacenar conversaciones (lado del servidor)",
           "reasoning_level": "Nivel de razonamiento (GPT-5)",
           "verbosity": "Verbosidad de respuesta",
-          "enable_conversation_events": "Habilitar eventos de conversación (para depuración)"
+          "enable_conversation_events": "Habilitar eventos de conversación (para depuración)",
+          "system_prompt": "System Prompt",
+          "house_context": "House Context Template"
         }
       }
     }

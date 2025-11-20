@@ -24,9 +24,15 @@ from openai._exceptions import OpenAIError
 from .const import (
     DOMAIN,
     CONF_CHAT_MODEL,
-    DEFAULT_CHAT_MODEL,
+    CONF_HOUSE_CONTEXT,
+    CONF_PROMPT,
     CONF_STORE_CONVERSATIONS,
+    CONF_SYSTEM_PROMPT,
+    DEFAULT_CHAT_MODEL,
+    DEFAULT_HOUSE_CONTEXT,
+    DEFAULT_PROMPT,
     DEFAULT_STORE_CONVERSATIONS,
+    DEFAULT_SYSTEM_PROMPT,
     INTEGRATION_VERSION,
 )
 
@@ -120,16 +126,38 @@ class OpenAIConversationEntity(
         client: AsyncOpenAI = self.entry.runtime_data  # type: ignore[attr-defined]
 
         # Provide LLM context and tools from HA to the model
+        system_prompt_template = (
+            opts.get(CONF_SYSTEM_PROMPT)
+            or opts.get(CONF_PROMPT)
+            or DEFAULT_SYSTEM_PROMPT
+        )
+        house_context_template = (
+            opts.get(CONF_HOUSE_CONTEXT)
+            or opts.get(CONF_PROMPT)
+            or DEFAULT_HOUSE_CONTEXT
+        )
+        rendered_system_prompt = ""
+        rendered_house_context = ""
+
         try:
             # Render the prompt template without entities
-            rendered_prompt = template.Template(
-                (opts.get("prompt") or ""),
+            template_context = {
+                "ha_name": self.hass.config.location_name or "Home",
+                "current_device_id": getattr(user_input, "device_id", None),
+            }
+            rendered_system_prompt = template.Template(
+                system_prompt_template,
                 self.hass,
             ).async_render(
-                {
-                    "ha_name": self.hass.config.location_name or "Home",
-                    "current_device_id": getattr(user_input, "device_id", None),
-                },
+                template_context,
+                parse_result=False,
+                strict=False,
+            )
+            rendered_house_context = template.Template(
+                house_context_template,
+                self.hass,
+            ).async_render(
+                template_context,
                 parse_result=False,
                 strict=False,
             )
@@ -150,9 +178,9 @@ class OpenAIConversationEntity(
                     from .const import EXPOSED_ENTITIES_PROMPT_MAX
                     limited_exposed = exposed[:EXPOSED_ENTITIES_PROMPT_MAX]
                     entities_json = json.dumps(limited_exposed, ensure_ascii=False)
-                    rendered_prompt = f"{rendered_prompt}\n\nAvailable entities:\n{entities_json}"
+                    rendered_house_context = f"{rendered_house_context}\n\nAvailable entities:\n{entities_json}"
                     _LOGGER.info(
-                        "[v%s] Appended %d entities to conversation system prompt (limited from %d)",
+                        "[v%s] Appended %d entities to developer prompt (limited from %d)",
                         INTEGRATION_VERSION,
                         len(limited_exposed),
                         len(exposed)
@@ -163,7 +191,7 @@ class OpenAIConversationEntity(
             await chat_log.async_provide_llm_data(
                 user_input.as_llm_context(DOMAIN),
                 opts.get("llm_hass_api"),
-                rendered_prompt,
+                rendered_system_prompt,
                 user_input.extra_system_prompt,
             )
         except conversation.ConverseError as err:
@@ -269,9 +297,25 @@ class OpenAIConversationEntity(
 
         # Build Responses API input from chat log
         # Use the flat message format per Responses API spec
+        additional_prompt = getattr(user_input, "extra_system_prompt", "")
+        base_messages: list[dict[str, str]] = []
+        system_prompt_text = (rendered_system_prompt or "").strip()
+        developer_prompt_text = (rendered_house_context or "").strip()
+        if additional_prompt:
+            developer_prompt_text = (
+                f"{developer_prompt_text}\n\n{additional_prompt}".strip()
+                if developer_prompt_text
+                else additional_prompt.strip()
+            )
+
+        if system_prompt_text:
+            base_messages.append({"role": "system", "content": system_prompt_text})
+        if developer_prompt_text:
+            base_messages.append({"role": "developer", "content": developer_prompt_text})
+
         msgs: list[dict[str, Any]] = []
         last_user_text: str = ""
-        system_instruction_text: str = ""
+        system_instruction_text: str = system_prompt_text
         
         for idx, c in enumerate(chat_log.content):
             role = getattr(c, "role", None)
@@ -297,6 +341,10 @@ class OpenAIConversationEntity(
                 msg_role = "assistant"
                 _LOGGER.debug("[v%s] Message is assistant", INTEGRATION_VERSION)
             
+            if msg_role in ("system", "developer"):
+                _LOGGER.debug("[v%s] Skipping %s message from chat log; replaced by custom prompts", INTEGRATION_VERSION, msg_role)
+                continue
+
             # Use flat structure for Responses API
             msgs.append(
                 {
@@ -307,10 +355,9 @@ class OpenAIConversationEntity(
             _LOGGER.debug("[v%s] Added message with role=%s", INTEGRATION_VERSION, msg_role)
             if msg_role == "user":
                 last_user_text = text or last_user_text
-            elif msg_role == "system" and not system_instruction_text:
-                system_instruction_text = text or ""
             
-        _LOGGER.info("[v%s] Built %d messages from chat log", INTEGRATION_VERSION, len(msgs))
+        msgs = base_messages + msgs
+        _LOGGER.info("[v%s] Built %d messages from chat log (including %d base prompts)", INTEGRATION_VERSION, len(msgs), len(base_messages))
 
         # Prepare minimal retry payload (user text only) in case we must re-issue the request
         conversation_items: list[dict[str, str]] = []

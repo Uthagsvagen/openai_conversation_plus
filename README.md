@@ -94,9 +94,13 @@ This integration uses the **Responses API exclusively**. The following parameter
 - `temperature` - Use `reasoning.effort` and `text.verbosity` instead
 - `top_p` - Use `reasoning.effort` and `text.verbosity` instead
 
-### System Prompt & Entity Context
+### System Prompt, House Context & Entity Injection
 
-**Important:** You no longer need to include `exposed_entities` in your prompt template. The integration automatically:
+- **System Prompt** (new option): A short instruction that becomes the `role: system` message (default: “You are a smart assistant for Home Assistant.”).
+- **House Context** (new option): Your detailed template with tone, personality, automation rules, etc. It is injected as a `role: developer` message so it can stay verbose without polluting the system prompt.
+- Both fields are configurable from the integration options (`System Prompt` + `House Context Template` selectors).
+
+**Important:** You no longer need to include `exposed_entities` in the House Context template. The integration automatically:
 
 - **Includes all exposed entities** in the system context behind the scenes
 - **Sends entities only once per conversation** (saves context tokens on subsequent messages)

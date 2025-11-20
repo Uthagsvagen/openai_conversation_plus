@@ -38,7 +38,9 @@
           "store_conversations": "Lagra konversationer (serversida)",
           "reasoning_level": "Resonemangsnivå (GPT-5)",
           "verbosity": "Svarsverbositet",
-          "enable_conversation_events": "Aktivera konversationshändelser (för felsökning)"
+          "enable_conversation_events": "Aktivera konversationshändelser (för felsökning)",
+          "system_prompt": "System Prompt",
+          "house_context": "House Context Template"
         }
       }
     }

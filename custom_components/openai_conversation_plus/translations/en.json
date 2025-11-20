@@ -39,7 +39,9 @@
           "store_conversations": "Store Conversations (server-side)",
           "reasoning_level": "Reasoning Level (GPT-5)",
           "verbosity": "Response Verbosity",
-          "enable_conversation_events": "Enable Conversation Events (for debugging)"
+          "enable_conversation_events": "Enable Conversation Events (for debugging)",
+          "system_prompt": "System Prompt",
+          "house_context": "House Context Template"
         }
       }
     }

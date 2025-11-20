@@ -31,7 +31,9 @@
           "functions": "Funções",
           "mcp_servers": "MCP Servers",
           "attach_username": "Anexar nome do usuário na mensagem",
-          "use_tools": "Use ferramentas"
+          "use_tools": "Use ferramentas",
+          "system_prompt": "System Prompt",
+          "house_context": "House Context Template"
         }
       }
     }
