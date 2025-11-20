@@ -9,7 +9,7 @@ from typing import Literal, Any
 from types import SimpleNamespace
 
 import yaml
-from homeassistant.components import conversation
+from homeassistant.components import conversation as ha_conversation
 from homeassistant.components.homeassistant.exposed_entities import async_should_expose
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import ATTR_NAME, CONF_API_KEY, MATCH_ALL, Platform
@@ -187,7 +187,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             hass.data.get(DOMAIN, {}).pop(entry.entry_id, None)
         except Exception:
             pass
-        conversation.async_unset_agent(hass, entry)
+        ha_conversation.async_unset_agent(hass, entry)
     return unload_ok
 
 
