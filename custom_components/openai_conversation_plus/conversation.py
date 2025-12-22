@@ -72,20 +72,25 @@ def _should_force_execute_services(text: str) -> bool:
 def _save_api_log(hass: HomeAssistant, log_type: str, data: dict) -> None:
     """Save API request/response to log file for debugging."""
     try:
-        # Create logs directory in Home Assistant config directory
-        logs_dir = Path(hass.config.path("custom_components", "openai_conversation_plus", "logs"))
-        logs_dir.mkdir(parents=True, exist_ok=True)
-        
-        # Create timestamped filename
+        # Avoid blocking I/O in the event loop by offloading file operations.
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
         filename = f"{timestamp}_{log_type}.json"
+        logs_dir = Path(hass.config.path("custom_components", "openai_conversation_plus", "logs"))
         filepath = logs_dir / filename
-        
-        # Save the data
-        with open(filepath, "w", encoding="utf-8") as f:
-            json.dump(data, f, indent=2, ensure_ascii=False, default=str)
-        
-        _LOGGER.info("[v%s] Saved %s log to: %s", INTEGRATION_VERSION, log_type, filepath)
+
+        async def _async_write() -> None:
+            try:
+                def _write_sync() -> None:
+                    logs_dir.mkdir(parents=True, exist_ok=True)
+                    with open(filepath, "w", encoding="utf-8") as f:
+                        json.dump(data, f, indent=2, ensure_ascii=False, default=str)
+
+                await hass.async_add_executor_job(_write_sync)
+                _LOGGER.info("[v%s] Saved %s log to: %s", INTEGRATION_VERSION, log_type, filepath)
+            except Exception as e:
+                _LOGGER.error("[v%s] Failed to save API log: %s", INTEGRATION_VERSION, e)
+
+        hass.async_create_task(_async_write())
     except Exception as e:
         _LOGGER.error("[v%s] Failed to save API log: %s", INTEGRATION_VERSION, e)
 
@@ -246,8 +251,33 @@ class OpenAIConversationEntity(
             for func_setting in user_functions:
                 func_spec = func_setting.get("spec", {})
                 if func_spec and "name" in func_spec:
+                    func_name = func_spec.get("name")
                     # Use flat structure required by Responses API
                     params = func_spec.get("parameters", {"type": "object", "properties": {}}) or {"type": "object", "properties": {}}
+
+                    # Prefer the integration's built-in execute_services schema for reliability.
+                    # User-provided schemas often drift (e.g. services/area_name) and reduce tool-call success.
+                    if func_name == "execute_services":
+                        try:
+                            from .const import DEFAULT_CONF_FUNCTIONS
+                            default_exec = next(
+                                (
+                                    f for f in DEFAULT_CONF_FUNCTIONS
+                                    if isinstance(f, dict)
+                                    and isinstance(f.get("spec"), dict)
+                                    and f["spec"].get("name") == "execute_services"
+                                ),
+                                None,
+                            )
+                            if default_exec and isinstance(default_exec.get("spec"), dict):
+                                params = default_exec["spec"].get("parameters") or params
+                                _LOGGER.debug(
+                                    "[v%s] Using built-in execute_services schema (overriding options schema) for reliability",
+                                    INTEGRATION_VERSION,
+                                )
+                        except Exception:
+                            # Keep option-provided schema if we can't load defaults for any reason.
+                            pass
                     try:
                         # Sanitize: remove unsupported/duplicative 'data' if present
                         if isinstance(params, dict) and isinstance(params.get("properties"), dict):
@@ -261,14 +291,14 @@ class OpenAIConversationEntity(
                     
                     # Enhanced description for execute_services
                     description = func_spec.get("description", "")
-                    if func_spec.get("name") == "execute_services":
+                    if func_name == "execute_services":
                         description = (
                             "Execute Home Assistant service calls to control devices. "
-                            "Accepts BOTH formats: "
-                            "1) List format: {\"list\": [{\"domain\": \"light\", \"service\": \"turn_on\", \"target\": {...}}]} "
-                            "2) Single service: {\"domain\": \"light\", \"service\": \"turn_on\", \"target\": {...}}. "
-                            "Target can use entity_id, area_id, area_name, or device_id. "
-                            "Use area_id for controlling all devices in a room/area."
+                            "You MUST call this tool for any requested action (turn on/off, set temperature, etc). "
+                            "Arguments MUST be an object with a 'list' field containing one or more service calls. "
+                            "Each list item must contain 'domain' and 'service', and may include 'target' and 'service_data'. "
+                            "Use target.area_id to control an entire room/area, or target.entity_id for specific entities. "
+                            "Example: {\"list\": [{\"domain\": \"light\", \"service\": \"turn_off\", \"target\": {\"area_id\": \"vardagsrum\"}}]}."
                         )
                         _LOGGER.debug(
                             "[v%s] Enhanced execute_services description for better model understanding",
@@ -277,7 +307,7 @@ class OpenAIConversationEntity(
                     
                     tool = {
                         "type": "function",
-                        "name": func_spec.get("name"),
+                        "name": func_name,
                         "description": description,
                         "parameters": params
                     }
@@ -285,7 +315,7 @@ class OpenAIConversationEntity(
                     _LOGGER.info(
                         "[v%s]   - Added function: %s",
                         INTEGRATION_VERSION,
-                        func_spec.get("name")
+                        func_name
                     )
         
         # Add MCP servers as tools
@@ -413,12 +443,37 @@ class OpenAIConversationEntity(
             except Exception:  # noqa: BLE001
                 # If sanitize is not available for any reason, fall back to original tools
                 pass
-            kwargs["tools"] = tools
+
+            # Some SDK/docs variants expect function tools nested under a "function" key.
+            # We keep a flat version as primary, and a nested version as a compatibility fallback.
+            tools_flat = tools
+
+            def _nest_function_tools(tools_in: list[dict[str, Any]]) -> list[dict[str, Any]]:
+                nested: list[dict[str, Any]] = []
+                for t in tools_in or []:
+                    if isinstance(t, dict) and t.get("type") == "function":
+                        nested.append(
+                            {
+                                "type": "function",
+                                "function": {
+                                    "name": t.get("name"),
+                                    "description": t.get("description", ""),
+                                    "parameters": t.get("parameters", {"type": "object", "properties": {}}),
+                                },
+                            }
+                        )
+                    else:
+                        nested.append(t)
+                return nested
+
+            tools_nested = _nest_function_tools(tools_flat)
+
+            kwargs["tools"] = tools_flat
             
             # Intelligent tool_choice: Force execute_services for action commands
             has_execute_services = any(
                 (isinstance(tool, dict) and tool.get("type") == "function" and tool.get("name") == "execute_services")
-                for tool in tools
+                for tool in tools_flat
             )
             
             # Get user input text from last message
@@ -432,9 +487,10 @@ class OpenAIConversationEntity(
             should_force = has_execute_services and _should_force_execute_services(user_input_text)
             
             if should_force:
-                # Per Responses API spec: force a particular function tool call
-                # {"type":"function","function":{"name":"..."}}
-                kwargs["tool_choice"] = {"type": "function", "function": {"name": "execute_services"}}
+                # Force a particular function tool call.
+                # Note: There are multiple schema variants in the wild; we use the flat form primarily
+                # and will retry with the nested form if no function_call items are returned.
+                kwargs["tool_choice"] = {"type": "function", "name": "execute_services"}
                 _LOGGER.info(
                     "[v%s] Detected action command in user input, forcing tool_choice to execute_services",
                     INTEGRATION_VERSION
@@ -696,7 +752,91 @@ class OpenAIConversationEntity(
                 isinstance(tool, dict) and tool.get("type") == "function" and tool.get("name") == "execute_services"
             ) for tool in (tools or []))
             want_force = has_execute_services and _should_force_execute_services(last_user_text)
-            forced_once = False
+            force_attempt = 0
+            out_override: str | None = None
+
+            tool_choice_primary = {"type": "function", "name": "execute_services"}
+            tool_choice_alt = {"type": "function", "function": {"name": "execute_services"}}
+
+            async def _try_execute_legacy_tool_json(resp_obj: Any) -> bool:
+                """Best-effort fallback for models that emit tool JSON as plain text instead of function_call items."""
+                try:
+                    json_texts: list[str] = []
+                    for output_item in getattr(resp_obj, "output", []) or []:
+                        if getattr(output_item, "type", "") != "message":
+                            continue
+                        for content_item in getattr(output_item, "content", []) or []:
+                            if getattr(content_item, "type", "") != "output_text":
+                                continue
+                            txt = (getattr(content_item, "text", "") or "").strip()
+                            if txt.startswith("{") or txt.startswith("["):
+                                json_texts.append(txt)
+
+                    if not json_texts:
+                        return False
+
+                    from .helpers import get_function_executor
+                    executor = get_function_executor("native")
+                    fn_config = {"type": "native", "name": "execute_service"}
+
+                    for txt in json_texts:
+                        try:
+                            payload = json.loads(txt)
+                        except json.JSONDecodeError:
+                            continue
+
+                        # Legacy wrapper: {"tool_name":"execute_services","tool_args":{...}}
+                        if isinstance(payload, dict) and payload.get("tool_name") == "execute_services":
+                            tool_args = payload.get("tool_args") or {}
+                            services = tool_args.get("services") or tool_args.get("list") or []
+                            if isinstance(services, dict) and services.get("domain") and services.get("service"):
+                                services = [services]
+                            if not isinstance(services, list):
+                                continue
+
+                            norm: dict[str, Any] = {"list": []}
+                            for svc in services:
+                                if not isinstance(svc, dict) or "domain" not in svc or "service" not in svc:
+                                    continue
+                                tgt = svc.get("target") or {}
+                                if isinstance(tgt, dict):
+                                    # Normalize target key names to what HA expects (area_id/entity_id/device_id)
+                                    if "area_name" in tgt and "area_id" not in tgt:
+                                        tgt["area_id"] = tgt.pop("area_name")
+                                    if "area" in tgt and "area_id" not in tgt:
+                                        tgt["area_id"] = tgt.pop("area")
+                                norm["list"].append(
+                                    {
+                                        "domain": svc.get("domain"),
+                                        "service": svc.get("service"),
+                                        "target": tgt if isinstance(tgt, dict) else {},
+                                        "service_data": svc.get("service_data") or svc.get("data") or {},
+                                    }
+                                )
+
+                            if norm["list"]:
+                                await executor.execute(
+                                    self.hass,
+                                    fn_config,
+                                    norm,
+                                    user_input,
+                                    self._get_exposed_entities(),
+                                )
+                                _LOGGER.info(
+                                    "[v%s] Executed execute_services from JSON text fallback (%d calls)",
+                                    INTEGRATION_VERSION,
+                                    len(norm["list"]),
+                                )
+                                return True
+
+                    return False
+                except Exception as e:
+                    _LOGGER.debug(
+                        "[v%s] Legacy JSON tool fallback failed: %s",
+                        INTEGRATION_VERSION,
+                        e,
+                    )
+                    return False
             
             for iteration in range(max_iterations):
                 _LOGGER.debug("[v%s] Non-streaming iteration %d/%d", INTEGRATION_VERSION, iteration + 1, max_iterations)
@@ -750,21 +890,35 @@ class OpenAIConversationEntity(
                             tool_calls.append(output_item)
                 
                 if not tool_calls:
+                    # If the model returned tool JSON as text, execute it directly instead of retrying.
+                    if await _try_execute_legacy_tool_json(final):
+                        out_override = "Utfört."
+                        _LOGGER.debug(
+                            "[v%s] Completed action via JSON text fallback; finishing in iteration %d",
+                            INTEGRATION_VERSION,
+                            iteration + 1,
+                        )
+                        break
+
                     # Optional fallback: force the execute_services tool once for imperative requests
-                    if want_force and not forced_once:
-                        _LOGGER.info("[v%s] No tool calls returned; forcing tool_choice to execute_services and retrying", INTEGRATION_VERSION)
-                        kwargs.pop("tools", None)
-                        # Reconstruct tools into kwargs in case they were removed earlier on retry
-                        if tools is not None:
-                            kwargs["tools"] = tools
-                        kwargs["tool_choice"] = {"type": "function", "function": {"name": "execute_services"}}
+                    if want_force and force_attempt == 0:
+                        _LOGGER.info(
+                            "[v%s] No function_call items returned; retrying with alternate tool schema for execute_services",
+                            INTEGRATION_VERSION,
+                        )
+                        # Retry with alternate tool_choice + nested function tool format (compat mode)
+                        if "tools_nested" in locals() and isinstance(locals().get("tools_nested"), list):
+                            kwargs["tools"] = tools_nested  # type: ignore[name-defined]
+                        else:
+                            kwargs["tools"] = tools or []
+                        kwargs["tool_choice"] = tool_choice_alt
                         # Re-issue the latest user request with explicit instructions only
                         if system_instruction_text:
                             kwargs["instructions"] = system_instruction_text
                         else:
                             kwargs.pop("instructions", None)
                         kwargs["input"] = conversation_items
-                        forced_once = True
+                        force_attempt = 1
                         continue
                     # No more tool calls, we're done
                     _LOGGER.debug("[v%s] No tool calls in iteration %d, finishing", INTEGRATION_VERSION, iteration + 1)
@@ -896,10 +1050,11 @@ class OpenAIConversationEntity(
                 _LOGGER.debug("[v%s] Continuing loop with %d tool results", INTEGRATION_VERSION, len(tool_results))
             
             # Parse final response text
-            out = ""
+            out = out_override or ""
             try:
                 # Try SDK convenience property first
-                out = getattr(final, "output_text", None)
+                if not out:
+                    out = getattr(final, "output_text", None)
                 if not out:
                     # Parse manual structure: response.output[].content[].text
                     if hasattr(final, "output") and final.output:
