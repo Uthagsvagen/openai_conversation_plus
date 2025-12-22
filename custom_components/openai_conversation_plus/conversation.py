@@ -426,8 +426,9 @@ class OpenAIConversationEntity(
             should_force = has_execute_services and _should_force_execute_services(user_input_text)
             
             if should_force:
-                # Per Responses API spec: forced function tool_choice is {type:"function", name:"..."}
-                kwargs["tool_choice"] = {"type": "function", "name": "execute_services"}
+                # Per Responses API spec: force a particular function tool call
+                # {"type":"function","function":{"name":"..."}}
+                kwargs["tool_choice"] = {"type": "function", "function": {"name": "execute_services"}}
                 _LOGGER.info(
                     "[v%s] Detected action command in user input, forcing tool_choice to execute_services",
                     INTEGRATION_VERSION
@@ -750,7 +751,7 @@ class OpenAIConversationEntity(
                         # Reconstruct tools into kwargs in case they were removed earlier on retry
                         if tools is not None:
                             kwargs["tools"] = tools
-                        kwargs["tool_choice"] = {"type": "function", "name": "execute_services"}
+                        kwargs["tool_choice"] = {"type": "function", "function": {"name": "execute_services"}}
                         # Re-issue the latest user request with explicit instructions only
                         if system_instruction_text:
                             kwargs["instructions"] = system_instruction_text
