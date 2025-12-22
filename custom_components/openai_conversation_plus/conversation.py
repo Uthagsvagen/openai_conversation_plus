@@ -28,11 +28,13 @@ from .const import (
     CONF_PROMPT,
     CONF_STORE_CONVERSATIONS,
     CONF_SYSTEM_PROMPT,
+    CONF_USE_TOOLS,
     DEFAULT_CHAT_MODEL,
     DEFAULT_HOUSE_CONTEXT,
     DEFAULT_PROMPT,
     DEFAULT_STORE_CONVERSATIONS,
     DEFAULT_SYSTEM_PROMPT,
+    DEFAULT_USE_TOOLS,
     INTEGRATION_VERSION,
 )
 
@@ -104,6 +106,10 @@ class OpenAIConversationEntity(
 
     def __init__(self, entry: ConfigEntry) -> None:
         self.entry = entry
+        # Advertise CONTROL capability when tools are enabled. This aligns with
+        # Home Assistant's official OpenAI Conversation integration behavior.
+        if self.entry.options.get(CONF_USE_TOOLS, DEFAULT_USE_TOOLS):
+            self._attr_supported_features = conversation.ConversationEntityFeature.CONTROL
 
     @property
     def supported_languages(self) -> list[str] | Literal["*"]:
