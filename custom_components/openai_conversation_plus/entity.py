@@ -5,9 +5,31 @@ import logging
 from typing import Any
 
 from homeassistant.core import HomeAssistant
+from homeassistant.const import CONF_API_KEY
 from homeassistant.helpers.entity import Entity
+from homeassistant.helpers.httpx_client import get_async_client
 
-from .const import DOMAIN, INTEGRATION_VERSION
+from openai import AsyncOpenAI
+from openai._exceptions import OpenAIError
+
+from .const import (
+    CONF_BASE_URL,
+    CONF_CHAT_MODEL,
+    CONF_MAX_TOKENS,
+    CONF_ORGANIZATION,
+    CONF_REASONING_LEVEL,
+    CONF_STORE_CONVERSATIONS,
+    CONF_VERBOSITY,
+    DEFAULT_CHAT_MODEL,
+    DEFAULT_MAX_TOKENS,
+    DEFAULT_REASONING_LEVEL,
+    DEFAULT_STORE_CONVERSATIONS,
+    DEFAULT_VERBOSITY,
+    DOMAIN,
+    INTEGRATION_VERSION,
+    VERBOSITY_COMPAT_MAP,
+    is_gpt5_model,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -33,7 +55,7 @@ class OpenAIBaseLLMEntity(Entity):
             "identifiers": {(DOMAIN, self._config_entry.entry_id)},
             "name": self._config_entry.title,
             "manufacturer": "OpenAI",
-            "model": self._config_entry.options.get("chat_model", "gpt-4o-mini"),
+            "model": self._config_entry.options.get(CONF_CHAT_MODEL, DEFAULT_CHAT_MODEL),
             "entry_type": "service",
         }
 
@@ -50,14 +72,19 @@ class OpenAIBaseLLMEntity(Entity):
         Returns:
             Dictionary containing the response data
         """
-        # Get the conversation agent
-        from . import OpenAIAgent
-
-        agent_data = self.hass.data.get(DOMAIN, {}).get(self._config_entry.entry_id, {})
-        agent: OpenAIAgent = agent_data.get("agent")
-
-        if not agent:
-            raise ValueError("OpenAI agent not found")
+        # Prefer the configured AsyncOpenAI client from runtime_data (set in __init__.py),
+        # but fall back to constructing one if needed.
+        client = getattr(self._config_entry, "runtime_data", None)
+        if not isinstance(client, AsyncOpenAI):
+            api_key = self._config_entry.data.get(CONF_API_KEY)
+            if not api_key:
+                raise ValueError("OpenAI API key not found in config entry")
+            client = AsyncOpenAI(
+                api_key=api_key,
+                base_url=self._config_entry.data.get(CONF_BASE_URL),
+                organization=self._config_entry.data.get(CONF_ORGANIZATION),
+                http_client=get_async_client(self.hass),
+            )
 
         # Build messages from chat log
         messages = []
@@ -90,31 +117,54 @@ class OpenAIBaseLLMEntity(Entity):
                     },
                 )
 
-        # Create a mock ConversationInput object
-        class MockConversationInput:
-            def __init__(self):
-                self.text = ""
-                self.language = "en"
-                self.conversation_id = None
-                self.device_id = None
-                self.context = type("Context", (), {"user_id": None})()
-                self.agent_response_id = None
-
-        mock_input = MockConversationInput()
-
-        # Get exposed entities for context
-        exposed_entities = agent.get_exposed_entities()
-
         try:
-            # Query the agent
-            response = await agent.query(
-                mock_input,
-                messages,
-                exposed_entities,
-                0,  # No function calls for structured data generation
+            options = self._config_entry.options or {}
+            model = options.get(CONF_CHAT_MODEL, DEFAULT_CHAT_MODEL)
+            max_tokens = options.get(CONF_MAX_TOKENS, DEFAULT_MAX_TOKENS)
+
+            response_kwargs: dict[str, Any] = {
+                "model": model,
+                "input": messages,
+                "max_output_tokens": max_tokens,
+                "store": options.get(CONF_STORE_CONVERSATIONS, DEFAULT_STORE_CONVERSATIONS),
+            }
+
+            # Apply GPT‑5 reasoning/verbosity controls when using GPT‑5 family models
+            if is_gpt5_model(model):
+                reasoning_level = options.get(CONF_REASONING_LEVEL, DEFAULT_REASONING_LEVEL)
+                verbosity = options.get(CONF_VERBOSITY, DEFAULT_VERBOSITY)
+                mapped_verbosity = VERBOSITY_COMPAT_MAP.get(verbosity, verbosity)
+                response_kwargs["reasoning"] = {"effort": reasoning_level}
+                response_kwargs["text"] = {
+                    "verbosity": mapped_verbosity,
+                    "format": {"type": "text"},
+                }
+
+            _LOGGER.debug(
+                "[v%s] AI Task responses.create kwargs (model=%s, max_output_tokens=%s, structured=%s)",
+                INTEGRATION_VERSION,
+                model,
+                max_tokens,
+                bool(structure),
             )
 
-            content = response.message.content
+            response = await client.responses.create(**response_kwargs)
+
+            # Extract text from Responses API response
+            content = getattr(response, "output_text", None) or ""
+            if not content and hasattr(response, "output") and response.output:
+                try:
+                    for output_item in response.output:
+                        if getattr(output_item, "type", "") == "message":
+                            content_items = getattr(output_item, "content", []) or []
+                            for content_item in content_items:
+                                if getattr(content_item, "type", "") == "output_text":
+                                    text = getattr(content_item, "text", "")
+                                    if text:
+                                        content += text + "\n"
+                    content = content.strip()
+                except Exception:
+                    content = content.strip() if content else ""
 
             # If structure was provided, try to parse JSON
             if structure:
@@ -145,6 +195,9 @@ class OpenAIBaseLLMEntity(Entity):
             else:
                 return {"response": content}
 
+        except OpenAIError as e:
+            _LOGGER.error("[v%s] OpenAI API error handling AI Task: %s", INTEGRATION_VERSION, e)
+            return {"error": str(e)}
         except Exception as e:
-            _LOGGER.error("[v%s] Error handling chat log: %s", INTEGRATION_VERSION, e)
+            _LOGGER.error("[v%s] Error handling AI Task chat log: %s", INTEGRATION_VERSION, e)
             return {"error": str(e)}

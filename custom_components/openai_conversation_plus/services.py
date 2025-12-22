@@ -18,7 +18,7 @@ from homeassistant.helpers.typing import ConfigType
 from openai import AsyncOpenAI
 from openai._exceptions import OpenAIError
 
-from .const import DOMAIN, SERVICE_QUERY_IMAGE, GPT5_MODELS, INTEGRATION_VERSION
+from .const import DOMAIN, SERVICE_QUERY_IMAGE, INTEGRATION_VERSION, is_gpt5_model
 
 QUERY_IMAGE_SCHEMA = vol.Schema(
     {
@@ -27,7 +27,7 @@ QUERY_IMAGE_SCHEMA = vol.Schema(
                 "integration": DOMAIN,
             }
         ),
-        vol.Required("model", default="gpt-5"): cv.string,  # Ändra till GPT-5
+        vol.Required("model", default="gpt-5.2"): cv.string,  # Default to GPT-5.2
         vol.Required("prompt"): cv.string,
         vol.Required("images"): vol.All(cv.ensure_list, [{"url": cv.string}]),
         vol.Optional("max_tokens", default=300): cv.positive_int,
@@ -78,7 +78,7 @@ async def async_setup_services(hass: HomeAssistant, config: ConfigType) -> None:
             }
             
             # Lägg till GPT-5 specifika parametrar
-            if model in GPT5_MODELS:
+            if is_gpt5_model(model):
                 response_kwargs["reasoning"] = {"effort": reasoning_level}
                 if verbosity:
                     # Map legacy verbosity values

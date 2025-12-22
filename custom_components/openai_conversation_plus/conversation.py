@@ -311,7 +311,7 @@ class OpenAIConversationEntity(
         if system_prompt_text:
             base_messages.append({"role": "system", "content": system_prompt_text})
         if developer_prompt_text:
-            base_messages.append({"role": "user", "content": developer_prompt_text})
+            base_messages.append({"role": "developer", "content": developer_prompt_text})
 
         msgs: list[dict[str, Any]] = []
         last_user_text: str = ""
@@ -380,8 +380,8 @@ class OpenAIConversationEntity(
         }
         
         # Add reasoning and verbosity for GPT-5 models
-        from .const import GPT5_MODELS, VERBOSITY_COMPAT_MAP
-        if model in GPT5_MODELS:
+        from .const import is_gpt5_model, VERBOSITY_COMPAT_MAP
+        if is_gpt5_model(model):
             reasoning_level = opts.get("reasoning_level", "medium")
             verbosity = opts.get("verbosity", "medium")
             # Map legacy verbosity values
@@ -426,7 +426,8 @@ class OpenAIConversationEntity(
             should_force = has_execute_services and _should_force_execute_services(user_input_text)
             
             if should_force:
-                kwargs["tool_choice"] = {"type": "function", "function": {"name": "execute_services"}}
+                # Per Responses API spec: forced function tool_choice is {type:"function", name:"..."}
+                kwargs["tool_choice"] = {"type": "function", "name": "execute_services"}
                 _LOGGER.info(
                     "[v%s] Detected action command in user input, forcing tool_choice to execute_services",
                     INTEGRATION_VERSION
@@ -437,7 +438,20 @@ class OpenAIConversationEntity(
             # Streaming IS supported with tools according to official docs!
             from .const import CONF_STREAM_ENABLED, DEFAULT_STREAM_ENABLED
             stream_enabled = opts.get(CONF_STREAM_ENABLED, DEFAULT_STREAM_ENABLED)
-            kwargs["stream"] = bool(stream_enabled)
+            # Our integration executes custom function tools (e.g. execute_services) locally.
+            # Until streaming tool-output submission is implemented, disable streaming when any
+            # custom function tools are present to ensure reliable tool execution.
+            has_function_tools = any(
+                isinstance(tool, dict) and tool.get("type") == "function" for tool in (tools or [])
+            )
+            if has_function_tools:
+                kwargs["stream"] = False
+                _LOGGER.info(
+                    "[v%s] Streaming disabled because custom function tools are enabled; using non-streaming tool runner",
+                    INTEGRATION_VERSION,
+                )
+            else:
+                kwargs["stream"] = bool(stream_enabled)
             _LOGGER.info(
                 "[v%s] Sending %d tools to OpenAI (stream=%s, tool_choice=%s)",
                 INTEGRATION_VERSION,
@@ -508,11 +522,13 @@ class OpenAIConversationEntity(
                             # Tool call start event
                             elif etype == "response.output_item.added":
                                 item = getattr(event, "item", None)
-                                if item and getattr(item, "type", "") == "tool":
+                                # Function calls are emitted as output items of type "function_call"
+                                if item and getattr(item, "type", "") == "function_call":
                                     item_id = getattr(item, "id", None)
                                     if item_id:
                                         pending_tool_calls[item_id] = {
                                             "id": item_id,
+                                            "call_id": getattr(item, "call_id", None),
                                             "name": getattr(item, "name", None),
                                             "arguments": ""
                                         }
@@ -599,8 +615,8 @@ class OpenAIConversationEntity(
                                 "type": getattr(item, "type", None),
                                 "id": getattr(item, "id", None),
                                 "content": getattr(item, "content", None) if getattr(item, "type", "") == "message" else None,
-                                "name": getattr(item, "name", None) if getattr(item, "type", "") == "tool" else None,
-                                "arguments": getattr(item, "arguments", None) if getattr(item, "type", "") == "tool" else None,
+                                "name": getattr(item, "name", None) if getattr(item, "type", "") == "function_call" else None,
+                                "arguments": getattr(item, "arguments", None) if getattr(item, "type", "") == "function_call" else None,
                             }
                             for item in (final.output if hasattr(final, "output") else [])
                         ],
@@ -636,9 +652,37 @@ class OpenAIConversationEntity(
             else:
                 raise RuntimeError("ChatLog delta stream not available")
         except Exception as stream_error:
-            _LOGGER.warning("[v%s] Streaming failed: %s, falling back to non-streaming", INTEGRATION_VERSION, stream_error)
+            if not use_streaming:
+                _LOGGER.debug(
+                    "[v%s] Streaming disabled; using non-streaming tool runner",
+                    INTEGRATION_VERSION,
+                )
+            else:
+                _LOGGER.warning(
+                    "[v%s] Streaming failed: %s, falling back to non-streaming",
+                    INTEGRATION_VERSION,
+                    stream_error,
+                )
             # Non-streaming fallback with function execution loop
-            max_iterations = 10
+            from .const import (
+                CONF_MAX_FUNCTION_CALLS_PER_CONVERSATION,
+                DEFAULT_MAX_FUNCTION_CALLS_PER_CONVERSATION,
+            )
+            try:
+                max_function_calls = int(
+                    opts.get(
+                        CONF_MAX_FUNCTION_CALLS_PER_CONVERSATION,
+                        DEFAULT_MAX_FUNCTION_CALLS_PER_CONVERSATION,
+                    )
+                    or DEFAULT_MAX_FUNCTION_CALLS_PER_CONVERSATION
+                )
+            except Exception:
+                max_function_calls = DEFAULT_MAX_FUNCTION_CALLS_PER_CONVERSATION
+
+            # Safety clamp to avoid runaway loops if misconfigured.
+            # Note: We need one extra iteration after executing function calls to fetch the final answer.
+            max_function_calls = max(0, min(10, max_function_calls))
+            max_iterations = max(1, max_function_calls + 1)
             
             # Reuse the same logic for forcing execute_services
             has_execute_services = any((
@@ -652,9 +696,6 @@ class OpenAIConversationEntity(
                 
                 kwargs.pop("stream", None)
                 kwargs["stream"] = False
-
-                if isinstance(kwargs.get("tool_choice"), dict):
-                    kwargs.pop("tool_choice", None)
 
                 try:
                     final = await client.responses.create(**kwargs)
@@ -685,8 +726,8 @@ class OpenAIConversationEntity(
                                 "type": getattr(item, "type", None),
                                 "id": getattr(item, "id", None),
                                 "content": getattr(item, "content", None) if getattr(item, "type", "") == "message" else None,
-                                "name": getattr(item, "name", None) if getattr(item, "type", "") == "tool" else None,
-                                "arguments": getattr(item, "arguments", None) if getattr(item, "type", "") == "tool" else None,
+                                "name": getattr(item, "name", None) if getattr(item, "type", "") == "function_call" else None,
+                                "arguments": getattr(item, "arguments", None) if getattr(item, "type", "") == "function_call" else None,
                             }
                             for item in (final.output if hasattr(final, "output") else [])
                         ],
@@ -698,7 +739,7 @@ class OpenAIConversationEntity(
                 tool_calls = []
                 if hasattr(final, "output") and final.output:
                     for output_item in final.output:
-                        if getattr(output_item, "type", "") == "tool":
+                        if getattr(output_item, "type", "") == "function_call":
                             tool_calls.append(output_item)
                 
                 if not tool_calls:
@@ -709,7 +750,7 @@ class OpenAIConversationEntity(
                         # Reconstruct tools into kwargs in case they were removed earlier on retry
                         if tools is not None:
                             kwargs["tools"] = tools
-                        kwargs["tool_choice"] = {"type": "function", "function": {"name": "execute_services"}}
+                        kwargs["tool_choice"] = {"type": "function", "name": "execute_services"}
                         # Re-issue the latest user request with explicit instructions only
                         if system_instruction_text:
                             kwargs["instructions"] = system_instruction_text
@@ -741,12 +782,18 @@ class OpenAIConversationEntity(
                 tool_results = []
                 
                 for tool_call in tool_calls:
+                    tool_name = None
+                    call_id = None
                     try:
                         tool_name = getattr(tool_call, "name", None)
                         arguments_str = getattr(tool_call, "arguments", "{}")
+                        call_id = getattr(tool_call, "call_id", None)
                         
                         if not tool_name:
                             _LOGGER.warning("[v%s] Invalid tool call: missing name", INTEGRATION_VERSION)
+                            continue
+                        if not call_id:
+                            _LOGGER.warning("[v%s] Invalid tool call for %s: missing call_id", INTEGRATION_VERSION, tool_name)
                             continue
                         
                         _LOGGER.info("[v%s] Executing tool: %s", INTEGRATION_VERSION, tool_name)
@@ -799,20 +846,21 @@ class OpenAIConversationEntity(
                                 _LOGGER.warning("[v%s] No matching tool found for: %s", INTEGRATION_VERSION, tool_name)
                                 result_data = {"ok": False, "error": f"Unknown tool: {tool_name}"}
                         
-                        # Add tool result in Responses API format
+                        # Add tool output in Responses API format
+                        # https://platform.openai.com/docs/guides/function-calling
                         tool_results.append({
-                            "type": "tool_result",
-                            "tool_name": tool_name,
-                            "result": result_data
+                            "type": "function_call_output",
+                            "call_id": call_id,
+                            "output": json.dumps(result_data, ensure_ascii=False)
                         })
                         
                     except Exception as e:
                         _LOGGER.error("[v%s] Failed to execute tool call: %s", INTEGRATION_VERSION, e)
-                        if tool_name:
+                        if tool_name and call_id:
                             tool_results.append({
-                                "type": "tool_result",
-                                "tool_name": tool_name,
-                                "result": {"ok": False, "error": str(e)}
+                                "type": "function_call_output",
+                                "call_id": call_id,
+                                "output": json.dumps({"ok": False, "error": str(e)}, ensure_ascii=False)
                             })
                 
                 if not tool_results:
@@ -826,9 +874,17 @@ class OpenAIConversationEntity(
                     "tool_results": tool_results,
                 })
                 
-                # Per Responses API spec: send ONLY tool results as next input
-                # The API maintains conversation state internally
+                # Continue the conversation with tool outputs, referencing the previous response.
+                # This lets the Responses API carry over prior messages + any reasoning items.
                 kwargs["input"] = tool_results
+                prev_id = getattr(final, "id", None)
+                if prev_id:
+                    kwargs["previous_response_id"] = prev_id
+                else:
+                    kwargs.pop("previous_response_id", None)
+                # Don't force a particular tool after we've already executed tool calls
+                if isinstance(kwargs.get("tool_choice"), dict):
+                    kwargs.pop("tool_choice", None)
                 
                 _LOGGER.debug("[v%s] Continuing loop with %d tool results", INTEGRATION_VERSION, len(tool_results))
             

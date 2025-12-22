@@ -104,7 +104,7 @@ Important rules
 """
 DEFAULT_HOUSE_CONTEXT = DEFAULT_PROMPT
 CONF_CHAT_MODEL = "chat_model"
-DEFAULT_CHAT_MODEL = "gpt-5"
+DEFAULT_CHAT_MODEL = "gpt-5.2"
 CONF_MAX_TOKENS = "max_tokens"
 DEFAULT_MAX_TOKENS = 150
 CONF_TOP_P = "top_p"
@@ -196,7 +196,13 @@ CONF_STORE_CONVERSATIONS = "store_conversations"
 DEFAULT_STORE_CONVERSATIONS = True
 
 # GPT-5 Models
-GPT5_MODELS = ["gpt-5", "gpt-5-mini", "gpt-5-nano", "gpt-5-pro"]
+# Note: We treat any model name starting with "gpt-5" as GPT-5 for feature flags.
+GPT5_MODELS = ["gpt-5.2", "gpt-5", "gpt-5-mini", "gpt-5-nano", "gpt-5-pro"]
+
+
+def is_gpt5_model(model: str | None) -> bool:
+    """Return True if the given model name is a GPT-5 family model."""
+    return bool(model) and str(model).startswith("gpt-5")
 CONF_REASONING_LEVEL = "reasoning_level"
 DEFAULT_REASONING_LEVEL = "medium"
 CONF_VERBOSITY = "verbosity"
