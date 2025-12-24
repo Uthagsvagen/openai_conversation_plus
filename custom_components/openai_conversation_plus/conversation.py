@@ -208,31 +208,12 @@ class OpenAIConversationEntity(
         except conversation.ConverseError as err:
             return err.as_conversation_result()
 
-        # Convert HA LLM API tools to Responses API tools
+        # BYPASS HA LLM API tools - like Extended OpenAI Conversation, we only use
+        # our own custom function definitions from integration options.
+        # This avoids conflicts and ensures reliable tool calling.
         tools: list[dict[str, Any]] | None = None
-        if chat_log.llm_api:
-            tools = []
-            for t in chat_log.llm_api.tools:
-                # Use flat structure required by Responses API
-                params = getattr(t, "parameters", {}) or {}
-                try:
-                    # Sanitize: remove unsupported/duplicative 'data' if present
-                    if isinstance(params, dict) and isinstance(params.get("properties"), dict):
-                        if "data" in params["properties"]:
-                            params = dict(params)
-                            props = dict(params.get("properties", {}))
-                            props.pop("data", None)
-                            params["properties"] = props
-                except Exception:
-                    pass
-                tools.append(
-                    {
-                        "type": "function",
-                        "name": t.name,
-                        "description": getattr(t, "description", ""),
-                        "parameters": params,
-                    }
-                )
+        # Note: We intentionally do NOT add chat_log.llm_api.tools here.
+        # Custom functions are loaded below from get_functions_from_options().
         
         # CRITICAL: Add custom functions from integration options
         # This is where user-defined functions like execute_services are loaded!
@@ -305,15 +286,19 @@ class OpenAIConversationEntity(
                             INTEGRATION_VERSION
                         )
                     
+                    # Use NESTED format per Responses API docs:
+                    # {"type": "function", "function": {"name": ..., "parameters": ...}}
                     tool = {
                         "type": "function",
-                        "name": func_name,
-                        "description": description,
-                        "parameters": params
+                        "function": {
+                            "name": func_name,
+                            "description": description,
+                            "parameters": params
+                        }
                     }
                     tools.append(tool)
                     _LOGGER.info(
-                        "[v%s]   - Added function: %s",
+                        "[v%s]   - Added function (nested format): %s",
                         INTEGRATION_VERSION,
                         func_name
                     )
@@ -444,36 +429,20 @@ class OpenAIConversationEntity(
                 # If sanitize is not available for any reason, fall back to original tools
                 pass
 
-            # Some SDK/docs variants expect function tools nested under a "function" key.
-            # We keep a flat version as primary, and a nested version as a compatibility fallback.
-            tools_flat = tools
-
-            def _nest_function_tools(tools_in: list[dict[str, Any]]) -> list[dict[str, Any]]:
-                nested: list[dict[str, Any]] = []
-                for t in tools_in or []:
-                    if isinstance(t, dict) and t.get("type") == "function":
-                        nested.append(
-                            {
-                                "type": "function",
-                                "function": {
-                                    "name": t.get("name"),
-                                    "description": t.get("description", ""),
-                                    "parameters": t.get("parameters", {"type": "object", "properties": {}}),
-                                },
-                            }
-                        )
-                    else:
-                        nested.append(t)
-                return nested
-
-            tools_nested = _nest_function_tools(tools_flat)
-
-            kwargs["tools"] = tools_flat
+            # Tools are already in nested format: {"type": "function", "function": {...}}
+            # This is the correct format per Responses API documentation.
+            kwargs["tools"] = tools
             
             # Intelligent tool_choice: Force execute_services for action commands
+            # Check nested format: tool["function"]["name"]
             has_execute_services = any(
-                (isinstance(tool, dict) and tool.get("type") == "function" and tool.get("name") == "execute_services")
-                for tool in tools_flat
+                (
+                    isinstance(tool, dict) 
+                    and tool.get("type") == "function" 
+                    and isinstance(tool.get("function"), dict)
+                    and tool["function"].get("name") == "execute_services"
+                )
+                for tool in tools
             )
             
             # Get user input text from last message
@@ -487,12 +456,11 @@ class OpenAIConversationEntity(
             should_force = has_execute_services and _should_force_execute_services(user_input_text)
             
             if should_force:
-                # Force a particular function tool call.
-                # Note: There are multiple schema variants in the wild; we use the flat form primarily
-                # and will retry with the nested form if no function_call items are returned.
-                kwargs["tool_choice"] = {"type": "function", "name": "execute_services"}
+                # Force a particular function tool call using nested format per Responses API docs:
+                # {"type": "function", "function": {"name": "..."}}
+                kwargs["tool_choice"] = {"type": "function", "function": {"name": "execute_services"}}
                 _LOGGER.info(
-                    "[v%s] Detected action command in user input, forcing tool_choice to execute_services",
+                    "[v%s] Detected action command in user input, forcing tool_choice to execute_services (nested format)",
                     INTEGRATION_VERSION
                 )
             else:
@@ -585,8 +553,9 @@ class OpenAIConversationEntity(
                             # Tool call start event
                             elif etype == "response.output_item.added":
                                 item = getattr(event, "item", None)
-                                # Function calls are emitted as output items of type "function_call"
-                                if item and getattr(item, "type", "") == "function_call":
+                                # Tool calls are emitted as output items of type "tool_call" or "function_call"
+                                item_type = getattr(item, "type", "") if item else ""
+                                if item and item_type in ("tool_call", "function_call"):
                                     item_id = getattr(item, "id", None)
                                     if item_id:
                                         pending_tool_calls[item_id] = {
@@ -678,8 +647,8 @@ class OpenAIConversationEntity(
                                 "type": getattr(item, "type", None),
                                 "id": getattr(item, "id", None),
                                 "content": getattr(item, "content", None) if getattr(item, "type", "") == "message" else None,
-                                "name": getattr(item, "name", None) if getattr(item, "type", "") == "function_call" else None,
-                                "arguments": getattr(item, "arguments", None) if getattr(item, "type", "") == "function_call" else None,
+                                "name": getattr(item, "name", None) if getattr(item, "type", "") in ("tool_call", "function_call") else None,
+                                "arguments": getattr(item, "arguments", None) if getattr(item, "type", "") in ("tool_call", "function_call") else None,
                             }
                             for item in (final.output if hasattr(final, "output") else [])
                         ],
@@ -748,15 +717,19 @@ class OpenAIConversationEntity(
             max_iterations = max(1, max_function_calls + 1)
             
             # Reuse the same logic for forcing execute_services
+            # Check nested format: tool["function"]["name"]
             has_execute_services = any((
-                isinstance(tool, dict) and tool.get("type") == "function" and tool.get("name") == "execute_services"
+                isinstance(tool, dict) 
+                and tool.get("type") == "function" 
+                and isinstance(tool.get("function"), dict)
+                and tool["function"].get("name") == "execute_services"
             ) for tool in (tools or []))
             want_force = has_execute_services and _should_force_execute_services(last_user_text)
             force_attempt = 0
             out_override: str | None = None
 
-            tool_choice_primary = {"type": "function", "name": "execute_services"}
-            tool_choice_alt = {"type": "function", "function": {"name": "execute_services"}}
+            # Use nested format per Responses API docs
+            tool_choice_forced = {"type": "function", "function": {"name": "execute_services"}}
 
             async def _try_execute_legacy_tool_json(resp_obj: Any) -> bool:
                 """Best-effort fallback for models that emit tool JSON as plain text instead of function_call items."""
@@ -873,8 +846,8 @@ class OpenAIConversationEntity(
                                 "type": getattr(item, "type", None),
                                 "id": getattr(item, "id", None),
                                 "content": getattr(item, "content", None) if getattr(item, "type", "") == "message" else None,
-                                "name": getattr(item, "name", None) if getattr(item, "type", "") == "function_call" else None,
-                                "arguments": getattr(item, "arguments", None) if getattr(item, "type", "") == "function_call" else None,
+                                "name": getattr(item, "name", None) if getattr(item, "type", "") in ("tool_call", "function_call") else None,
+                                "arguments": getattr(item, "arguments", None) if getattr(item, "type", "") in ("tool_call", "function_call") else None,
                             }
                             for item in (final.output if hasattr(final, "output") else [])
                         ],
@@ -883,10 +856,13 @@ class OpenAIConversationEntity(
                 })
                 
                 # Extract tool calls from response.output
+                # Per Responses API docs, tool calls have type "tool_call"
                 tool_calls = []
                 if hasattr(final, "output") and final.output:
                     for output_item in final.output:
-                        if getattr(output_item, "type", "") == "function_call":
+                        item_type = getattr(output_item, "type", "")
+                        # Check for both "tool_call" (per docs) and "function_call" (SDK variant)
+                        if item_type in ("tool_call", "function_call"):
                             tool_calls.append(output_item)
                 
                 if not tool_calls:
@@ -903,15 +879,12 @@ class OpenAIConversationEntity(
                     # Optional fallback: force the execute_services tool once for imperative requests
                     if want_force and force_attempt == 0:
                         _LOGGER.info(
-                            "[v%s] No function_call items returned; retrying with alternate tool schema for execute_services",
+                            "[v%s] No tool_call items returned; retrying with forced tool_choice for execute_services",
                             INTEGRATION_VERSION,
                         )
-                        # Retry with alternate tool_choice + nested function tool format (compat mode)
-                        if "tools_nested" in locals() and isinstance(locals().get("tools_nested"), list):
-                            kwargs["tools"] = tools_nested  # type: ignore[name-defined]
-                        else:
-                            kwargs["tools"] = tools or []
-                        kwargs["tool_choice"] = tool_choice_alt
+                        # Retry with forced tool_choice (nested format per Responses API docs)
+                        kwargs["tools"] = tools or []
+                        kwargs["tool_choice"] = tool_choice_forced
                         # Re-issue the latest user request with explicit instructions only
                         if system_instruction_text:
                             kwargs["instructions"] = system_instruction_text
